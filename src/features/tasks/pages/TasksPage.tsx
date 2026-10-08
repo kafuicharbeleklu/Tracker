@@ -24,6 +24,7 @@ import Icon from '../../../components/ui/Icon';
 import BottomSheet from '../../../components/ui/BottomSheet';
 import CloseButton from '../../../components/ui/CloseButton';
 import ActSheet from '../../../components/ui/ActSheet';
+import { DECISION_A_L_ECRAN } from '../../../lib/attestation';
 import Modal from '../../../components/ui/Modal';
 import Onglets from '../../../components/ui/Onglets';
 import SearchField from '../../../components/ui/SearchField';
@@ -37,7 +38,7 @@ import { useDerniereValeur } from '../../../hooks/useDerniereValeur';
 import { avecObjetOuvert, useObjetOuvert } from '../../../hooks/useObjetOuvert';
 import { MEDIA } from '../../../constants/breakpoints';
 import { RACCOURCI_RECHERCHE, toucheSimplePourLaPage } from '../../../lib/clavier';
-import { ApprovalStatus, ViewType } from '../../../types';
+import { ApprovalStatus, AttestationMethod, ViewType } from '../../../types';
 import { cn } from '../../../lib/utils';
 import { NOM_SUR_UNE_LIGNE, infobulle } from '../../../lib/nomLong';
 import PanneauDeTache, { type EtatDuRefus } from '../components/PanneauDeTache';
@@ -50,7 +51,6 @@ import {
     NATURE_MOT,
     SCOPE_LABEL,
     ageLabel,
-    dateLabel,
     daysSince,
     groupeDe,
     ordonnerLaFile,
@@ -61,25 +61,22 @@ import {
     type TaskNature,
     type TaskOrder,
     type TaskScope,
-    type TaskTone,
 } from '../lib/file';
 import { unitesARemettre } from '../lib/unites';
 
 /**
- * **La couleur de la vignette dit la nature** — `.vig.val`, `.rem`, `.rec`, `.ret`,
- * `.ok`, `.no` de la planche 03.3, passe sobre du 02/09. Une paire = un fond et l'encre
- * qui tient dessus ; le socle les déclare ensemble pour qu'aucune ne dérive sans l'autre.
+ * **La couleur de la vignette dit la nature** — `.vig.val`, `.rem`, `.rec`, `.ret` de la
+ * planche 03.3, passe sobre du 02/09. Une paire = un fond et l'encre qui tient dessus ; le
+ * socle les déclare ensemble pour qu'aucune ne dérive sans l'autre. (`.ok` et `.no`, les
+ * issues d'une demande close, sont partis avec l'historique de la file, le 08/10.)
  */
-const VIG_TINT: Record<TaskTone, string> = {
+const VIG_TINT: Record<TaskNature, string> = {
     validation: 'bg-[var(--tk-color-tint-bleu)] text-[var(--tk-color-on-tint-bleu)]',
     remise: 'bg-[var(--tk-color-tint-ambre)] text-[var(--tk-color-on-tint-ambre)]',
     reception: 'bg-[var(--tk-color-tint-vert)] text-[var(--tk-color-on-tint-vert)]',
     retour: 'bg-[var(--tk-color-tint-orange)] text-[var(--tk-color-on-tint-orange)]',
     collecte: 'bg-[var(--tk-color-surface-muted-strong)] text-on-surface-variant',
     reparation: 'bg-[var(--tk-color-tint-orange)] text-[var(--tk-color-on-tint-orange)]',
-    ok: 'bg-[var(--tk-color-tint-vert)] text-[var(--tk-color-on-tint-vert)]',
-    no: 'bg-[var(--tk-color-tint-danger)] text-[var(--tk-color-on-tint-danger)]',
-    undone: 'bg-[var(--tk-color-tint-ambre)] text-[var(--tk-color-on-tint-ambre)]',
 };
 
 /**
@@ -290,7 +287,6 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
         () => ({
             todo: presentes.filter((task) => task.scope === 'todo').length,
             following: presentes.filter((task) => task.scope === 'following').length,
-            history: presentes.filter((task) => task.scope === 'history').length,
         }),
         [presentes],
     );
@@ -303,9 +299,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
         [scopeTasks],
     );
 
-    /* L'historique n'a pas d'urgence : « ce qui presse » y lit la décision la plus récente. */
-    const ordre: TaskOrder = scope === 'history' && order === 'urgence' ? 'newest' : order;
-    const enGroupes = order === 'urgence' && scope !== 'history';
+    const enGroupes = order === 'urgence';
 
     const filteredTasks = useMemo(() => {
         const byNature =
@@ -325,8 +319,8 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                       .some((field) => (field as string).toLowerCase().includes(needle)),
               )
             : byPresse;
-        return ordonnerLaFile(selected, ordre);
-    }, [nature, ordre, presse, query, scopeTasks]);
+        return ordonnerLaFile(selected, order);
+    }, [nature, order, presse, query, scopeTasks]);
 
     useEffect(() => {
         setVisibleCount(TASKS_PAGE_SIZE);
@@ -432,7 +426,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
         SCOPE_LABEL[scope],
         nature !== 'toutes' ? NATURE_LABEL[nature].toLowerCase() : null,
         presse === 'urgentes' ? 'urgentes' : presse === 'retard' ? 'en retard' : null,
-        `${ORDRE_LABEL[ordre].toLowerCase()}${ordre === 'urgence' ? '' : ' d’abord'}`,
+        `${ORDRE_LABEL[order].toLowerCase()}${order === 'urgence' ? '' : ' d’abord'}`,
     ]
         .filter(Boolean)
         .join(' · ');
@@ -529,7 +523,13 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                 const refusees = lot
                     .map((task) =>
                         task.transition
-                            ? updateApproval(task.transition.approvalId, task.transition.nextStatus)
+                            ? updateApproval(
+                                  task.transition.approvalId,
+                                  task.transition.nextStatus,
+                                  {
+                                      method: DECISION_A_L_ECRAN,
+                                  },
+                              )
                             : { allowed: true },
                     )
                     .filter((decision) => !decision.allowed);
@@ -549,7 +549,11 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
             message: messageDeLaDecision(task, nextStatus),
             tachesIds: [task.id],
             ecrire: () => {
-                const decision = updateApproval(approvalId, nextStatus);
+                /* Au bureau, sans code : la session et les cinq secondes en tiennent lieu, et
+                   le journal le dit (08/10). */
+                const decision = updateApproval(approvalId, nextStatus, {
+                    method: DECISION_A_L_ECRAN,
+                });
                 return decision.allowed ? null : decision.reason || 'Action non autorisée.';
             },
             surAnnulation: () => ouvrir(task),
@@ -564,7 +568,10 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
             message: messageDeLaDecision(task, nextStatus),
             tachesIds: [task.id],
             ecrire: () => {
-                const decision = updateApproval(approvalId, nextStatus, { reason: motif.trim() });
+                const decision = updateApproval(approvalId, nextStatus, {
+                    reason: motif.trim(),
+                    method: DECISION_A_L_ECRAN,
+                });
                 return decision.allowed ? null : decision.reason || 'Refus impossible.';
             },
             surAnnulation: () => ouvrir(task),
@@ -626,7 +633,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
 
         if (touche === '?') return agir(() => setAideOuverte(true));
         if (touche === 'z' && enSuspens) return agir(annuler);
-        if (touche === 'x' && openedTask && openedTask.scope !== 'history') {
+        if (touche === 'x' && openedTask) {
             return agir(() =>
                 selection.isActive
                     ? selection.toggle(openedTask.id)
@@ -697,13 +704,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                     </p>
                     <p className="text-text-secondary text-ts-sub leading-ts-sub mt-0.5">
                         {tache.askedBy ?? tache.context}
-                        {/* Une décision se date, elle ne se compte pas en jours :
-                            « le 14 août », pas « il y a 21 j » (planche 03.3). */}
-                        {tache.since
-                            ? tache.scope === 'history'
-                                ? ` · le ${dateLabel(tache.since)}`
-                                : ` · il y a ${ageLabel(tache.since)}`
-                            : ''}
+                        {tache.since ? ` · il y a ${ageLabel(tache.since)}` : ''}
                     </p>
                 </div>
                 <CloseButton onClick={() => setFeuille(null)} />
@@ -727,7 +728,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
 
             {/* `.sfoot` — deux décisions de même largeur. Le non est sombre,
                 le oui porte le seul jaune de la feuille. */}
-            <div className="border-outline-variant mt-4 grid grid-cols-2 gap-3 border-t pt-4">
+            <div className="border-outline-variant duo-de-pied mt-4 gap-3 border-t pt-4">
                 {tache.refusal ? (
                     <Button
                         variant="filled"
@@ -810,7 +811,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
         }
         /* **06.5 — au téléphone, une rangée de demande ouvre son détail** : le parcours et
            ce que la personne détient y sont, et un non se prend devant eux. */
-        if (task.approvalId && task.scope !== 'history') {
+        if (task.approvalId) {
             onItemClick?.('approval_details', task.approvalId);
             return;
         }
@@ -821,10 +822,11 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
      * Le refus se prend en deux temps au téléphone : un motif, puis le code personnel.
      * `updateApproval` refuse un motif absent : l'UI n'est pas la seule barrière.
      */
-    const refuseApprovalTask = (task: Task) => {
+    const refuseApprovalTask = (task: Task, method?: AttestationMethod) => {
         if (!task.refusal) return;
         const decision = updateApproval(task.refusal.approvalId, task.refusal.nextStatus, {
             reason: refusalReason.trim(),
+            method,
         });
         if (!decision.allowed) {
             showToast(decision.reason || 'Refus impossible.', 'error');
@@ -856,9 +858,9 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
         showToast('Demande annulée.', 'success');
     };
 
-    const confirmReceptionTask = (task: Task): boolean => {
+    const confirmReceptionTask = (task: Task, method?: AttestationMethod): boolean => {
         if (!task.reception) return false;
-        const decision = confirmEquipmentReception(task.reception.equipmentId);
+        const decision = confirmEquipmentReception(task.reception.equipmentId, method);
         if (!decision.allowed) {
             showToast(decision.reason || 'Confirmation refusée.', 'error');
             return false;
@@ -867,9 +869,11 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
         return true;
     };
 
-    const completeApprovalTask = (task: Task): boolean => {
+    const completeApprovalTask = (task: Task, method?: AttestationMethod): boolean => {
         if (!task.transition) return false;
-        const decision = updateApproval(task.transition.approvalId, task.transition.nextStatus);
+        const decision = updateApproval(task.transition.approvalId, task.transition.nextStatus, {
+            method,
+        });
         if (!decision.allowed) {
             showToast(decision.reason || 'Action non autorisée.', 'error');
             return false;
@@ -900,11 +904,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
             onRefus={setRefus}
             onPrincipal={() => faireLePrincipal(openedTask)}
             onRefuser={() => refuserDiffere(openedTask, refus.motif)}
-            onDetail={
-                openedTask.approvalId && openedTask.scope !== 'history'
-                    ? () => ouvrirLaDemande(openedTask)
-                    : undefined
-            }
+            onDetail={openedTask.approvalId ? () => ouvrirLaDemande(openedTask) : undefined}
             onAnnulerDemande={
                 openedTask.cancel
                     ? () => {
@@ -938,9 +938,10 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
             skeleton="file"
             title="Tâches"
             /*
-              **Les trois partitions en onglets, à côté du titre** (26/09, maquette de la
-              refonte) : « À faire 8 · À suivre 9 · Historique ». Au téléphone elles restent
-              dans la feuille de filtre (R11).
+              **Les partitions en onglets, à côté du titre** (26/09, maquette de la refonte) :
+              « À faire 8 · À suivre 9 ». Au téléphone elles restent dans la feuille de filtre
+              (R11). « Historique » est parti le 08/10 : les demandes tranchées se lisent dans
+              l'Historique du menu, le seul journal du produit.
             */
             titreAnnexe={
                 enPanneau ? (
@@ -949,8 +950,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                         items={(Object.keys(SCOPE_LABEL) as TaskScope[]).map((taskScope) => ({
                             id: taskScope,
                             label: SCOPE_LABEL[taskScope],
-                            /* L'historique ne se compte pas : il n'attend aucun geste. */
-                            count: taskScope === 'history' ? undefined : scopeCounts[taskScope],
+                            count: scopeCounts[taskScope],
                         }))}
                         active={scope}
                         onSelect={(id) => setScope(id as TaskScope)}
@@ -973,31 +973,28 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                             placeholder="Personne, objet, code"
                             className="h-9 w-[300px] max-w-full gap-2 px-2.5"
                         />
-                        {scope !== 'history' &&
-                            (['toutes', 'urgentes', 'retard'] as const).map((filtre) => (
-                                <FacetChip
-                                    key={filtre}
-                                    dense
-                                    label={PRESSE_LABEL[filtre]}
-                                    count={
-                                        filtre === 'toutes'
-                                            ? scopeTasks.length
-                                            : presseCounts[filtre]
-                                    }
-                                    selected={presse === filtre}
-                                    onClick={() => setPresse(filtre)}
-                                    className="min-h-8 px-[11px]"
-                                />
-                            ))}
+                        {(['toutes', 'urgentes', 'retard'] as const).map((filtre) => (
+                            <FacetChip
+                                key={filtre}
+                                dense
+                                label={PRESSE_LABEL[filtre]}
+                                count={
+                                    filtre === 'toutes' ? scopeTasks.length : presseCounts[filtre]
+                                }
+                                selected={presse === filtre}
+                                onClick={() => setPresse(filtre)}
+                                className="min-h-8 px-[11px]"
+                            />
+                        ))}
                         <Button
                             variant="text"
                             size="sm"
                             onClick={() => setOrder(ORDRE_SUIVANT[order])}
-                            aria-label={`Ordre : ${ORDRE_LABEL[ordre]} — changer`}
+                            aria-label={`Ordre : ${ORDRE_LABEL[order]} — changer`}
                             className="text-on-surface ml-auto h-8 min-h-8 gap-1 px-1 text-[0.8125rem] leading-[1.125rem] font-medium hover:bg-transparent"
                         >
                             <Icon glyph={SortAscending} size={18} className="text-text-muted" />
-                            {ORDRE_LABEL[ordre]}
+                            {ORDRE_LABEL[order]}
                         </Button>
                     </div>
                 ) : undefined
@@ -1111,10 +1108,10 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
         >
             {visibleTasks.map((task) => {
                 const IconGlyph = task.icon || Package;
-                /* Faute d'issue, c'est la nature qui donne sa couleur à la vignette. Au
-                   bureau, la nature est écrite : la remise y garde le bleu de la maquette. */
-                const tone: TaskTone = task.tone ?? task.nature;
-                const teinte: TaskTone = enPanneau && tone === 'remise' ? 'validation' : tone;
+                /* La nature donne sa couleur à la vignette. Au bureau, la nature est écrite :
+                   la remise y garde le bleu de la maquette. */
+                const teinte: TaskNature =
+                    enPanneau && task.nature === 'remise' ? 'validation' : task.nature;
                 /* **Les groupes de ce qui presse** (26/09) : un intitulé à chaque changement. */
                 const groupe = enGroupes ? groupeDe(task) : null;
                 const entete = groupe !== null && groupe !== groupePrecedent ? groupe : null;
@@ -1189,7 +1186,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                         )}
                                     </span>
                                     {/* La case au survol — cocher sans appui long, au bureau. */}
-                                    {enPanneau && souris && task.scope !== 'history' && (
+                                    {enPanneau && souris && (
                                         <button
                                             type="button"
                                             aria-label={`Sélectionner — ${task.title}`}
@@ -1221,7 +1218,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                     </span>
                                     {/* La nature écrite, au bureau : la couleur seule ne se
                                         lit pas d'une rangée à l'autre (26/09). */}
-                                    {enPanneau && task.scope !== 'history' && (
+                                    {enPanneau && (
                                         <span className="bg-surface-container text-text-secondary shrink-0 rounded-[4px] px-1.5 py-px text-[0.75rem] leading-4 font-medium">
                                             {NATURE_MOT[task.nature]}
                                         </span>
@@ -1287,20 +1284,8 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                               À droite, ce que la partition demande. « À faire » et « À suivre »
                               portent l'âge, coloré par ce qui presse, et la marque « Urgent » ;
                               au bureau, une demande à relancer dit « Relancer » à sa place.
-                              L'historique empile la date de la décision et qui l'a prise.
                             */}
-                            {task.scope === 'history' ? (
-                                <span className="flex shrink-0 flex-col items-end gap-0.5 self-start">
-                                    <span className="text-on-surface-variant mt-1 text-[0.75rem] leading-4 whitespace-nowrap tabular-nums">
-                                        {dateLabel(task.since)}
-                                    </span>
-                                    {task.decidedBy && (
-                                        <span className="text-text-secondary text-[0.75rem] leading-4 whitespace-nowrap">
-                                            {task.decidedBy}
-                                        </span>
-                                    )}
-                                </span>
-                            ) : enPanneau && task.remind ? (
+                            {enPanneau && task.remind ? (
                                 <Button
                                     variant="text"
                                     size="sm"
@@ -1498,9 +1483,8 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                 emploi="filtre"
             >
                 {/*
-                  LA FEUILLE PORTE LES RÉGLAGES, DANS L'ORDRE DE LA PLANCHE : **Où** — les trois
-                  partitions —, **Nature**, **Ce qui presse** (26/09) et **Ordre**. « Historique »
-                  ne porte pas de décompte : on y vient pour retrouver, pas pour compter.
+                  LA FEUILLE PORTE LES RÉGLAGES, DANS L'ORDRE DE LA PLANCHE : **Où** — les
+                  partitions —, **Nature**, **Ce qui presse** (26/09) et **Ordre**.
                 */}
                 <div className="flex flex-col gap-6">
                     <div>
@@ -1510,9 +1494,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                 <FacetChip
                                     key={taskScope}
                                     label={SCOPE_LABEL[taskScope]}
-                                    count={
-                                        taskScope !== 'history' ? scopeCounts[taskScope] : undefined
-                                    }
+                                    count={scopeCounts[taskScope]}
                                     selected={scope === taskScope}
                                     onClick={() => setScope(taskScope)}
                                 />
@@ -1541,28 +1523,26 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                         </div>
                     </div>
 
-                    {scope !== 'history' && (
-                        <div>
-                            <p className={FILTER_HEADING}>Ce qui presse</p>
-                            <div className="mt-2 flex flex-wrap gap-2">
-                                {(
-                                    [
-                                        ['toutes', 'Tout', undefined],
-                                        ['urgentes', 'Urgentes', presseCounts.urgentes],
-                                        ['retard', 'En retard', presseCounts.retard],
-                                    ] as const
-                                ).map(([valeur, label, compte]) => (
-                                    <FacetChip
-                                        key={valeur}
-                                        label={label}
-                                        count={compte}
-                                        selected={presse === valeur}
-                                        onClick={() => setPresse(valeur)}
-                                    />
-                                ))}
-                            </div>
+                    <div>
+                        <p className={FILTER_HEADING}>Ce qui presse</p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                            {(
+                                [
+                                    ['toutes', 'Tout', undefined],
+                                    ['urgentes', 'Urgentes', presseCounts.urgentes],
+                                    ['retard', 'En retard', presseCounts.retard],
+                                ] as const
+                            ).map(([valeur, label, compte]) => (
+                                <FacetChip
+                                    key={valeur}
+                                    label={label}
+                                    count={compte}
+                                    selected={presse === valeur}
+                                    onClick={() => setPresse(valeur)}
+                                />
+                            ))}
                         </div>
-                    )}
+                    </div>
 
                     <div>
                         <p className={FILTER_HEADING}>Ordre</p>
@@ -1581,7 +1561,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                     {/* `.sfoot` — deux gestes de même largeur : ils se valent, la grille le dit. */}
                     <div
                         data-pied
-                        className="border-outline-variant grid grid-cols-2 gap-3 border-t pt-4"
+                        className="border-outline-variant duo-de-pied gap-3 border-t pt-4"
                     >
                         <Button variant="ghost" onClick={clearFilters} className="h-12">
                             Tout effacer
@@ -1660,7 +1640,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                     confirmLabel={
                         refusAffiche.refusal.nextStatus === 'Rejected' ? 'Refuser' : 'Renvoyer'
                     }
-                    onConfirm={() => refuseApprovalTask(refusAffiche)}
+                    onConfirm={(method) => refuseApprovalTask(refusAffiche, method)}
                 />
             )}
 
@@ -1755,10 +1735,10 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                             : (acteAffiche.action ?? 'Confirmer')
                     }
                     cancelLabel="Plus tard"
-                    onConfirm={() => {
+                    onConfirm={(method) => {
                         const abouti = acteAffiche.reception
-                            ? confirmReceptionTask(acteAffiche)
-                            : completeApprovalTask(acteAffiche);
+                            ? confirmReceptionTask(acteAffiche, method)
+                            : completeApprovalTask(acteAffiche, method);
                         if (abouti) setActe(null);
                     }}
                 />

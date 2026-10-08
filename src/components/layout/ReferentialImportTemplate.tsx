@@ -254,9 +254,15 @@ function ReferentialImportTemplate<T>({
                         <Button
                             variant="text"
                             onClick={downloadSample}
-                            className="border-outline-variant text-on-surface hover:text-text-secondary text-ts-sub mt-2 flex min-h-12 w-full items-center justify-start gap-2.5 rounded-none border-t px-1 pt-2 text-left font-medium transition-colors"
+                            /* `whitespace-normal` : texte agrandi, le libellé sortait de la carte
+                               de 34 px à 360 (07/10). */
+                            className="border-outline-variant text-on-surface hover:text-text-secondary text-ts-sub mt-2 flex min-h-12 w-full items-center justify-start gap-2.5 rounded-none border-t px-1 pt-2 text-left font-medium whitespace-normal transition-colors"
                         >
-                            <Icon glyph={CaretRight} size={20} className="text-text-secondary" />
+                            <Icon
+                                glyph={CaretRight}
+                                size={20}
+                                className="text-text-secondary shrink-0"
+                            />
                             Télécharger un fichier d'exemple
                         </Button>
                     </section>

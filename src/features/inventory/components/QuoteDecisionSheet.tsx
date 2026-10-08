@@ -119,7 +119,7 @@ const QuoteDecisionSheet: React.FC<QuoteDecisionSheetProps> = ({
                     )
                 )}
 
-                <div className="border-outline-variant -mx-5 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1">
+                <div className="border-outline-variant -mx-5 duo-de-pied gap-3 border-t px-5 pt-4 pb-1">
                     {refus ? (
                         <>
                             <Button variant="ghost" onClick={() => setRefus(false)}>

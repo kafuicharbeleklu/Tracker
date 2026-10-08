@@ -111,8 +111,12 @@ const PinField: React.FC<PinFieldProps> = ({
     };
 
     return (
+        /* Six cases de 44 et cinq gouttières de 10 demandent 314 px : dans une feuille de 320,
+           il en reste 280, et les cases mangeaient la marge jusqu'au bord de l'écran (07/10).
+           Elles rétrécissent ensemble (`min-w-0`) ; la gouttière passe à 8 sur un téléphone
+           étroit. */
         <div
-            className="flex justify-center gap-2.5"
+            className="etroit:gap-2 flex justify-center gap-2.5"
             role="group"
             aria-label={`${label} — ${PIN_LENGTH} chiffres`}
         >
@@ -138,7 +142,7 @@ const PinField: React.FC<PinFieldProps> = ({
                         onFocus={(event) => event.currentTarget.select()}
                         aria-label={`Chiffre ${index + 1} sur ${PIN_LENGTH}`}
                         className={cn(
-                            'font-brand h-14 w-11 rounded-md text-center text-[1.5rem] font-semibold caret-transparent outline-none',
+                            'font-brand h-14 w-11 min-w-0 rounded-md text-center text-[1.5rem] font-semibold caret-transparent outline-none',
                             'duration-short4 transition-[box-shadow,background-color]',
                             filled
                                 ? 'text-on-surface bg-surface-container'

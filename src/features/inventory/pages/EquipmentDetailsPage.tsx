@@ -751,7 +751,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
            rien en faire, et l'objet restait ainsi des semaines. */
         if (item.assignmentStatus === 'PENDING_DELIVERY' && permissions.canManageInventory) {
             return (
-                <div className="grid w-full grid-cols-2 gap-3">
+                <div className="duo-de-gestes w-full gap-3">
                     <Button
                         variant="filled"
                         className="px-3"
@@ -783,7 +783,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
               blanc à 12 % de `.btn-d`, le jaune restant au geste qui signale.
             */
             return (
-                <div className="grid w-full grid-cols-2 gap-3">
+                <div className="duo-de-gestes w-full gap-3">
                     <Button
                         variant="filled"
                         className="px-3"
@@ -1356,8 +1356,8 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                     ),
                 }}
                 confirmLabel="Je confirme"
-                onConfirm={() => {
-                    const decision = confirmEquipmentReception(item.id);
+                onConfirm={(method) => {
+                    const decision = confirmEquipmentReception(item.id, method);
                     if (!decision.allowed) {
                         showToast(decision.reason || 'Confirmation refusée.', 'error');
                         return;

@@ -381,7 +381,7 @@ const ConfirmationSheet: React.FC<ConfirmationSheetProps> = ({
                 </div>
 
                 {/* `.sfoot` — deux verbes de même largeur, 12 d'écart, un filet au-dessus. */}
-                <div className="border-outline-variant mt-4 grid grid-cols-2 gap-3 border-t px-5 pt-4">
+                <div className="border-outline-variant mt-4 duo-de-pied gap-3 border-t px-5 pt-4">
                     <Button
                         variant="ghost"
                         onClick={onClose}

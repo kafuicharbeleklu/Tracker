@@ -893,7 +893,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                         /* `.hact` — deux colonnes égales quand il y a deux gestes ;
                            un seul bouton reste pleine largeur. */
                         heroSecondaryAction ? (
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="duo-de-gestes gap-3">
                                 {heroAction}
                                 {heroSecondaryAction}
                             </div>
@@ -1367,7 +1367,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                     </label>
 
                     {/* `.sfoot` — deux colonnes égales, d'un bord à l'autre de la feuille. */}
-                    <div className="border-outline-variant -mx-5 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1">
+                    <div className="border-outline-variant -mx-5 duo-de-pied gap-3 border-t px-5 pt-4 pb-1">
                         <Button variant="ghost" onClick={() => setSheet(null)}>
                             Annuler
                         </Button>

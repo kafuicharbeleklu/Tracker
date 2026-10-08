@@ -51,22 +51,9 @@ import type { AttestationMethod } from '../../types';
 
 export type { AttestationMethod } from '../../types';
 
-/**
- * **Ce que la méthode s'appelle** — une fois, pour l'historique, la colonne
- * « Attestation » du bureau et les feuilles d'acte. Les trois l'écrivaient chacun de leur
- * côté, et aucun ne connaissait `pin+signature`.
- */
-export const LIBELLE_ATTESTATION: Record<AttestationMethod, string> = {
-    pin: 'code PIN',
-    signature: 'signature apposée',
-    'pin+signature': 'code PIN, signature apposée',
-};
-
-/** Le libellé d'une méthode relue d'un enregistrement — inconnue, elle ne dit rien. */
-export const libelleAttestation = (methode?: string): string | undefined =>
-    methode && methode in LIBELLE_ATTESTATION
-        ? LIBELLE_ATTESTATION[methode as AttestationMethod]
-        : undefined;
+/* Les libellés des méthodes vivent dans `lib/attestation` : le magasin de données les lit
+   aussi, et il n'importe pas de composant. */
+export { DECISION_A_L_ECRAN, LIBELLE_ATTESTATION, libelleAttestation } from '../../lib/attestation';
 
 interface AttestationProps {
     /** Qui atteste. Son nom va au bas de la signature. */

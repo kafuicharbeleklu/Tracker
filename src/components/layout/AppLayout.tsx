@@ -832,6 +832,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                         /* Le fait ouvert renvoie à l'objet et à la personne (18.1). */
                         onOpenEquipment={(id) => handleItemClick('equipment_details', id)}
                         onOpenUser={(id) => handleItemClick('user_details', id)}
+                        onOpenApproval={(id) => handleItemClick('approval_details', id)}
                     />
                 );
             case 'reports':

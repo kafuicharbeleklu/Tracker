@@ -32,6 +32,7 @@ import { cn } from '../../../lib/utils';
 import { CORPS_BUREAU, PAGE_BUREAU } from '../../../lib/regimeBureau';
 import type { FinanceBudgetItem, FinanceExpenseType } from '../../../types';
 import ChiffreAnime from '../../../components/ui/ChiffreAnime';
+import ChiffreAjuste from '../../../components/ui/ChiffreAjuste';
 
 /**
  * **15.2 — Lignes du budget : ajuster les enveloppes.**
@@ -106,9 +107,6 @@ type Dialogue =
 
 const BudgetLinesPage: React.FC<BudgetLinesPageProps> = ({ year, onBack }) => {
     const bureau = useMediaQuery(MEDIA.expandedUp);
-    /* L'enveloppe à côté du tableau dès 1 280 : à 1 200, huit colonnes sur douze
-       coupaient encore le nom des lignes. */
-    const coteACote = useMediaQuery(MEDIA.twoColumn);
     const { settings } = useData();
     const { financeBudgets, upsertFinanceBudget } = useFinanceData();
     const { showToast } = useToast();
@@ -324,10 +322,12 @@ const BudgetLinesPage: React.FC<BudgetLinesPageProps> = ({ year, onBack }) => {
                 <colgroup>
                     <col />
                     {/* Resserrées le 24/09 : le tableau tient 8 colonnes sur 12 à côté de
-                        l'enveloppe, et 708 px de chiffres ne laissaient que 40 au nom. */}
+                        l'enveloppe, et 708 px de chiffres ne laissaient que 40 au nom. La jauge
+                        rend encore 12 px le 07/10 : à 1 366, barre latérale ouverte, il en
+                        manquait 8 à « Maintenance & Services ». */}
                     <col style={{ width: '100px' }} />
                     <col style={{ width: '140px' }} />
-                    <col style={{ width: '96px' }} />
+                    <col style={{ width: '84px' }} />
                     <col style={{ width: '132px' }} />
                     <col style={{ width: '48px' }} />
                 </colgroup>
@@ -355,12 +355,25 @@ const BudgetLinesPage: React.FC<BudgetLinesPageProps> = ({ year, onBack }) => {
                         return (
                             <tr key={ligne.cle} className="border-outline-variant border-b">
                                 <td className="py-2.5 pr-2.5 pl-4 align-middle">
-                                    <span className="text-on-surface block truncate">
+                                    <span
+                                        title={ligne.category}
+                                        className="text-on-surface block truncate"
+                                    >
                                         {ligne.category}
                                     </span>
-                                    <span className="text-on-surface-variant mt-0.5 flex items-center gap-2 text-[0.75rem] leading-4">
+                                    {/* Une cellule de tableau ne rogne pas : la phrase passait
+                                        sous le montant de la colonne voisine. Elle paraît
+                                        **entière ou pas du tout** — elle redit ce que la colonne
+                                        « Consommé » chiffre — en passant, faute de place, sur
+                                        une seconde ligne que la cellule ne montre pas. Le témoin
+                                        de largeur nulle tient la première ligne quand la ligne
+                                        n'a pas de nature. */}
+                                    <span className="text-on-surface-variant mt-0.5 flex h-5 flex-wrap items-center gap-x-2 overflow-hidden text-[0.75rem] leading-4">
+                                        <span aria-hidden="true" className="-mr-2 h-5 w-0" />
                                         {etiquette(ligne)}
-                                        {ligne.spent > 0 ? 'déjà consommée' : 'rien de consommé'}
+                                        <span className="whitespace-nowrap">
+                                            {ligne.spent > 0 ? 'déjà consommée' : 'rien de consommé'}
+                                        </span>
                                     </span>
                                 </td>
                                 <td className="text-on-surface-variant px-2.5 text-right align-middle tabular-nums">
@@ -585,13 +598,17 @@ const BudgetLinesPage: React.FC<BudgetLinesPageProps> = ({ year, onBack }) => {
     // ---- téléphone -----------------------------------------------------------------
     const cartes = (
         <>
-            <section className="bg-inverse-surface text-inverse-on-surface rounded-card px-5 pt-[22px] pb-5">
+            <section className="bg-inverse-surface text-inverse-on-surface rounded-card @container px-5 pt-[22px] pb-5">
                 <span className="block text-[0.75rem] leading-4 tracking-[0.07em] text-[var(--tk-color-on-dark-2)] uppercase">
                     Exercice {year} · lignes du budget
                 </span>
                 <div className="mt-2 flex items-baseline gap-2.5">
                     <b className="font-brand text-[2.5rem] leading-[3rem] font-semibold tracking-[-0.03em] tabular-nums">
-                        <ChiffreAnime valeur={n(enveloppe)} />
+                        {/* L'enveloppe tient à côté de sa devise : en 40, « 100 000 000 »
+                            poussait « XOF » dans la marge du héro à 320 (07/10). */}
+                        <ChiffreAjuste texte={n(enveloppe)} reserve="3rem">
+                            <ChiffreAnime valeur={n(enveloppe)} />
+                        </ChiffreAjuste>
                     </b>
                     <span className="text-ts-sub leading-ts-sub text-[var(--tk-color-on-dark-2)]">
                         {settings.currency}
@@ -639,23 +656,30 @@ const BudgetLinesPage: React.FC<BudgetLinesPageProps> = ({ year, onBack }) => {
                                   key={ligne.cle}
                                   className="border-outline-variant flex flex-col border-t py-4 first:border-t-0"
                               >
+                                  {/* **Les montants passent sous le nom quand il n'a plus
+                                      96 px** (07/10) : ils ne se coupent pas, et à 320 ils ne
+                                      laissaient que 35 px au nom — « Maintenance & Services »
+                                      se lisait « M… ». Le ⋮ reste en haut à droite : il est
+                                      hors de la rangée qui se replie. */}
                                   <div className="flex items-center gap-2">
-                                      <span className="text-on-surface text-ts-body leading-ts-body min-w-0 flex-1 truncate">
-                                          {ligne.category}
-                                      </span>
-                                      <span className="text-on-surface-variant text-ts-sub leading-ts-sub shrink-0 tabular-nums">
-                                          <b className="text-on-surface font-medium">
-                                              {n(ligne.spent)}
-                                          </b>{' '}
-                                          /{' '}
-                                          <span
-                                              className={cn(
-                                                  ko && 'text-[var(--tk-color-st-orange)]',
-                                              )}
-                                          >
-                                              {n(montant)}
+                                      <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                                          <span className="text-on-surface text-ts-body leading-ts-body min-w-0 flex-[1_1_6rem] truncate">
+                                              {ligne.category}
                                           </span>
-                                      </span>
+                                          <span className="text-on-surface-variant text-ts-sub leading-ts-sub shrink-0 tabular-nums">
+                                              <b className="text-on-surface font-medium">
+                                                  {n(ligne.spent)}
+                                              </b>{' '}
+                                              /{' '}
+                                              <span
+                                                  className={cn(
+                                                      ko && 'text-[var(--tk-color-st-orange)]',
+                                                  )}
+                                              >
+                                                  {n(montant)}
+                                              </span>
+                                          </span>
+                                      </div>
                                       <span className="-mr-2 shrink-0">{menuDe(ligne)}</span>
                                   </div>
                                   <span className="bg-surface-container mt-4 block h-2 overflow-hidden rounded-xs">
@@ -772,20 +796,21 @@ const BudgetLinesPage: React.FC<BudgetLinesPageProps> = ({ year, onBack }) => {
                     /* Le corps défile sur toute la largeur — la barre de défilement au bord
                        de la fenêtre — et centre son contenu à 1 280 par ses marges. */
                     bureau
-                        ? 'large:px-[max(var(--tk-space-page),calc((100%_-_80rem)/2))] w-full pb-6'
+                        ? 'large:px-[max(var(--tk-space-page),calc((100%_-_80rem)/2))] @container w-full pb-6'
                         : 'pb-24',
                 )}
             >
                 {bureau ? (
-                    /* Tableau (8) et enveloppe (4) côte à côte dès 1 280 ; en deçà, l'enveloppe
-                       passe sous le tableau. */
-                    <div
-                        className={cn(
-                            'flex flex-col gap-4',
-                            coteACote && 'grid grid-cols-12 items-start',
-                        )}
-                    >
-                        <div className={cn(coteACote && 'col-span-8')}>
+                    /* **Tableau (8) et enveloppe (4) côte à côte quand le corps a 1 040 px**
+                       — en deçà, l'enveloppe passe sous le tableau (07/10). Le seuil se lit sur
+                       le corps, pas sur la fenêtre : la barre latérale ouverte en prend 240, et
+                       c'est la place qui reste qui compte. Les cinq colonnes de chiffres tiennent
+                       504 px ; il en faut 160 de plus au nom, soit un tableau de 690. Posé sur
+                       la fenêtre, le côte-à-côte partait à 1 000 px (le seuil des deux colonnes,
+                       descendu le 25/09) : à 1 024, le nom avait 41 px (« Mat… ») et « déjà
+                       consommée » passait sous le montant voisin ; à 1 280, barre ouverte, 95. */
+                    <div className="flex flex-col gap-4 @[65rem]:grid @[65rem]:grid-cols-12 @[65rem]:items-start">
+                        <div className="@[65rem]:col-span-8">
                             {lignes.length === 0 ? (
                                 <div className="rounded-card bg-surface flex min-h-80 flex-col">
                                     {vide}
@@ -794,7 +819,7 @@ const BudgetLinesPage: React.FC<BudgetLinesPageProps> = ({ year, onBack }) => {
                                 tableau
                             )}
                         </div>
-                        <div className={cn(coteACote && 'col-span-4')}>{cote}</div>
+                        <div className="@[65rem]:col-span-4">{cote}</div>
                     </div>
                 ) : (
                     cartes
@@ -928,7 +953,7 @@ const BudgetLinesPage: React.FC<BudgetLinesPageProps> = ({ year, onBack }) => {
                     )}
 
                     {/* `.sfoot` — deux colonnes égales, filet au-dessus. */}
-                    <div className="border-outline-variant -mx-5 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1">
+                    <div className="border-outline-variant -mx-5 duo-de-pied gap-3 border-t px-5 pt-4 pb-1">
                         <Button variant="ghost" onClick={() => setDialogue(null)}>
                             Annuler
                         </Button>

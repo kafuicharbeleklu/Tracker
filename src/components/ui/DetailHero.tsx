@@ -5,6 +5,7 @@ import { CaretRight } from '@phosphor-icons/react';
 import Icon from './Icon';
 import { cn } from '../../lib/utils';
 import { estUnSujetLong, infobulle } from '../../lib/nomLong';
+import { CASE_SOUPLE, RANGEE_SOUPLE } from '../../lib/souple';
 import { MEDIA } from '../../constants/breakpoints';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { useFicheEnPanneau } from '../../hooks/useFicheEnPanneau';
@@ -352,7 +353,15 @@ const DetailHero: React.FC<DetailHeroProps> = ({
                 /* `.hrow` / `.hk` — 09.1 : des cases de 12 sur 14, valeur en 22 sur 28. */
                 <div
                     className={cn(
-                        'flex gap-3',
+                        /* **En rangée souple** (07/10) : trois cases égales laissaient 55 px à
+                           « disponibles », qui en demande 78 — le libellé sortait de sa case à
+                           320 et en touchait le bord à 360. Chaque case tient au moins son
+                           contenu ; sur un téléphone étroit la gouttière passe à 8 et
+                           l'intérieur à 6, ce qui garde les trois de front à 360 ; à 320 la
+                           troisième passe dessous. */
+                        RANGEE_SOUPLE,
+                        'gap-3',
+                        metrics.length >= 3 && 'etroit:gap-2',
                         meter ? 'mt-3' : 'mt-5',
                         actionsInline && 'col-end-3',
                     )}
@@ -364,8 +373,9 @@ const DetailHero: React.FC<DetailHeroProps> = ({
                                 /* `.hero .hk{padding:12px 14px}`, mais **`.hrow.three .hk`
                                retombe à `12px 10px`** : à trois de front sur 393 px,
                                14 d'intérieur laissent « réparation » se couper. */
-                                'min-w-0 flex-1 rounded-[4px] bg-white/[0.08] py-3',
-                                metrics.length >= 3 ? 'px-2.5' : 'px-3.5',
+                                CASE_SOUPLE,
+                                'rounded-[4px] bg-white/[0.08] py-3',
+                                metrics.length >= 3 ? 'etroit:px-1.5 px-2.5' : 'px-3.5',
                             )}
                         >
                             <span className="font-brand text-ts-sheet leading-ts-sheet block font-semibold tracking-[-0.015em] tabular-nums">

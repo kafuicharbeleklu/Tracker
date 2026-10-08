@@ -16,7 +16,7 @@ import {
 } from '@phosphor-icons/react';
 
 import { libelleAttestation } from '../../../components/ui/Attestation';
-import type { Approval, Equipment, EventType, HistoryEvent } from '../../../types';
+import type { Approval, Equipment, EventType, HistoryEvent, User } from '../../../types';
 
 /**
  * **Ce que le journal sait lire d'un événement** — planche 18.1.
@@ -552,6 +552,10 @@ export interface Preuve {
     detail: string;
     /** L'autre partie n'a pas encore attesté : la ligne attend. */
     attente?: boolean;
+    /** Une étape qui n'a pas encore commencé — le parcours d'une demande ouverte la montre. */
+    avenir?: boolean;
+    /** L'étape a arrêté le parcours : un refus. */
+    arret?: boolean;
 }
 
 /** Le participe d'un acte, pour « atteste avoir … » et « a … ». */
@@ -690,4 +694,319 @@ export const filDe = (
     }
 
     return lignes;
+};
+
+/* ----------------------------------------------------------- le parcours d'une demande */
+
+/**
+ * **Une demande se relit de bout en bout** (08/10) — ouvrir l'un de ses faits montrait une
+ * ligne : « Ama Koné a validé la demande · méthode non consignée ». Qui l'avait demandée, qui
+ * l'a validée, qui a remis l'objet, par quelle preuve chacun : il fallait ouvrir cinq faits
+ * pour le savoir, et la remise n'était même pas reliée à la demande. Le fil reprend donc
+ * **toutes les attestations de la demande**, celles qu'elle porte (création, validation,
+ * dotation, refus, annulation) et celles de l'objet remis (remise par l'informatique,
+ * réception par le bénéficiaire), dans l'ordre, chacune avec son rôle et sa méthode.
+ */
+
+/** Un acte porté par la demande elle-même : ce que la personne a fait, lu de la transition. */
+const acteSurLaDemande = (evenement: HistoryEvent): { verbe: string; atteste: boolean } => {
+    const de_ = lire(evenement, 'from');
+    switch (evenement.type) {
+        case 'APPROVAL_CREATE':
+            return { verbe: 'a envoyé la demande', atteste: false };
+        case 'APPROVAL_MANAGER':
+        case 'APPROVAL_ADMIN':
+        case 'ASSIGN_MANAGER_OK':
+            return { verbe: 'a validé la demande', atteste: true };
+        case 'APPROVAL_REJECT':
+            return { verbe: 'a refusé la demande', atteste: true };
+        case 'APPROVAL_DOTATION_REJECT':
+            return { verbe: 'a refusé la dotation', atteste: true };
+        case 'APPROVAL_CANCEL':
+            return { verbe: 'a annulé la demande', atteste: false };
+        case 'ASSIGN_DOTATION_WAIT':
+            return { verbe: 'a soumis la dotation à validation', atteste: false };
+        case 'ASSIGN_DOTATION_OK':
+            return { verbe: 'a validé la dotation', atteste: true };
+        case 'ASSIGN_PENDING':
+            return de_ === 'WAITING_DOTATION_APPROVAL'
+                ? { verbe: 'a validé la dotation', atteste: true }
+                : { verbe: 'a préparé la remise', atteste: false };
+        case 'ASSIGN_CONFIRMED':
+            return { verbe: 'a confirmé la réception', atteste: true };
+        default:
+            return { verbe: 'a fait avancer la demande', atteste: false };
+    }
+};
+
+/** Le rôle d'une personne dans une demande — ce qu'elle y est, pas son rôle dans le produit. */
+const roleDans = (demande: Approval, personneId: string, roleProduit?: string): string => {
+    if (personneId === demande.requesterId && personneId === demande.beneficiaryId)
+        return 'demandeur et bénéficiaire';
+    if (personneId === demande.requesterId) return 'demandeur';
+    if (personneId === demande.beneficiaryId) return 'bénéficiaire';
+    if (roleProduit === 'Manager') return 'manager';
+    if (roleProduit === 'Admin' || roleProduit === 'SuperAdmin') return 'informatique';
+    return 'intervenant';
+};
+
+/** Une partie prenante : qui, son rôle dans la demande, ce qu'elle y a fait. */
+export interface PartiePrenante {
+    id?: string;
+    nom: string;
+    role: string;
+    actes: string[];
+    /** Elle n'a pas encore agi : son geste est attendu. */
+    attendue?: boolean;
+}
+
+export interface ParcoursDeDemande {
+    demande: Approval;
+    etapes: Preuve[];
+    parties: PartiePrenante[];
+}
+
+const MEME_ACTE_MS = 10 * 60 * 1000;
+
+/** « aujourd'hui à 07:18 » — la date prend sa minuscule au milieu d'une ligne. */
+const dansLaLigne = (texte: string): string => texte.charAt(0).toLowerCase() + texte.slice(1);
+
+export const parcoursDeLaDemande = (
+    approvalId: string,
+    tous: readonly HistoryEvent[],
+    registres: Registres,
+    users: readonly User[],
+    /** Qui lit : l'étape qui l'attend lui parle — « Vous devez valider la demande ». */
+    moi?: string,
+): ParcoursDeDemande | null => {
+    const demande = registres.approvals.get(approvalId);
+    if (!demande) return null;
+    const temps = (e: HistoryEvent) => new Date(e.timestamp).getTime();
+    const chrono = (a: HistoryEvent, b: HistoryEvent) => temps(a) - temps(b);
+
+    const traces = tous
+        .filter((e) => e.targetType === 'APPROVAL' && e.targetId === approvalId)
+        .sort(chrono);
+    /* Le dépôt est toujours la première étape : une demande d'avant le journal n'en a pas de
+       trace, mais elle a bien été déposée, par quelqu'un, un jour. */
+    const surLaDemande: HistoryEvent[] = traces.some((e) => e.type === 'APPROVAL_CREATE')
+        ? traces
+        : [
+              {
+                  id: `depot-${approvalId}`,
+                  type: 'APPROVAL_CREATE',
+                  actorId: demande.requesterId,
+                  actorName: demande.requesterName,
+                  actorRole: demande.requesterRole ?? 'User',
+                  targetType: 'APPROVAL',
+                  targetId: approvalId,
+                  targetName: `Demande de ${demande.requesterName}`,
+                  timestamp: demande.createdAt,
+                  description: 'Dépôt de la demande',
+                  isSystem: false,
+                  isSensitive: false,
+              } as HistoryEvent,
+              ...traces,
+          ];
+    const depot = new Date(demande.createdAt).getTime();
+
+    /* La remise et la réception de l'objet servi : écrites sur l'objet, reliées à la demande
+       par son identifiant quand l'écriture le porte, sinon par le bénéficiaire et la date. */
+    const surLObjet = demande.assignedEquipmentId
+        ? tous
+              .filter(
+                  (e) =>
+                      e.targetType === 'EQUIPMENT' &&
+                      e.targetId === demande.assignedEquipmentId &&
+                      ['ASSIGN', 'ASSIGN_PENDING', 'ASSIGN_CONFIRMED'].includes(e.type) &&
+                      (lire(e, 'approvalId') === approvalId ||
+                          (lire(e, 'beneficiaryId') === demande.beneficiaryId &&
+                              temps(e) >= depot)),
+              )
+              .sort(chrono)
+        : [];
+    const remise = surLObjet.find((e) => e.type === 'ASSIGN' || e.type === 'ASSIGN_PENDING');
+    const reception = remise
+        ? surLObjet.find((e) => e.type === 'ASSIGN_CONFIRMED' && temps(e) >= temps(remise))
+        : undefined;
+    const procheDe = (e: HistoryEvent, autre?: HistoryEvent) =>
+        Boolean(autre) && Math.abs(temps(e) - temps(autre!)) <= MEME_ACTE_MS;
+
+    const roleProduitDe = (e: HistoryEvent) =>
+        e.actorRole ?? users.find((u) => u.id === e.actorId)?.role;
+
+    const etapes: { evenement: HistoryEvent; preuve: Preuve }[] = [];
+    for (const e of surLaDemande) {
+        /* La remise et la réception se lisent sur l'objet, avec leur preuve : leur double
+           écrit sur la demande au même instant ne se répète pas. */
+        if (e.type === 'ASSIGN_CONFIRMED' && procheDe(e, reception)) continue;
+        if (
+            e.type === 'ASSIGN_PENDING' &&
+            lire(e, 'from') !== 'WAITING_DOTATION_APPROVAL' &&
+            procheDe(e, remise)
+        )
+            continue;
+        const { verbe, atteste } = acteSurLaDemande(e);
+        const methode = methodeDe(e);
+        const motif = lire(e, 'reason') ?? lire(e, 'comment');
+        const role = e.isSystem ? undefined : roleDans(demande, e.actorId, roleProduitDe(e));
+        etapes.push({
+            evenement: e,
+            preuve: {
+                evenement: e,
+                arret: e.type === 'APPROVAL_REJECT' || e.type === 'APPROVAL_DOTATION_REJECT',
+                titre: `${e.isSystem ? 'Le système' : e.actorName} ${verbe}`,
+                detail: [
+                    role,
+                    dansLaLigne(quandDe(e.timestamp)),
+                    methode ?? (atteste ? 'méthode non consignée' : undefined),
+                    motif ? `« ${motif} »` : undefined,
+                ]
+                    .filter(Boolean)
+                    .join(' · '),
+            },
+        });
+    }
+    for (const e of [remise, reception]) {
+        if (!e) continue;
+        const preuve = preuveDe(e, registres, e);
+        const signataire = e.type === 'ASSIGN_CONFIRMED' ? demande.beneficiaryId : e.actorId;
+        const role = roleDans(
+            demande,
+            signataire,
+            e.type === 'ASSIGN_CONFIRMED' ? undefined : roleProduitDe(e),
+        );
+        etapes.push({
+            evenement: e,
+            preuve: {
+                ...preuve,
+                titre: `${preuve.titre} ${objetDe(e, registres)}`,
+                detail: [
+                    role,
+                    dansLaLigne(quandDe(e.timestamp)),
+                    methodeDe(e) ?? 'méthode non consignée',
+                ].join(' · '),
+            },
+        });
+    }
+    etapes.sort((a, b) => chrono(a.evenement, b.evenement));
+
+    /* Ce qui reste à faire, tant que la demande est ouverte. */
+    const beneficiaire = users.find((u) => u.id === demande.beneficiaryId);
+    const managerAttendu = beneficiaire?.managerId
+        ? users.find((u) => u.id === beneficiaire.managerId)
+        : undefined;
+    const derniere = surLaDemande[surLaDemande.length - 1];
+    const jours = Math.max(
+        0,
+        Math.floor((Date.now() - new Date(derniere.timestamp).getTime()) / JOUR),
+    );
+    const depuis =
+        jours === 0 ? 'depuis aujourd’hui' : `depuis ${jours} jour${jours > 1 ? 's' : ''}`;
+    const managerLit = Boolean(moi) && managerAttendu?.id === moi;
+    const beneficiaireLit = Boolean(moi) && demande.beneficiaryId === moi;
+    const qui = managerAttendu?.name ?? 'Le manager';
+    const beneficiaireNom = demande.beneficiaryName || 'Le bénéficiaire';
+    /* **Ce qui reste à faire** (08/10) — l'étape attendue, puis celles qui suivront : le
+       détail d'une tâche et la fiche de l'historique racontent ainsi la même demande, du dépôt
+       à la réception. */
+    const remiseAVenir: Preuve = {
+        evenement: derniere,
+        titre: 'Remise par l’informatique',
+        detail: 'à venir',
+        avenir: true,
+    };
+    const receptionAVenir: Preuve = {
+        evenement: derniere,
+        titre: `Réception par ${beneficiaireNom}`,
+        detail: 'à venir',
+        avenir: true,
+    };
+    const ici = (titre: string): Preuve => ({
+        evenement: derniere,
+        titre,
+        detail: `en attente ${depuis}`,
+        attente: true,
+    });
+    const suite: Record<string, Preuve[]> = {
+        WAITING_MANAGER_APPROVAL: [
+            ici(managerLit ? 'Vous devez valider la demande' : `${qui} doit valider la demande`),
+            remiseAVenir,
+            receptionAVenir,
+        ],
+        WAITING_IT_PROCESSING: [ici('L’informatique doit préparer la remise'), receptionAVenir],
+        WAITING_DOTATION_APPROVAL: [
+            ici(managerLit ? 'Vous devez valider la dotation' : `${qui} doit valider la dotation`),
+            remiseAVenir,
+            receptionAVenir,
+        ],
+        PENDING_DELIVERY: [
+            ici(
+                beneficiaireLit
+                    ? 'Vous devez confirmer la réception'
+                    : `${beneficiaireNom} doit confirmer la réception`,
+            ),
+        ],
+    };
+    const preuves = [...etapes.map((x) => x.preuve), ...(suite[demande.status] ?? [])];
+
+    /* Les parties prenantes : chacune une fois, avec tout ce qu'elle a fait. */
+    const parties = new Map<string, PartiePrenante>();
+    const ajouter = (
+        id: string | undefined,
+        nom: string | undefined,
+        role: string,
+        acte?: string,
+        attendue = false,
+    ) => {
+        if (!nom) return;
+        const cle = id ?? nom;
+        const deja = parties.get(cle);
+        if (deja) {
+            if (acte && !deja.actes.includes(acte)) deja.actes.push(acte);
+            if (!attendue) deja.attendue = false;
+            return;
+        }
+        parties.set(cle, { id, nom, role, actes: acte ? [acte] : [], attendue });
+    };
+    ajouter(demande.requesterId, demande.requesterName, roleDans(demande, demande.requesterId));
+    ajouter(
+        demande.beneficiaryId,
+        demande.beneficiaryName,
+        roleDans(demande, demande.beneficiaryId),
+    );
+    for (const { evenement: e, preuve } of etapes) {
+        if (e.isSystem) continue;
+        const id =
+            e.type === 'ASSIGN_CONFIRMED' && e.targetType === 'EQUIPMENT'
+                ? demande.beneficiaryId
+                : e.actorId;
+        const nom =
+            e.type === 'ASSIGN_CONFIRMED' && e.targetType === 'EQUIPMENT'
+                ? demande.beneficiaryName
+                : e.actorName;
+        const acte = preuve.titre.slice((nom ?? '').length).trim();
+        ajouter(
+            id,
+            nom,
+            roleDans(demande, id, e.type === 'ASSIGN_CONFIRMED' ? undefined : roleProduitDe(e)),
+            acte,
+        );
+    }
+    if (
+        (demande.status === 'WAITING_MANAGER_APPROVAL' ||
+            demande.status === 'WAITING_DOTATION_APPROVAL') &&
+        managerAttendu
+    )
+        ajouter(
+            managerAttendu.id,
+            managerAttendu.name,
+            'manager',
+            demande.status === 'WAITING_DOTATION_APPROVAL'
+                ? 'doit valider la dotation'
+                : 'doit valider la demande',
+            true,
+        );
+
+    return { demande, etapes: preuves, parties: [...parties.values()] };
 };

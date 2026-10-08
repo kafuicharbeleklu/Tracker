@@ -93,7 +93,11 @@ const ScreenState: React.FC<ScreenStateProps> = ({
         </div>
 
         {actions && (
-            <div className="flex w-full max-w-[280px] flex-col gap-3 [&>*]:w-full">{actions}</div>
+            /* Un libellé plus long que la colonne passe à la ligne dans son bouton : texte
+               agrandi, « Chercher dans les équipements » en sortait de 12 px (07/10). */
+            <div className="flex w-full max-w-[280px] flex-col gap-3 [&>*]:w-full [&>*]:whitespace-normal">
+                {actions}
+            </div>
         )}
 
         {/* `.lfoot` — le fait de pied : une heure de dernière lecture, un compte.

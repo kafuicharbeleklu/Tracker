@@ -1,3 +1,4 @@
+import { libelleAttestation } from '../lib/attestation';
 import { isValidPinFormat } from '../lib/security';
 import React, {
     createContext,
@@ -302,7 +303,8 @@ interface DataContextType {
         },
     ) => BusinessRuleDecision;
     /** La réception d'un objet par son porteur, appelée par la fiche, la file et l'accueil. */
-    confirmEquipmentReception: (equipmentId: string) => BusinessRuleDecision;
+    /** `method` : la preuve de la réception (`pin`, `signature`…), que le journal garde. */
+    confirmEquipmentReception: (equipmentId: string, method?: string) => BusinessRuleDecision;
     /** Relancer une demande qu'on attend — elle date l'insistance, elle ne notifie personne. */
     remindApproval: (approvalId: string) => BusinessRuleDecision;
     addApproval: (approval: Omit<Approval, 'id'>) => void;
@@ -4494,8 +4496,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                           actorName: currentUser?.name || 'Système',
                           at: now,
                           /* « Qui, quand, par quelle méthode » (06.2) : 06.5 relit les
-                             trois dans « La décision ». */
-                          method: options?.method,
+                             trois dans « La décision ». La méthode arrive en code (`pin`,
+                             `ecran`) ; la note garde son libellé. */
+                          method: options?.method
+                              ? (libelleAttestation(options.method) ?? options.method)
+                              : undefined,
                       }
                     : undefined;
             setApprovals((prev) =>
@@ -4539,6 +4544,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         source: 'approval_workflow',
                         approvalId: id,
                         approvalStatus: status,
+                        /* La réception d'une demande s'atteste : sa preuve suit l'objet. */
+                        ...(options?.method ? { method: options.method } : {}),
                     });
                 }
             }
@@ -4571,6 +4578,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         from: oldApproval.status,
                         to: status,
                         ...(reason ? { reason } : {}),
+                        /* **La méthode de la décision** (08/10) — code PIN, signature, ou
+                           confirmée à l'écran au bureau. Le fait ouvert de 18.1 la relit ;
+                           sans elle il écrivait « méthode non consignée » sous chaque
+                           validation. */
+                        ...(options?.method ? { method: options.method } : {}),
                     },
                     isSystem: false,
                     isSensitive: false,
@@ -4591,7 +4603,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
      * Zone d'ombre n° 9, tranchée le 02/09 — lot 7.
      */
     const confirmEquipmentReception = useCallback(
-        (equipmentId: string): BusinessRuleDecision => {
+        (equipmentId: string, method?: string): BusinessRuleDecision => {
             const item = equipment.find((e) => e.id === equipmentId);
             if (!item) return { allowed: false, reason: 'Équipement introuvable.' };
             if (item.assignmentStatus !== 'PENDING_DELIVERY')
@@ -4616,7 +4628,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const linked = approvals.find(
                 (a) => a.assignedEquipmentId === equipmentId && a.status === 'PENDING_DELIVERY',
             );
-            if (linked) return updateApproval(linked.id, 'Completed');
+            if (linked) return updateApproval(linked.id, 'Completed', { method });
 
             // Chemin 2 — attribution directe, sans demande : la même écriture que celle que
             // la synchro d'approbation aurait produite.
@@ -4627,7 +4639,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 nowISO: new Date().toISOString(),
             });
             if (!updates) return { allowed: false, reason: 'Transition de réception inconnue.' };
-            applyEquipmentWrite(equipmentId, updates, { source: 'direct_reception' });
+            applyEquipmentWrite(equipmentId, updates, {
+                source: 'direct_reception',
+                ...(method ? { method } : {}),
+            });
             return { allowed: true };
         },
         [equipment, approvals, users, currentUser, updateApproval, applyEquipmentWrite],

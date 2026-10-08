@@ -341,8 +341,13 @@ const AddUserPage: React.FC<AddUserPageProps> = ({ userId, onCancel, onSave }) =
                     <div>
                         <FieldLabel note="identifiant de connexion">Adresse</FieldLabel>
                         <p className="bg-surface-container text-on-surface-variant text-ts-body leading-ts-body flex min-h-12 items-center gap-2.5 rounded-md px-3.5">
-                            <Icon glyph={LockSimple} size={18} />
-                            {formData.email}
+                            <Icon glyph={LockSimple} size={18} className="shrink-0" />
+                            {/* Une adresse n'a pas d'espace où passer à la ligne : elle se
+                                coupe, comme dans un champ, et se lit entière au survol. Posée
+                                nue dans la rangée, elle mordait sur la marge à 320 (07/10). */}
+                            <span title={formData.email} className="min-w-0 truncate">
+                                {formData.email}
+                            </span>
                         </p>
                     </div>
 

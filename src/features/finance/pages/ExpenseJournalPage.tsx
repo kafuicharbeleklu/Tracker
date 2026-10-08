@@ -44,6 +44,7 @@ import {
     posteDeLaDepense,
 } from '../lib/expensePresentation';
 import ChiffreAnime from '../../../components/ui/ChiffreAnime';
+import ChiffreAjuste from '../../../components/ui/ChiffreAjuste';
 
 interface ExpenseJournalPageProps {
     onBack: () => void;
@@ -686,15 +687,24 @@ const ExpenseJournalPage: React.FC<ExpenseJournalPageProps> = ({ onBack }) => {
                     bureau ? undefined : (
                         /* `.hero` de 15.3 — le consommé de l'exercice, que le filtre ne
                        touche pas : ce qu'il annonce est le fait de l'exercice. */
-                        <section className="bg-inverse-surface text-inverse-on-surface rounded-card px-5 pt-[22px] pb-5">
+                        <section className="bg-inverse-surface text-inverse-on-surface rounded-card @container px-5 pt-[22px] pb-5">
                             <span className="block text-[0.75rem] leading-4 tracking-[0.07em] text-[var(--tk-color-on-dark-2)] uppercase">
                                 Consommé à ce jour
                             </span>
                             <div className="mt-2 flex flex-wrap items-baseline gap-2.5">
                                 <b className="font-brand text-[2.5rem] leading-[3rem] font-semibold tracking-[-0.03em] whitespace-nowrap tabular-nums">
-                                    <ChiffreAnime
-                                        valeur={formatNumber(consomme, settings.compactNotation)}
-                                    />
+                                    {/* Le chiffre tient dans le héro, sa devise à côté (07/10). */}
+                                    <ChiffreAjuste
+                                        texte={formatNumber(consomme, settings.compactNotation)}
+                                        reserve="3rem"
+                                    >
+                                        <ChiffreAnime
+                                            valeur={formatNumber(
+                                                consomme,
+                                                settings.compactNotation,
+                                            )}
+                                        />
+                                    </ChiffreAjuste>
                                 </b>
                                 <span className="text-ts-sub leading-ts-sub text-[var(--tk-color-on-dark-2)]">
                                     {settings.currency}
@@ -949,7 +959,7 @@ const ExpenseJournalPage: React.FC<ExpenseJournalPageProps> = ({ onBack }) => {
 
                     <div
                         data-pied
-                        className="border-outline-variant -mx-5 mt-4 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1"
+                        className="border-outline-variant -mx-5 mt-4 duo-de-pied gap-3 border-t px-5 pt-4 pb-1"
                     >
                         <Button
                             variant="tonal"

@@ -248,7 +248,7 @@ export const FullScreenLayout: React.FC<FullScreenLayoutProps> = ({
                       768 px n'est plus au bout de ce qu'on vient de lire — il est
                       ailleurs.
                     */}
-                    <div className={cn('mx-auto flex max-w-[560px] justify-end gap-3', borne)}>
+                    <div className={cn('pied-de-dialogue mx-auto max-w-[560px] gap-3', borne)}>
                         {footerActions}
                     </div>
                 </div>

@@ -44,7 +44,10 @@ export interface ListViewState {
 }
 
 export const useListView = (listId: string): ListViewState => {
-    const large = useMediaQuery(MEDIA.twoColumn);
+    /* **`MEDIA.bureau` (1 280), pas `twoColumn`** (08/10) : le seuil des deux colonnes est
+       descendu à 1 000 le 25/09 et le défaut l'a suivi sans qu'on le décide — à 1 024, les six
+       colonnes recevaient 783 px et « En réparation » s'y lisait « En répa… ». */
+    const large = useMediaQuery(MEDIA.bureau);
     const expanded = useMediaQuery(MEDIA.expandedUp);
     /* Le tableau est la forme par défaut **à la souris** seulement (25/09) : au doigt, sur une
        tablette en paysage, la liste s'ouvre en cartes ; le tableau reste au choix. */

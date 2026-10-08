@@ -398,7 +398,11 @@ const ActSheet: React.FC<ActSheetProps> = ({
                             place** : seule la liste défile dessous. Tout le corps défilait
                             d'un bloc, et la recherche partait avec la première rangée. */}
                         <div className="flex shrink-0 gap-2">
-                            <label className="bg-surface-container flex min-h-12 flex-1 items-center gap-2.5 rounded-[4px] px-3.5">
+                            {/* `min-w-0` : un champ de saisie a une largeur propre (vingt
+                                signes), que son étiquette reprenait comme minimum — avec le
+                                bouton de scan, la ligne demandait 328 px et sortait de la
+                                feuille de 48 px à 320, de 8 à 360 (07/10). */}
+                            <label className="bg-surface-container flex min-h-12 min-w-0 flex-1 items-center gap-2.5 rounded-[4px] px-3.5">
                                 <Icon
                                     glyph={MagnifyingGlass}
                                     size={20}
@@ -533,7 +537,7 @@ const ActSheet: React.FC<ActSheetProps> = ({
 
                         {/* Le récapitulatif ne porte pas le verbe : on ne fait rien encore,
                             on passe à la preuve. */}
-                        <div className="border-outline-variant mt-4 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1">
+                        <div className="border-outline-variant duo-de-pied mt-4 gap-3 border-t px-5 pt-4 pb-1">
                             <Button variant="ghost" onClick={onClose} className="!rounded-[4px]">
                                 {cancelLabel}
                             </Button>
@@ -565,7 +569,7 @@ const ActSheet: React.FC<ActSheetProps> = ({
                         </div>
 
                         {/* 6 · le verbe */}
-                        <div className="border-outline-variant mt-4 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1">
+                        <div className="border-outline-variant duo-de-pied mt-4 gap-3 border-t px-5 pt-4 pb-1">
                             <Button
                                 variant="ghost"
                                 onClick={retour}

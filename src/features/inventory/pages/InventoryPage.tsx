@@ -607,7 +607,13 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                    Carbon » tombait à « Lenovo Thin… » ; les colonnes à vocabulaire fixe cèdent
                    ce qu'elles avaient de trop. Code et modèle tiennent **une ligne**, coupée :
                    les rangées du tableau gardent toutes la même hauteur. */
-                width: '24%',
+                /* **Rééquilibrées le 08/10** : les états de réparation (24/09) — « Devis à
+                   valider », « Incident déclaré », « À prendre en charge » — demandent de 96
+                   à 136 px, et la colonne « État » n'en laissait que 77 au libellé : la règle
+                   ci-dessus ne tenait plus. Les colonnes à vocabulaire fixe reprennent leur
+                   place (21 et 17 %), le code et les noms en rendent. Mesuré à 960 px, la
+                   largeur minimale du tableau : seul « Maintenance préventive » s'y coupe. */
+                width: '19%',
                 sorted: colonneTriee === 'code' ? sensTri : undefined,
                 title: (item) => item.name,
                 cell: (item) => <span className="text-on-surface font-medium">{item.name}</span>,
@@ -615,7 +621,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
             {
                 id: 'modele',
                 header: 'Modèle',
-                width: '19%',
+                width: '17%',
                 sorted: colonneTriee === 'modele' ? sensTri : undefined,
                 title: (item) => item.model || undefined,
                 cell: (item) => item.model || '—',
@@ -623,7 +629,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
             {
                 id: 'porteur',
                 header: 'Porteur',
-                width: '14%',
+                width: '13%',
                 title: (item) => item.user?.name || undefined,
                 cell: (item) =>
                     item.user?.name || <span className="text-text-tertiary">non attribué</span>,
@@ -633,7 +639,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                 /* `.tbl th` de 04.1 écrit **« Site · local »** : le point médian sépare
                    deux faits de même rang, la barre oblique dirait « ou ». */
                 header: 'Site · local',
-                width: '15%',
+                width: '13%',
                 title: (item) => [item.site, item.local].filter(Boolean).join(' · ') || undefined,
                 cell: (item) => [item.site, item.local].filter(Boolean).join(' · ') || '—',
             },
@@ -642,7 +648,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                 /* 04.1 nomme la colonne **« État »**, comme la ligne du décompte et le
                    premier groupe du filtre. « Statut » n'est écrit nulle part. */
                 header: 'État',
-                width: '14%',
+                width: '21%',
                 sorted: colonneTriee === 'statut' ? sensTri : undefined,
                 cell: (item) => {
                     /* La même présentation que la carte : un état ne change pas de nom
@@ -673,8 +679,10 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                 header: 'Dernier mouvement',
                 sorted: colonneTriee === 'mouvement' ? sensTri : undefined,
                 /* Son plafond tient son en-tête (120) : « Dernier mouvement » ne se
-                   tronque jamais, et ses dates tiennent en 91. */
-                width: '14%',
+                   tronque jamais, et ses dates tiennent en 91. **17 %, plus 14** (08/10) :
+                   l'en-tête et sa flèche de tri demandent 146 px, et à 1 280, barre latérale
+                   ouverte, il dépassait de sa colonne. */
+                width: '17%',
                 cell: (item) => {
                     const quand = dernierMouvement(item);
                     return quand ? (
@@ -1071,6 +1079,8 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                 {enTableau ? (
                     <DataTable<Equipment>
                         columns={colonnes}
+                        /* Six colonnes calibrées à 1 280 : en deçà, le tableau défile. */
+                        largeurMin="60rem"
                         rows={filteredEquipment}
                         rowId={(item) => item.id}
                         onOpen={(item) => onEquipmentClick?.(item.id)}
@@ -1348,7 +1358,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                             et 4 au pied (relevé du 13/09). */}
                         <div
                             data-pied
-                            className="border-outline-variant -mx-5 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1"
+                            className="border-outline-variant -mx-5 duo-de-pied gap-3 border-t px-5 pt-4 pb-1"
                         >
                             <Button variant="ghost" onClick={handleClearAllSheetFilters}>
                                 Tout effacer

@@ -1,11 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { CaretRight, Laptop } from '@phosphor-icons/react';
+import React, { useMemo } from 'react';
+import { ClipboardText, Laptop } from '@phosphor-icons/react';
 
 import BottomSheet from '../../../components/ui/BottomSheet';
 import HandoverTrail from '../../../components/ui/HandoverTrail';
 import Icon from '../../../components/ui/Icon';
-import { signatureService } from '../../../services/signatureService';
-import { cn } from '../../../lib/utils';
+import { getStatusLabel } from '../../../lib/businessRules';
+import { getCategoryLabel } from '../../../constants/glossary';
 import type { Equipment, HistoryEvent, User } from '../../../types';
 import {
     autrePartie,
@@ -13,126 +13,16 @@ import {
     filDe,
     lieuDe,
     lire,
+    parcoursDeLaDemande,
     partieDe,
     quandDe,
     type Registres,
 } from '../lib/journal';
+import ParcoursDeDemande, { SignaturesDeLaDemande, etapesSignees } from './ParcoursDeDemande';
+import Renvoi, { initiales } from './Renvoi';
 
 /** « Vendredi 4 septembre à 19:32 » — le sous-titre commence une ligne. */
 const capitale = (texte: string) => texte.charAt(0).toUpperCase() + texte.slice(1);
-
-const initiales = (nom: string): string =>
-    nom
-        .split(/\s+/)
-        .filter(Boolean)
-        .slice(0, 2)
-        .map((mot) => mot[0]?.toUpperCase() ?? '')
-        .join('');
-
-/**
- * **La signature apposée, relue** — `.att` de l'état « un événement ouvert » de 18.1 :
- * *« c'est ici que la signature apposée par le code (17.4) se relit »*.
- *
- * L'image n'est pas copiée dans le journal : elle vit, une par personne, dans le magasin
- * de 07.1. Elle ne se montre donc **que si elle était déjà là au moment du fait** —
- * remplacer sa signature purge l'ancienne (D5), et montrer la nouvelle sous un fait plus
- * ancien ferait attester à quelqu'un un trait qu'il n'a pas apposé. Une signature tracée
- * à la main n'est pas gardée : la méthode le dit, l'image ne se montre pas.
- */
-const SignatureApposee: React.FC<{ fait: HistoryEvent }> = ({ fait }) => {
-    const [image, setImage] = useState<string | null>(null);
-
-    /* L'appelant la remonte d'un fait à l'autre (`key`) : l'image d'un fait ne survit
-       pas à l'ouverture du suivant, sans qu'on ait à la vider ici. */
-    useEffect(() => {
-        let actif = true;
-        let url: string | null = null;
-        if (fait.isSystem || lire(fait, 'method') !== 'pin+signature') return;
-
-        void Promise.all([
-            signatureService.get(fait.actorId),
-            signatureService.getSavedAt(fait.actorId),
-        ]).then(([blob, posee]) => {
-            if (!actif || !blob || !posee) return;
-            if (new Date(posee).getTime() > new Date(fait.timestamp).getTime()) return;
-            url = URL.createObjectURL(blob);
-            setImage(url);
-        });
-
-        return () => {
-            actif = false;
-            if (url) URL.revokeObjectURL(url);
-        };
-    }, [fait]);
-
-    if (!image) return null;
-
-    return (
-        <div className="bg-tint-vert text-on-tint-vert text-ts-sub leading-ts-sub relative flex h-[120px] flex-col items-center justify-center rounded-[4px]">
-            <span className="absolute top-3 right-3 text-[0.75rem] leading-4">
-                apposée · code PIN
-            </span>
-            <img
-                src={image}
-                alt={`Signature de ${fait.actorName}`}
-                className="absolute top-[26px] left-1/2 h-14 w-[150px] -translate-x-1/2 object-contain"
-            />
-            <span className="absolute bottom-2.5">{fait.actorName}</span>
-        </div>
-    );
-};
-
-/** `.arow` — une rangée qui renvoie ailleurs : vignette de 40, deux lignes, chevron. */
-const Renvoi: React.FC<{
-    vignette: React.ReactNode;
-    teinte?: string;
-    titre: string;
-    sousTitre?: string;
-    code?: boolean;
-    premier?: boolean;
-    onOpen: () => void;
-}> = ({ vignette, teinte, titre, sousTitre, code, premier, onOpen }) => (
-    <div
-        role="button"
-        tabIndex={0}
-        onClick={onOpen}
-        onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                onOpen();
-            }
-        }}
-        className={cn(
-            'flex min-h-14 cursor-pointer items-center gap-3 py-2',
-            !premier && 'border-outline-variant border-t',
-        )}
-    >
-        <span
-            className={cn(
-                'font-brand text-ts-control flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px] font-semibold',
-                teinte ?? 'bg-surface-container text-on-surface-variant',
-            )}
-        >
-            {vignette}
-        </span>
-        <span className="min-w-0 flex-1">
-            <span
-                className={cn(
-                    'text-on-surface text-ts-body leading-ts-body block truncate',
-                    code && 'tabular-nums',
-                )}
-            >
-                {titre}
-            </span>
-            {sousTitre && (
-                <span className="text-on-surface-variant text-ts-sub leading-ts-sub block truncate">
-                    {sousTitre}
-                </span>
-            )}
-        </span>
-        <Icon glyph={CaretRight} size={20} className="text-text-tertiary shrink-0" />
-    </div>
-);
 
 interface FactSheetProps {
     fait: HistoryEvent | null;
@@ -147,6 +37,12 @@ interface FactSheetProps {
     /** Ouvre la fiche d'une personne — absent pour qui ne peut pas la lire. */
     canOpenUser: (id: string) => boolean;
     onOpenUser?: (id: string) => void;
+    /**
+     * Ouvre la demande (06.5) — le fait d'une demande y renvoie (08/10). La file des Tâches
+     * gardait son propre historique des demandes tranchées ; il n'y en a plus qu'un, celui-ci,
+     * et c'est d'ici qu'on rouvre la demande, son parcours et son motif.
+     */
+    onOpenApproval?: (id: string) => void;
     /**
      * **Le fait ouvert à côté du journal** (P2a, 25/09) — dès 840, en cartes : le même
      * contenu, dans une carte du panneau et non dans une feuille. Rien ne voile le journal.
@@ -171,11 +67,20 @@ const FactSheet: React.FC<FactSheetProps> = ({
     onOpenEquipment,
     canOpenUser,
     onOpenUser,
+    onOpenApproval,
     enPanneau = false,
 }) => {
     const fil = useMemo(
         () => (fait ? filDe(fait, journal, registres) : []),
         [fait, journal, registres],
+    );
+    /* Le fait d'une demande ouvre **toute la demande** : ses étapes et ses parties (08/10). */
+    const parcours = useMemo(
+        () =>
+            fait?.targetType === 'APPROVAL'
+                ? parcoursDeLaDemande(fait.targetId, journal, registres, users)
+                : null,
+        [fait, journal, registres, users],
     );
 
     if (!fait)
@@ -202,6 +107,11 @@ const FactSheet: React.FC<FactSheetProps> = ({
                 )
               : undefined;
 
+    const demande =
+        fait.targetType === 'APPROVAL' && onOpenApproval
+            ? registres.approvals.get(fait.targetId)
+            : undefined;
+
     /* La personne du fait : l'autre partie quand il en a une, son auteur sinon. */
     const autre = autrePartie(fait, registres);
     const personneId =
@@ -216,28 +126,58 @@ const FactSheet: React.FC<FactSheetProps> = ({
 
     const sousTitre = [capitale(quandDe(fait.timestamp)), lieu].filter(Boolean).join(' · ');
 
+    /* Les preuves à relire : chaque étape attestée par une signature, celle de qui l'a
+       donnée — à la réception, c'est le bénéficiaire qui signe. */
     const corps = (
         <div className="flex flex-col gap-4">
-            <HandoverTrail
-                steps={fil.map((preuve, index) => ({
-                    title: preuve.titre,
-                    detail:
-                        index === fil.findIndex((p) => p.evenement.id === fait.id) &&
-                        !preuve.attente &&
-                        pourquoi
-                            ? `${preuve.detail} · « ${pourquoi} »`
-                            : preuve.detail,
-                    state: preuve.attente ? 'wait' : 'done',
-                }))}
-            />
+            {/* Le fait d'une demande se lit comme la tâche : la même pièce, les mêmes mots. */}
+            {parcours ? (
+                <ParcoursDeDemande
+                    parcours={parcours}
+                    registres={registres}
+                    canOpenUser={canOpenUser}
+                    onOpenUser={onOpenUser ? (id) => ouvrir(() => onOpenUser(id)) : undefined}
+                />
+            ) : (
+                <>
+                    <HandoverTrail
+                        steps={fil.map((preuve, index) => ({
+                            title: preuve.titre,
+                            detail:
+                                index === fil.findIndex((p) => p.evenement.id === fait.id) &&
+                                !preuve.attente &&
+                                pourquoi
+                                    ? `${preuve.detail} · « ${pourquoi} »`
+                                    : preuve.detail,
+                            state: preuve.attente ? 'wait' : 'done',
+                        }))}
+                    />
+                    {etapesSignees(fil).length > 0 && (
+                        <SignaturesDeLaDemande etapes={fil} registres={registres} />
+                    )}
+                </>
+            )}
 
-            <SignatureApposee key={fait.id} fait={fait} />
-
-            {(objet || personne) && (
+            {(demande || objet || (personne && !parcours)) && (
                 <div>
-                    {objet && onOpenEquipment && (
+                    {demande && onOpenApproval && (
                         <Renvoi
                             premier
+                            vignette={<Icon glyph={ClipboardText} size={20} />}
+                            teinte="bg-tint-bleu text-on-tint-bleu"
+                            titre={`Demande · ${demande.equipmentName || getCategoryLabel(demande.equipmentCategory || '') || 'équipement'}`}
+                            sousTitre={[
+                                demande.beneficiaryName ? `pour ${demande.beneficiaryName}` : null,
+                                getStatusLabel(demande.status).toLowerCase(),
+                            ]
+                                .filter(Boolean)
+                                .join(' · ')}
+                            onOpen={() => ouvrir(() => onOpenApproval(demande.id))}
+                        />
+                    )}
+                    {objet && onOpenEquipment && (
+                        <Renvoi
+                            premier={!demande}
                             vignette={<Icon glyph={Laptop} size={20} />}
                             titre={objet.assetId || objet.name}
                             code
@@ -247,9 +187,10 @@ const FactSheet: React.FC<FactSheetProps> = ({
                             onOpen={() => ouvrir(() => onOpenEquipment(objet.id))}
                         />
                     )}
-                    {personne && onOpenUser && canOpenUser(personne.id) && (
+                    {/* Sur une demande, les personnes sont dans « Les parties prenantes ». */}
+                    {!parcours && personne && onOpenUser && canOpenUser(personne.id) && (
                         <Renvoi
-                            premier={!(objet && onOpenEquipment)}
+                            premier={!demande && !(objet && onOpenEquipment)}
                             vignette={initiales(personne.name)}
                             teinte="bg-tint-bleu text-on-tint-bleu"
                             titre={personne.name}

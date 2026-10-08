@@ -194,12 +194,14 @@ const ReturnActSheet: React.FC<ReturnActSheetProps> = ({ open, onClose, initialE
         );
     }, [users, objet?.site]);
 
-    /** Ce qui peut faire retour : ce qui est détenu, et ce qui attend d'être réceptionné. */
+    /**
+     * Ce qui peut faire retour — la liste et le scan : **les objets attribués, et eux seuls**
+     * (08/10). Les retours déjà déclarés, qui attendent d'être réceptionnés, y étaient mêlés
+     * sous « Attribués et retours à réceptionner ». Ils se réceptionnent depuis la file des
+     * tâches ou la fiche de l'objet, qui ouvrent la feuille sur lui (`initialEquipmentId`).
+     */
     const eligibles = useMemo(
-        () =>
-            equipment.filter(
-                (item) => item.status === 'Attribué' || item.assignmentStatus === 'PENDING_RETURN',
-            ),
+        () => equipment.filter((item) => item.status === 'Attribué'),
         [equipment],
     );
 
@@ -208,14 +210,10 @@ const ReturnActSheet: React.FC<ReturnActSheetProps> = ({ open, onClose, initialE
             eligibles.map((item) => ({
                 id: item.id,
                 vignette: <Icon glyph={Laptop} size={20} />,
-                /* Ceux qui attendent l'informatique passent devant : ils sont le geste
-                       du jour, l'objet encore détenu ne l'est pas. */
-                highlighted: item.assignmentStatus === 'PENDING_RETURN',
                 title: item.name,
                 subtitle: [
                     item.model || item.type,
                     item.user?.name ? `chez ${item.user.name}` : item.site,
-                    item.assignmentStatus === 'PENDING_RETURN' ? 'retour à confirmer' : null,
                 ]
                     .filter(Boolean)
                     .join(' · '),
@@ -341,7 +339,7 @@ const ReturnActSheet: React.FC<ReturnActSheetProps> = ({ open, onClose, initialE
                     title: 'Retourner un équipement',
                     prompt: 'Lequel ?',
                     searchPlaceholder: 'Identifiant, modèle, porteur',
-                    groupLabel: 'Attribués et retours à réceptionner',
+                    groupLabel: 'Attribués',
                     onScan: () => setScanOuvert(true),
                     items: objetsRetournables,
                     onPick: setObjetId,

@@ -478,7 +478,7 @@ const RequestSheet: React.FC<RequestSheetProps> = ({ open, onClose, beneficiaryI
                 </div>
 
                 {/* `.sfoot` — deux verbes de même largeur, filet au-dessus. */}
-                <div className="border-outline-variant -mx-5 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1">
+                <div className="border-outline-variant -mx-5 duo-de-pied gap-3 border-t px-5 pt-4 pb-1">
                     <Button variant="ghost" onClick={onClose} className="!rounded-[4px]">
                         Annuler
                     </Button>

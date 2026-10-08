@@ -2573,7 +2573,7 @@ const SignatureCrop: React.FC<{
             </div>
 
             {/* `.pfoot` — deux gestes, le second enregistre, détachés par un filet. */}
-            <div className="border-outline-variant -mx-5 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1">
+            <div className="border-outline-variant -mx-5 duo-de-pied gap-3 border-t px-5 pt-4 pb-1">
                 <Button
                     variant="tonal"
                     className="bg-surface-container text-on-surface hover:bg-surface-container-high justify-center"
@@ -2822,7 +2822,7 @@ const PinSheet: React.FC<{
 
                 {/* `.sfoot` — le pied de la feuille du mot de passe, à l'identique. Bloquée,
                     la feuille n'a plus qu'un geste. */}
-                <div className="border-outline-variant -mx-5 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1">
+                <div className="border-outline-variant -mx-5 duo-de-pied gap-3 border-t px-5 pt-4 pb-1">
                     {bloque ? (
                         /* `.btn-ghost` — le creux, pas l'encre pleine : fermer n'est pas
                            l'acte principal d'une feuille, c'est en sortir. */
@@ -2974,7 +2974,7 @@ const PasswordSheet: React.FC<{ open: boolean; onClose: () => void; userId?: str
                 </p>
 
                 {/* `.sfoot` — deux boutons de **même largeur**, le filet au-dessus. */}
-                <div className="border-outline-variant -mx-5 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1">
+                <div className="border-outline-variant -mx-5 duo-de-pied gap-3 border-t px-5 pt-4 pb-1">
                     <Button variant="text" onClick={onClose}>
                         Annuler
                     </Button>

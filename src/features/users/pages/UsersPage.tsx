@@ -700,6 +700,8 @@ const UsersPage: React.FC<UsersPageProps> = ({
                 {enTableau ? (
                     <DataTable<User>
                         columns={colonnes}
+                        /* Calibré à 1 280 : en deçà, le tableau défile au lieu de s'écraser. */
+                        largeurMin="60rem"
                         rows={filteredUsers}
                         rowId={(user) => user.id}
                         onOpen={(user) => onUserClick?.(user.id)}
@@ -832,7 +834,7 @@ const UsersPage: React.FC<UsersPageProps> = ({
                     {/* Le pied de la feuille : deux boutons de même largeur, sans filet
                         (`.sfoot`, grille 1fr 1fr). L'effacement porte maintenant le rôle
                         aussi, sinon « Tout effacer » mentirait sur un axe. */}
-                    <div data-pied className="grid grid-cols-2 gap-3 pt-1">
+                    <div data-pied className="duo-de-pied gap-3 pt-1">
                         <button
                             type="button"
                             onClick={() => {

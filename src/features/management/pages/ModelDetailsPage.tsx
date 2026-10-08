@@ -336,7 +336,7 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ modelId, onBack }) 
                            écran, et « Modifier » ne vivait que dans le ⋮ — un geste
                            courant à deux taps derrière un glyphe. */
                         actions={
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="duo-de-gestes gap-3">
                                 <Button
                                     variant="filled"
                                     icon={<Icon glyph={Handshake} size={20} />}
@@ -448,10 +448,15 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ modelId, onBack }) 
                     </div>
                     {amortissement && (
                         <div className="border-outline-variant text-ts-body leading-ts-body flex min-h-12 items-center justify-between gap-4 border-t py-3">
-                            <span className="text-text-muted">Amortissement</span>
-                            <span className="text-on-surface text-right whitespace-nowrap">
+                            <span className="text-text-muted shrink-0">Amortissement</span>
+                            {/* La valeur passe à la ligne : tenue sur une seule, « Linéaire
+                                sur 3 ans (du type) » sortait de la carte de 61 px à 320 et de
+                                21 à 360 (07/10). */}
+                            <span className="text-on-surface min-w-0 text-right">
                                 {amortissement}{' '}
-                                <span className="text-text-tertiary">(du type)</span>
+                                <span className="text-text-tertiary whitespace-nowrap">
+                                    (du type)
+                                </span>
                             </span>
                         </div>
                     )}

@@ -37,6 +37,7 @@ import { useAccessControl } from '../../../hooks/useAccessControl';
 import NatureBadge from '../components/NatureBadge';
 import { useEntree } from '../../../hooks/useEntree';
 import ChiffreAnime from '../../../components/ui/ChiffreAnime';
+import ChiffreAjuste from '../../../components/ui/ChiffreAjuste';
 import PartDesPostes from '../components/PartDesPostes';
 
 interface FinanceManagementPageProps {
@@ -396,7 +397,7 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                           l'exercice.
                         */}
                         {isCompact ? (
-                            <section className="bg-inverse-surface text-inverse-on-surface rounded-card px-5 pt-[22px] pb-5">
+                            <section className="bg-inverse-surface text-inverse-on-surface rounded-card @container px-5 pt-[22px] pb-5">
                                 {/* **Changer d'exercice, depuis le héro** (23/09) — 15.1 en fait
                                     un geste du héro. Le sélecteur pleine largeur posé sous le
                                     titre (« 2026 (En cours) ») faisait une barre de plus dans
@@ -412,7 +413,10 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                                         <b className="text-inverse-on-surface font-medium whitespace-nowrap">
                                             Exercice {selectedYear}
                                         </b>
-                                        <span className="flex items-center gap-1.5 truncate text-[var(--tk-color-on-dark-2)]">
+                                        {/* L'ellipse se pose sur le mot, pas sur la rangée : une
+                                            boîte `flex` coupe sans points de suspension, et
+                                            « en cours » finissait en « en c » à 320 (07/10). */}
+                                        <span className="flex min-w-0 items-center gap-1.5 text-[var(--tk-color-on-dark-2)]">
                                             <i
                                                 className={cn(
                                                     'h-1.5 w-1.5 shrink-0 rounded-full',
@@ -421,7 +425,9 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                                                         : 'bg-[var(--tk-color-on-dark-2)]',
                                                 )}
                                             />
-                                            {currentBudget.status.toLowerCase()}
+                                            <span className="truncate">
+                                                {currentBudget.status.toLowerCase()}
+                                            </span>
                                         </span>
                                     </span>
                                     <Button
@@ -431,7 +437,10 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                                         icon={<Icon glyph={CalendarBlank} size={18} />}
                                         className="text-inverse-on-surface hover:text-inverse-on-surface -mr-2 h-8 min-h-8 shrink-0 gap-1.5 rounded-md bg-white/10 px-2.5 text-[0.8125rem] leading-4 font-medium hover:bg-white/15"
                                     >
-                                        Changer
+                                        {/* Sous 360 px, le calendrier seul : le mot prenait la
+                                            place du statut de l'exercice. Le nom du geste
+                                            reste dit par `aria-label`. */}
+                                        <span className="exigu:sr-only">Changer</span>
                                     </Button>
                                 </div>
                                 {/* `.big` — **le nombre, puis l'unité à côté** : Archivo 44
@@ -441,12 +450,23 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                                     une seconde fois sous la jauge. */}
                                 <div className="mt-2 flex flex-wrap items-baseline gap-2.5">
                                     <b className="font-brand text-[2.5rem] leading-[3rem] font-semibold tracking-[-0.03em] whitespace-nowrap tabular-nums">
-                                        <ChiffreAnime
-                                            valeur={formatNumber(
+                                        {/* Le reste d'un exercice à dix chiffres ne tient pas en
+                                            40 sur 248 px : il descend juste assez, et laisse sa
+                                            place à la devise (07/10). */}
+                                        <ChiffreAjuste
+                                            texte={formatNumber(
                                                 budgetStats.remaining,
                                                 settings.compactNotation,
                                             )}
-                                        />
+                                            reserve="3rem"
+                                        >
+                                            <ChiffreAnime
+                                                valeur={formatNumber(
+                                                    budgetStats.remaining,
+                                                    settings.compactNotation,
+                                                )}
+                                            />
+                                        </ChiffreAjuste>
                                     </b>
                                     <span className="text-ts-sub leading-ts-sub text-[var(--tk-color-on-dark-2)]">
                                         {settings.currency}
@@ -507,10 +527,10 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                                     ].map((chiffre) => (
                                         <div
                                             key={chiffre.cle}
-                                            className="min-w-0 rounded-[4px] bg-white/[0.08] px-2.5 py-3"
+                                            className="@container min-w-0 rounded-[4px] bg-white/[0.08] px-2.5 py-3"
                                         >
                                             <span className="font-brand text-ts-sheet leading-ts-sheet block font-semibold tracking-[-0.015em] tabular-nums">
-                                                {chiffre.valeur}
+                                                <ChiffreAjuste texte={chiffre.valeur} />
                                             </span>
                                             <span className="mt-0.5 block truncate text-[0.75rem] leading-4 text-[var(--tk-color-on-dark-2)]">
                                                 {chiffre.libelle}
@@ -619,8 +639,13 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                                                     Il était barré (`<s>`), ce qui dit
                                                     « annulé » d'un montant qui ne l'est
                                                     pas. */}
-                                                    <div className="deux:contents flex items-baseline justify-between gap-3">
-                                                        <span className="text-on-surface deux:col-start-1 deux:row-start-1 deux:truncate text-ts-body leading-ts-body">
+                                                    {/* **Les montants passent sous le nom s'ils ne tiennent
+                                                    pas à côté** (07/10) : « 13 050 000 / 12 000 000 »
+                                                    ne se coupe pas, et sortait de la carte de 29 px
+                                                    à 320. Le nom demande 112 px ; quand la rangée
+                                                    ne les a pas, elle se replie. */}
+                                                    <div className="deux:contents flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+                                                        <span className="text-on-surface deux:col-start-1 deux:row-start-1 deux:truncate text-ts-body leading-ts-body min-w-0 flex-[1_1_7rem]">
                                                             {item.category}
                                                         </span>
                                                         {/* **Des nombres nus.** `.bv` de 15.1

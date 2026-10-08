@@ -153,6 +153,11 @@ interface HistoryPageProps {
     onOpenEquipment?: (id: string) => void;
     /** Le renvoi du fait ouvert vers la personne. */
     onOpenUser?: (id: string) => void;
+    /**
+     * Le renvoi du fait d'une demande vers la demande (08/10) — **le seul historique des
+     * demandes** : la file des Tâches n'en garde plus.
+     */
+    onOpenApproval?: (id: string) => void;
 }
 
 const HistoryPage: React.FC<HistoryPageProps> = ({
@@ -160,6 +165,7 @@ const HistoryPage: React.FC<HistoryPageProps> = ({
     scopeUserId,
     onOpenEquipment,
     onOpenUser,
+    onOpenApproval,
 }) => {
     const { events, equipment, approvals, users, settings } = useData();
     useJournalComplet();
@@ -192,7 +198,10 @@ const HistoryPage: React.FC<HistoryPageProps> = ({
        sans troncature. En dessous, le journal garde ses cartes par jour. */
     /* Le tableau suppose une souris (P2c) : au doigt, le journal garde ses cartes et ouvre
        le fait à côté (P2a). */
-    const largeurDuTableau = useMediaQuery(MEDIA.twoColumn);
+    /* `MEDIA.bureau`, pas `twoColumn` (08/10) : descendu à 1 000 avec les deux colonnes le
+       25/09, le tableau écrasait « Fait » à 190 px dès qu'une attestation longue entrait dans
+       la page, et ses colonnes changeaient de largeur au défilement. */
+    const largeurDuTableau = useMediaQuery(MEDIA.bureau);
     const survol = useMediaQuery(MEDIA.hoverCapable);
     const enTableau = largeurDuTableau && survol;
 
@@ -410,6 +419,16 @@ const HistoryPage: React.FC<HistoryPageProps> = ({
         const actes: MenuItem[] = [
             { id: 'fait', label: 'Ouvrir le fait', onSelect: () => setOuvert(fait) },
         ];
+        if (
+            fait.targetType === 'APPROVAL' &&
+            onOpenApproval &&
+            registres.approvals.has(fait.targetId)
+        )
+            actes.push({
+                id: 'demande',
+                label: 'Ouvrir la demande',
+                onSelect: () => onOpenApproval(fait.targetId),
+            });
         const objet = fait.targetType === 'EQUIPMENT' && registres.equipment.get(fait.targetId);
         if (objet && onOpenEquipment)
             actes.push({
@@ -777,7 +796,7 @@ const HistoryPage: React.FC<HistoryPageProps> = ({
 
             <div
                 data-pied
-                className="border-outline-variant -mx-5 mt-4 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1"
+                className="border-outline-variant duo-de-pied -mx-5 mt-4 gap-3 border-t px-5 pt-4 pb-1"
             >
                 <Button
                     variant="tonal"
@@ -951,6 +970,7 @@ const HistoryPage: React.FC<HistoryPageProps> = ({
                                     onOpenEquipment={onOpenEquipment}
                                     canOpenUser={peutOuvrirLaPersonne}
                                     onOpenUser={onOpenUser}
+                                    onOpenApproval={onOpenApproval}
                                 />
                             ) : null}
                         </PanneauDeFiche>
@@ -1082,6 +1102,7 @@ const HistoryPage: React.FC<HistoryPageProps> = ({
                 onOpenEquipment={onOpenEquipment}
                 canOpenUser={peutOuvrirLaPersonne}
                 onOpenUser={onOpenUser}
+                onOpenApproval={onOpenApproval}
             />
         </>
     );

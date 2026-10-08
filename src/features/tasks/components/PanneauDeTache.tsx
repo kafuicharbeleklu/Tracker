@@ -19,8 +19,16 @@ import {
 import { NOM_SUR_UNE_LIGNE } from '../../../lib/nomLong';
 import { cn } from '../../../lib/utils';
 import type { ApprovalStatus, Equipment } from '../../../types';
-import { NATURE_MOT, dateLabel, daysSince, type Task } from '../lib/file';
-import { etapesDeLaFrise } from '../lib/parcours';
+import { NATURE_MOT, daysSince, type Task } from '../lib/file';
+import { useAppNavigation } from '../../../hooks/useAppNavigation';
+import { parcoursDeLaDemande, type Registres } from '../../history/lib/journal';
+import {
+    FilDeLaDemande,
+    INTITULE,
+    PartiesDeLaDemande,
+    SignaturesDeLaDemande,
+    etapesSignees,
+} from '../../history/components/ParcoursDeDemande';
 import { ageDeLObjet, unitesARemettre } from '../lib/unites';
 
 /**
@@ -139,6 +147,7 @@ const PanneauDeTache: React.FC<PanneauDeTacheProps> = ({
     useJournalComplet();
     const { financeBudgets } = useFinanceData();
     const { user: currentUser, permissions } = useAccessControl();
+    const { navigateToItem } = useAppNavigation();
 
     const demande = useMemo(
         () => approvals.find((item) => item.id === tache.approvalId) ?? null,
@@ -260,26 +269,22 @@ const PanneauDeTache: React.FC<PanneauDeTacheProps> = ({
         unites,
     ]);
 
-    const manager = useMemo(
-        () =>
-            beneficiaire?.managerId
-                ? users.find((person) => person.id === beneficiaire.managerId)
-                : undefined,
-        [users, beneficiaire?.managerId],
+    /* **Le parcours, celui de l'historique** (08/10) — la frise à points en 13 de la maquette
+       du 26/09 racontait la demande autrement que la fiche de l'historique et l'écran de la
+       demande ; les trois lisent maintenant le même parcours, avec les mêmes pièces. */
+    const registres = useMemo<Registres>(
+        () => ({
+            equipment: new Map(equipment.map((item) => [item.id, item])),
+            approvals: new Map(approvals.map((item) => [item.id, item])),
+        }),
+        [equipment, approvals],
     );
-
-    /* La frise de la maquette ; auteurs et heures viennent du journal. */
-    const frise = useMemo(
+    const parcours = useMemo(
         () =>
             demande
-                ? etapesDeLaFrise({
-                      demande,
-                      users,
-                      evenements: events,
-                      nomDuManager: manager?.name,
-                  })
+                ? parcoursDeLaDemande(demande.id, events, registres, users, currentUser?.id)
                 : null,
-        [demande, users, events, manager?.name],
+        [demande, events, registres, users, currentUser?.id],
     );
 
     /* Qui a validé — la trace du journal, jamais une supposition. */
@@ -318,10 +323,8 @@ const PanneauDeTache: React.FC<PanneauDeTacheProps> = ({
         ? [
               beneficiaire?.department,
               beneficiaire?.site,
-              tache.scope === 'history'
-                  ? `${tache.context} le ${dateLabel(tache.since)}${tache.decidedBy ? ` par ${tache.decidedBy}` : ''}`
-                  : `demandée ${ilYA(demande.createdAt)} par ${demande.requesterName}`,
-              tache.scope !== 'history' && validePar ? `validée par ${validePar}` : null,
+              `demandée ${ilYA(demande.createdAt)} par ${demande.requesterName}`,
+              validePar ? `validée par ${validePar}` : null,
           ]
               .filter(Boolean)
               .join(' · ')
@@ -488,43 +491,27 @@ const PanneauDeTache: React.FC<PanneauDeTacheProps> = ({
                     </section>
                 )}
 
-                {/* La frise du parcours — une étape par ligne, un point par étape. */}
-                {frise && (
+                {/* Le parcours, ses signatures et ses parties — les pièces de l'historique. */}
+                {parcours && (
                     <section>
-                        <h3 className="text-text-secondary mb-1.5 text-[0.75rem] leading-4 font-medium">
-                            Parcours
-                        </h3>
-                        <ol className="border-outline-variant ml-1.5 flex flex-col border-l-2 pl-3.5">
-                            {frise.map((etape, index) => (
-                                <li
-                                    key={index}
-                                    aria-current={etape.etat === 'ici' ? 'step' : undefined}
-                                    className={cn(
-                                        'relative py-[3px] text-[0.8125rem] leading-[1.125rem]',
-                                        etape.etat === 'ici'
-                                            ? 'text-on-surface font-medium'
-                                            : etape.etat === 'arret'
-                                              ? 'text-[var(--tk-color-st-rouge)]'
-                                              : 'text-text-secondary',
-                                    )}
-                                >
-                                    <span
-                                        aria-hidden="true"
-                                        className={cn(
-                                            'absolute top-2 -left-5 h-2.5 w-2.5 rounded-full border-2',
-                                            etape.etat === 'franchie'
-                                                ? 'border-[var(--tk-color-st-vert)] bg-[var(--tk-color-st-vert)]'
-                                                : etape.etat === 'ici'
-                                                  ? 'bg-primary border-on-surface'
-                                                  : etape.etat === 'arret'
-                                                    ? 'border-[var(--tk-color-st-rouge)] bg-[var(--tk-color-st-rouge)]'
-                                                    : 'bg-surface border-outline',
-                                        )}
-                                    />
-                                    {etape.texte}
-                                </li>
-                            ))}
-                        </ol>
+                        <h3 className={INTITULE}>Le parcours de la demande</h3>
+                        <FilDeLaDemande parcours={parcours} />
+                    </section>
+                )}
+                {parcours && etapesSignees(parcours.etapes).length > 0 && (
+                    <section>
+                        <h3 className={INTITULE}>Les signatures</h3>
+                        <SignaturesDeLaDemande etapes={parcours.etapes} registres={registres} />
+                    </section>
+                )}
+                {parcours && parcours.parties.length > 0 && (
+                    <section>
+                        <h3 className={INTITULE}>Les parties prenantes</h3>
+                        <PartiesDeLaDemande
+                            parcours={parcours}
+                            canOpenUser={(id) => permissions.canViewUsers || id === currentUser?.id}
+                            onOpenUser={(id) => navigateToItem('user_details', id)}
+                        />
                     </section>
                 )}
 

@@ -10,12 +10,10 @@ import {
 } from '@phosphor-icons/react';
 
 import DetailTemplate from '../../../components/layout/DetailTemplate';
-import { libelleAttestation } from '../../../components/ui/Attestation';
 import DetailHero from '../../../components/ui/DetailHero';
 import ActSheet from '../../../components/ui/ActSheet';
 import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
-import HandoverTrail, { type TrailStep } from '../../../components/ui/HandoverTrail';
 import Icon from '../../../components/ui/Icon';
 import ScreenState from '../../../components/ui/ScreenState';
 import { TextArea } from '../../../components/ui/TextArea';
@@ -30,7 +28,14 @@ import { formatDate } from '../../../lib/financial';
 import type { Approval, ApprovalStatus, Equipment } from '../../../types';
 import { NOM_SUR_UNE_LIGNE } from '../../../lib/nomLong';
 import { cn } from '../../../lib/utils';
-import { parcoursDeLaDemande } from '../lib/parcours';
+import { useJournalComplet } from '../../../hooks/useJournalComplet';
+import { parcoursDeLaDemande, type Registres } from '../../history/lib/journal';
+import {
+    FilDeLaDemande,
+    PartiesDeLaDemande,
+    SignaturesDeLaDemande,
+    etapesSignees,
+} from '../../history/components/ParcoursDeDemande';
 
 /**
  * **Arbitrer une demande** — planche **06.5**, passe sobre du 03/09.
@@ -111,10 +116,12 @@ interface ApprovalDetailsPageProps {
 }
 
 const ApprovalDetailsPage: React.FC<ApprovalDetailsPageProps> = ({ approvalId, onBack }) => {
-    const { approvals, users, equipment, updateApproval } = useData();
+    const { approvals, users, equipment, events, updateApproval } = useData();
     const { showToast } = useToast();
     const { user: currentUser, permissions } = useAccessControl();
-    const { navigate } = useAppNavigation();
+    const { navigate, navigateToItem } = useAppNavigation();
+    /* Le parcours se lit dans le journal, qui remonte jusqu'au dépôt. */
+    useJournalComplet();
 
     /** L'acte engagé depuis le héro : il s'atteste dans la feuille de 17.4. */
     const [acte, setActe] = useState<'valider' | 'refuser' | 'annuler' | null>(null);
@@ -149,6 +156,24 @@ const ApprovalDetailsPage: React.FC<ApprovalDetailsPageProps> = ({ approvalId, o
         );
     }, [equipment, demande, beneficiaire?.site]);
 
+    /* **Le parcours, celui de l'historique** (08/10) : qui, son rôle, quand, par quelle preuve,
+       puis ce qui reste à faire. L'écran racontait trois étapes à venir, en dates chiffrées,
+       et la fiche de l'historique une autre histoire de la même demande. */
+    const registres = useMemo<Registres>(
+        () => ({
+            equipment: new Map(equipment.map((item) => [item.id, item])),
+            approvals: new Map(approvals.map((item) => [item.id, item])),
+        }),
+        [equipment, approvals],
+    );
+    const parcours = useMemo(
+        () =>
+            demande
+                ? parcoursDeLaDemande(demande.id, events, registres, users, currentUser?.id)
+                : null,
+        [demande, events, registres, users, currentUser?.id],
+    );
+
     if (!demande) {
         return (
             <ScreenState
@@ -175,23 +200,15 @@ const ApprovalDetailsPage: React.FC<ApprovalDetailsPageProps> = ({ approvalId, o
     const badge = ETAT_BADGE[demande.status];
     const attenteDepuis = joursDepuis(demande.updatedAt || demande.createdAt);
 
-    /* Le fil des trois étapes — partagé avec le panneau de décision de la file (26/09). */
-    const manager = beneficiaire?.managerId
-        ? users.find((person) => person.id === beneficiaire.managerId)
-        : undefined;
-    const etapes: TrailStep[] = parcoursDeLaDemande({
-        demande,
-        estLeManager,
-        estLeBeneficiaire,
-        nomDuManager: manager?.name,
-    });
-
-    const etapeCourante = etapes.findIndex((etape) => etape.state === 'late');
+    const etapes = parcours?.etapes ?? [];
+    const faites = etapes.filter((etape) => !etape.attente && !etape.avenir).length;
 
     const trancher = (statut: ApprovalStatus, method: string, raison?: string) => {
         const decision = updateApproval(demande.id, statut, {
             reason: raison,
-            method: libelleAttestation(method),
+            /* Le code de la méthode (`pin`…) : le journal le garde, la note en fait son
+               libellé (08/10). */
+            method,
         });
         if (!decision.allowed) {
             setRefus(decision.reason || 'Action non autorisée pour cette demande.');
@@ -217,7 +234,7 @@ const ApprovalDetailsPage: React.FC<ApprovalDetailsPageProps> = ({ approvalId, o
 
         if (demande.status === 'WAITING_MANAGER_APPROVAL' && (estLeManager || estInformatique)) {
             return (
-                <div className="grid w-full grid-cols-2 gap-3">
+                <div className="duo-de-gestes w-full gap-3">
                     <Button
                         variant="filled"
                         icon={<Icon glyph={Check} size={20} />}
@@ -244,7 +261,7 @@ const ApprovalDetailsPage: React.FC<ApprovalDetailsPageProps> = ({ approvalId, o
             estInformatique
         ) {
             return (
-                <div className="grid w-full grid-cols-2 gap-3">
+                <div className="duo-de-gestes w-full gap-3">
                     <Button
                         variant="filled"
                         icon={<Icon glyph={Handshake} size={20} />}
@@ -431,22 +448,41 @@ const ApprovalDetailsPage: React.FC<ApprovalDetailsPageProps> = ({ approvalId, o
                         </>
                     )}
 
-                {/* Le parcours — trois étapes, et où il s'arrête. */}
-                <Card className="flex flex-col gap-3 p-4">
-                    <div className="flex items-center justify-between gap-3">
+                {/* Le parcours — du dépôt à la réception, et où il s'arrête. */}
+                {parcours && (
+                    <Card className="flex flex-col gap-3 p-4">
+                        <div className="flex items-center justify-between gap-3">
+                            <h3 className="text-on-surface text-ts-head leading-ts-head font-medium">
+                                Le parcours
+                            </h3>
+                            <span className="text-on-surface-variant text-ts-sub leading-ts-sub">
+                                {close
+                                    ? demande.status === 'Completed'
+                                        ? 'terminé'
+                                        : 'arrêté'
+                                    : `étape ${faites + 1} sur ${etapes.length}`}
+                            </span>
+                        </div>
+                        <FilDeLaDemande parcours={parcours} />
+                        {etapesSignees(etapes).length > 0 && (
+                            <SignaturesDeLaDemande etapes={etapes} registres={registres} />
+                        )}
+                    </Card>
+                )}
+
+                {/* Les parties prenantes — qui a fait quoi, qui doit encore agir. */}
+                {parcours && parcours.parties.length > 0 && (
+                    <Card className="flex flex-col gap-1 p-4">
                         <h3 className="text-on-surface text-ts-head leading-ts-head font-medium">
-                            Le parcours
+                            Les parties prenantes
                         </h3>
-                        <span className="text-on-surface-variant text-ts-sub leading-ts-sub">
-                            {close
-                                ? demande.status === 'Completed'
-                                    ? 'terminé'
-                                    : 'arrêté à 1'
-                                : `${etapeCourante >= 0 ? etapeCourante + 1 : 3} sur 3`}
-                        </span>
-                    </div>
-                    <HandoverTrail steps={etapes} />
-                </Card>
+                        <PartiesDeLaDemande
+                            parcours={parcours}
+                            canOpenUser={(id) => permissions.canViewUsers || id === currentUser?.id}
+                            onOpenUser={(id) => navigateToItem('user_details', id)}
+                        />
+                    </Card>
+                )}
             </DetailTemplate>
 
             {/* Chaque décision passe par la feuille d'acte, et garde son motif (17.4). */}

@@ -9,6 +9,22 @@
    téléphone garde ses mesures. */
 @custom-variant doigt (@media (min-width: 600px) and (pointer: coarse));
 
+/* **Le téléphone étroit** (07/10) — sous 384 px : les 320 des plus petits écrans, les 360 des
+   Android courants, les 375 d'un iPhone SE ou mini. Une carte y perd de 18 à 73 px sur les
+   393 où les planches sont dessinées, et trois chiffres de front n'y tiennent plus. La borne
+   est en `rem` : elle vaut aussi pour un 393 dont le texte est agrandi dans les réglages du
+   navigateur — le texte y prend la place qu'il occupe sur un écran plus étroit.
+   À n'employer que là où rien de plus simple ne suffit : passer à la ligne, couper à
+   l'ellipse ou laisser une rangée se replier (`lib/souple`) tiennent à toutes les largeurs,
+   sans seuil. */
+@custom-variant etroit (@media (max-width: 23.9375rem));
+
+/* **Le téléphone exigu** (07/10) — sous 360 px : les 320 des plus petits écrans, et tout
+   téléphone dont le texte agrandi ramène la place à celle-là. Deux choses seulement s'y
+   règlent : le titre de page descend à 24 (voir `text-ts-page`), et un mot de bouton cède
+   à son pictogramme là où il prenait la place d'un fait. */
+@custom-variant exigu (@media (max-width: 22.4375rem));
+
 /* ============================================================
    NEEMBA TRACKER — TRACKER DS, couche de tokens
    ------------------------------------------------------------
@@ -337,6 +353,11 @@ body {
        barre latérale `sticky` se collait alors à lui, qui ne défile jamais, et partait
        avec la page au lieu de rester en place. Même règle pour `#root`. */
     overflow-x: clip;
+    /* **Un mot plus long que sa ligne se coupe** (07/10) — une adresse, un nom d'hôte, un
+       numéro de série de trente signes n'ont aucune espace où passer à la ligne : ils
+       sortaient de leur carte. `break-word` ne coupe que ce qui déborderait, et ne change la
+       largeur d'aucune boîte ; ce qui tient sur une ligne (`truncate`) n'est pas concerné. */
+    overflow-wrap: break-word;
     font-family: var(--tk-type-font-plain);
     /* **Le corps des planches : `--t3`, 16 sur 1,5.** Le corps du produit empruntait le
        cran « mention » (13 sur 19) : tout texte qui ne déclarait pas sa taille sortait
@@ -1449,6 +1470,12 @@ body {
    tailles qu'on lit à bout de bras. */
 @utility text-ts-page {
     font-size: var(--tk-ts-page-size);
+    /* **Sous 360 px, le titre prend la mesure du bureau, 24 sur 32** (07/10). En 28, entre la
+       flèche de retour et le geste de l'en-tête, il reste 150 px au titre d'un écran de 320 :
+       « Nouvel équipement » s'y lisait « Nouvel… », « Lignes du budget », « Lignes du bud… ». */
+    @media (max-width: 22.4375rem) {
+        font-size: var(--tk-ts-page-size-bureau);
+    }
     @media (min-width: 840px) and (pointer: fine) {
         font-size: var(--tk-ts-page-size-bureau);
     }
@@ -1485,6 +1512,9 @@ body {
 }
 @utility leading-ts-page {
     line-height: var(--tk-ts-page-line);
+    @media (max-width: 22.4375rem) {
+        line-height: var(--tk-ts-page-line-bureau);
+    }
     @media (min-width: 840px) and (pointer: fine) {
         line-height: var(--tk-ts-page-line-bureau);
     }
@@ -1511,6 +1541,54 @@ body {
     line-height: var(--tk-ts-sub-line);
     @media (min-width: 840px) and (pointer: fine) {
         line-height: var(--tk-ts-sub-line-bureau);
+    }
+}
+
+/* **Deux gestes de même largeur** (07/10) — les deux gestes d'un héro, le pied d'une feuille.
+   Les planches les dessinent en deux colonnes égales, à 393 px ; une colonne égale ne sait pas
+   ce qu'elle porte : à 320, « Annuler la remise » dépassait de son bouton de 7 px de chaque
+   côté. Ici les deux gestes restent côte à côte **et égaux** tant que les deux libellés
+   tiennent ; quand ils ne tiennent plus, ils passent l'un sous l'autre, en pleine largeur
+   (Material : *stacked buttons*) ; et un libellé plus large que la feuille entière prend deux
+   lignes au lieu de sortir du bouton. Aucun seuil : la rangée se règle sur ses libellés, donc
+   aussi sur un texte agrandi dans les réglages du téléphone.
+
+   `duo-de-gestes` garde l'ordre d'écriture en se repliant (le geste principal d'un héro est
+   écrit le premier, il reste dessus). `duo-de-pied` l'inverse : dans un pied, « Annuler » est
+   écrit le premier et le verbe le second — replié, le verbe monte et « Annuler » reste au
+   bas, là où Material et iOS posent le geste qui renonce.
+
+   La gouttière reste à l'appelant (`gap-3`). Le sélecteur nomme les balises (`button`, `a`…)
+   pour passer devant `min-w-10` et `whitespace-nowrap` du bouton, quelle que soit la place
+   de la règle dans la feuille. */
+@utility duo-de-gestes {
+    display: flex;
+    flex-wrap: wrap;
+    & > :is(button, a, div, span, label) {
+        flex: 1 1 0%;
+        min-width: fit-content;
+        white-space: normal;
+    }
+}
+/* **Le pied d'un dialogue** (07/10) — ses gestes gardent leur largeur et s'alignent à droite,
+   comme au bureau ; quand ils ne tiennent plus de front, le verbe monte d'une ligne au lieu
+   de rétrécir sous son libellé (« Enregistrer les corrections » sortait de son bouton à 320). */
+@utility pied-de-dialogue {
+    display: flex;
+    flex-wrap: wrap-reverse;
+    justify-content: flex-end;
+    & > :is(button, a, div, span, label) {
+        min-width: fit-content;
+        white-space: normal;
+    }
+}
+@utility duo-de-pied {
+    display: flex;
+    flex-wrap: wrap-reverse;
+    & > :is(button, a, div, span, label) {
+        flex: 1 1 0%;
+        min-width: fit-content;
+        white-space: normal;
     }
 }
 

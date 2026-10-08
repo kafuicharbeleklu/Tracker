@@ -1066,7 +1066,7 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
                     {/* `.sfoot` — le pied dit le résultat **avant** de le montrer. */}
                     <div
                         data-pied
-                        className="border-outline-variant -mx-5 mt-4 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1"
+                        className="border-outline-variant -mx-5 mt-4 duo-de-pied gap-3 border-t px-5 pt-4 pb-1"
                     >
                         <Button
                             variant="tonal"

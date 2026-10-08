@@ -151,13 +151,15 @@ const HandoverActSheet: React.FC<HandoverActSheetProps> = ({
         if (designe) setDestinataireId(designe);
     }, [demande, objet, destinataireId]);
 
-    /** Ce qui peut être remis — la même liste pour la recherche et pour le scan. */
+    /**
+     * Ce qui peut être remis — la même liste pour la recherche et pour le scan : **les
+     * disponibles, et eux seuls** (08/10). Les objets déjà remis et pas encore reçus y
+     * étaient mêlés, sans rien qui les distingue. Une remise en attente se termine depuis
+     * la fiche de l'objet ou la file des tâches, qui ouvrent la feuille sur lui
+     * (`initialEquipmentId`) : le contrôle de l'objet, plus haut, l'accepte toujours.
+     */
     const eligibles = useMemo(
-        () =>
-            equipment.filter(
-                (item) =>
-                    item.status === 'Disponible' || item.assignmentStatus === 'PENDING_DELIVERY',
-            ),
+        () => equipment.filter((item) => item.status === 'Disponible'),
         [equipment],
     );
 

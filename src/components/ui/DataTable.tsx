@@ -101,6 +101,14 @@ interface DataTableProps<T> {
     groupOf?: (row: T) => { id: string; label: string; count?: number };
     /** La hauteur maximale du cadre qui défile ; sans elle, c'est la page qui défile. */
     maxHeight?: string;
+    /**
+     * **La largeur sous laquelle le tableau défile au lieu de s'écraser** (08/10). Un tableau
+     * réparti en parts se compresse avec son cadre : à 1 024, six colonnes calibrées pour
+     * 960 px coupaient « En réparation » en « En répa… » et l'en-tête « Dernier mouvement »
+     * sans points de suspension. Sous cette largeur, il garde son dessin et défile dans sa
+     * carte, la colonne de tête figée (`FIGEE`). Absente : il suit son cadre, comme avant.
+     */
+    largeurMin?: string;
     className?: string;
 }
 
@@ -131,6 +139,7 @@ function DataTable<T>({
     rowLead,
     groupOf,
     maxHeight,
+    largeurMin,
     className,
 }: DataTableProps<T>) {
     /* **Sans souris, rien ne se révèle au survol** (25/09) : sur une tablette tactile, la case
@@ -206,6 +215,7 @@ function DataTable<T>({
         >
             <table
                 aria-rowcount={rows.length + 1}
+                style={largeurMin ? { minWidth: largeurMin } : undefined}
                 className={cn(
                     'w-full border-collapse text-left text-[0.875rem] leading-5',
                     /* Sans colonne de reste, **la largeur se partage, elle ne se négocie

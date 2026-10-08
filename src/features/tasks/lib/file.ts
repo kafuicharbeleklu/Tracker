@@ -1,12 +1,4 @@
-import {
-    ArrowCounterClockwise,
-    Check,
-    ClipboardText,
-    Laptop,
-    Wrench,
-    X,
-    type Icon as PhosphorGlyph,
-} from '@phosphor-icons/react';
+import { ClipboardText, Laptop, Wrench, type Icon as PhosphorGlyph } from '@phosphor-icons/react';
 
 import { getCategoryGlyph } from '../../../constants/categoryIcons';
 import { getCategoryLabel } from '../../../constants/glossary';
@@ -16,7 +8,6 @@ import {
     getApprovalRejectTarget,
     getAvailableApprovalActions,
     isApprovalActiveStatus,
-    isApprovalHistoryStatus,
     quiALaMainSurLaDemande,
 } from '../../../lib/businessRules';
 import type {
@@ -43,22 +34,19 @@ import type {
 /** La boîte de travail unique de la planche 08.1. */
 export type TaskNature =
     'validation' | 'collecte' | 'reception' | 'retour' | 'remise' | 'reparation';
-export type TaskScope = 'todo' | 'following' | 'history';
+/**
+ * **Deux portées, plus d'historique** (08/10) — la file disait « À faire · À suivre ·
+ * Historique », et le menu latéral portait un autre Historique : deux journaux pour une même
+ * demande tranchée. Le commanditaire n'en garde qu'un, celui du menu (`HistoryPage`), où
+ * les demandes se lisent dans la nature « Demandes ». La file ne montre que ce qui attend.
+ */
+export type TaskScope = 'todo' | 'following';
 /**
  * **Ce qui presse d'abord** est l'ordre par défaut (26/09) : les groupes « En retard »,
  * « Cette semaine », « Aujourd'hui », l'urgence signalée en tête de chacun. Les deux
  * ordres d'ancienneté restent, pour qui veut la file brute.
  */
 export type TaskOrder = 'urgence' | 'oldest' | 'newest';
-
-/**
- * L'issue d'une tâche close — ce que l'historique montre à la place de sa nature.
- * La planche en dessine trois : validée (`.vig.ok`), refusée (`.vig.no`), annulée.
- */
-export type TaskOutcome = 'ok' | 'no' | 'undone';
-
-/** Ce que la vignette peut porter comme couleur : une nature, ou une issue. */
-export type TaskTone = TaskNature | TaskOutcome;
 
 export interface Task {
     id: string;
@@ -74,15 +62,11 @@ export interface Task {
     who?: string;
     /** L'état **en un mot** — la seconde moitié de la sous-ligne. */
     context: string;
-    /** La teinte de la vignette. Par défaut la nature ; l'historique met son issue. */
-    tone?: TaskTone;
     /**
      * Le motif d'un refus, cité tel quel sous la sous-ligne (`.tt .q`, en italique) :
-     * c'est le seul texte que le demandeur a reçu, l'historique ne le reformule pas.
+     * c'est le seul texte que le demandeur a reçu, la file ne le reformule pas.
      */
     quote?: string;
-    /** Qui a décidé — la seconde ligne du bloc de droite (`.rt .by`). */
-    decidedBy?: string;
     /**
      * Depuis quand la tâche attend, quand la donnée le dit — pour une demande, **son dépôt** :
      * c'est l'âge que la personne qui attend ressent, et celui que la maquette compte.
@@ -175,7 +159,6 @@ export const NATURE_MOT: Record<TaskNature, string> = {
 export const SCOPE_LABEL: Record<TaskScope, string> = {
     todo: 'À faire',
     following: 'À suivre',
-    history: 'Historique',
 };
 
 /** Jours écoulés, en entier — une file se lit en jours, pas en minutes. */
@@ -191,13 +174,6 @@ export const ageLabel = (iso: string | null): string => {
     if (days === null || days === 0) return "aujourd'hui";
     return `${days} j`;
 };
-
-/**
- * Dans l'historique, la droite porte la **date** de la décision, pas son âge : une
- * décision du 14 août ne se lit pas « 21 j ». Planche 03.3, `.rt .age`.
- */
-export const dateLabel = (iso: string | null): string =>
-    iso ? new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) : '—';
 
 /**
  * **L'âge dit ce qui presse** (26/09, tel que la maquette le dessine) — gris le jour même,
@@ -314,20 +290,6 @@ const todoState = (status: ApprovalStatus): string => {
     }
 };
 
-/** L'issue au participe passé, et la teinte que la vignette prend avec elle. */
-const historyOutcome = (
-    status: ApprovalStatus,
-): { word: string; tone: TaskOutcome; glyph: PhosphorGlyph } => {
-    switch (status) {
-        case 'Rejected':
-            return { word: 'refusée', tone: 'no', glyph: X };
-        case 'Cancelled':
-            return { word: 'annulée', tone: 'undone', glyph: ArrowCounterClockwise };
-        default:
-            return { word: 'validée', tone: 'ok', glyph: Check };
-    }
-};
-
 /**
  * Au-delà de combien de jours une demande se relance. La planche 03.3 montre la cloche sur
  * une rangée de 9 jours et pas sur celles de 1 à 3 : **sept jours est une convention lue sur
@@ -435,28 +397,6 @@ export const construireLaFile = ({
         const subject = equipmentLabel || 'Demande d’équipement';
         const mine =
             approval.requesterId === currentUser.id || approval.beneficiaryId === currentUser.id;
-
-        if (isApprovalHistoryStatus(approval.status)) {
-            if (isRelatedApproval(approval)) {
-                const outcome = historyOutcome(approval.status);
-                out.push({
-                    id: `history-${approval.id}`,
-                    nature: 'validation',
-                    scope: 'history',
-                    title: subject,
-                    who: beneficiary,
-                    context: outcome.word,
-                    tone: outcome.tone,
-                    quote: approval.decisionNote?.reason,
-                    decidedBy: approval.decisionNote?.actorName,
-                    since: approval.updatedAt || approval.createdAt,
-                    approvalId: approval.id,
-                    ...approvalTarget(approval),
-                    icon: outcome.glyph,
-                });
-            }
-            return;
-        }
 
         if (!isApprovalActiveStatus(approval.status)) return;
 

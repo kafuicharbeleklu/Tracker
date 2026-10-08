@@ -27,6 +27,7 @@ import { useConfirmation } from '../../../context/ConfirmationContext';
 import { useData } from '../../../context/DataContext';
 import { useToast } from '../../../context/ToastContext';
 import { cn } from '../../../lib/utils';
+import { CASE_SOUPLE, RANGEE_SOUPLE } from '../../../lib/souple';
 import { ViewType } from '../../../types';
 import { countryCodeOf } from '../lib/siteCode';
 import { remplacerAdresseCourante } from '../../../lib/cheminParcouru';
@@ -286,7 +287,12 @@ const SiteDetailsPage: React.FC<SiteDetailsPageProps> = ({
             )}
 
             {!neverServed && (
-                <div className="mt-5 flex gap-3">
+                /* **En rangée souple** (07/10), comme les cases de `DetailHero` : à trois de
+                   front, « personnes » et son chevron demandent 76 px et la case n'en offrait
+                   que 71 à 393 — le chevron était rogné, puis le mot coupé. Trois cases
+                   prennent 10 d'intérieur (`.hrow.three .hk`), 6 et une gouttière de 8 sur
+                   un téléphone étroit ; à 320 la troisième passe dessous. */
+                <div className={cn(RANGEE_SOUPLE, 'mt-5 gap-3', relays.length >= 3 && 'etroit:gap-2')}>
                     {relays.map((relay) => (
                         /* La case passe par la primitive `Button`, jamais par un contrôle
                            natif : `check-ds-compliance` les refuse hors de
@@ -299,13 +305,19 @@ const SiteDetailsPage: React.FC<SiteDetailsPageProps> = ({
                             variant="text"
                             layout="card"
                             onClick={relay.onOpen}
-                            className="text-inverse-on-surface flex min-h-0 min-w-0 flex-1 flex-col items-start gap-0 rounded-[4px] bg-white/[0.08] px-3.5 py-3 hover:bg-white/[0.14]"
+                            className={cn(
+                                'text-inverse-on-surface flex min-h-0 flex-col items-start gap-0 rounded-[4px] bg-white/[0.08] py-3 hover:bg-white/[0.14]',
+                                CASE_SOUPLE,
+                                relays.length >= 3 ? 'etroit:px-1.5 px-2.5' : 'px-3.5',
+                            )}
                         >
                             <span className="font-brand text-ts-sheet leading-ts-sheet block font-semibold tracking-[-0.015em] tabular-nums">
                                 {relay.value}
                             </span>
-                            <span className="text-on-nav-surface-variant mt-0.5 flex items-center gap-0.5 overflow-hidden text-[0.75rem] leading-4 font-normal whitespace-nowrap">
-                                {relay.label}
+                            {/* Le libellé se coupe, le chevron reste : la rangée coupait sans
+                                points de suspension, chevron compris (07/10). */}
+                            <span className="text-on-nav-surface-variant mt-0.5 flex max-w-full min-w-0 items-center gap-0.5 text-[0.75rem] leading-4 font-normal">
+                                <span className="min-w-0 truncate">{relay.label}</span>
                                 <Icon glyph={CaretRight} size={18} className="shrink-0" />
                             </span>
                         </Button>
@@ -426,7 +438,7 @@ const SiteDetailsPage: React.FC<SiteDetailsPageProps> = ({
                     <FormNote>L'historique garde l'ancien nom sur les faits passés.</FormNote>
 
                     {/* `.sfoot` — deux colonnes égales, filet au-dessus. */}
-                    <div className="border-outline-variant -mx-5 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1">
+                    <div className="border-outline-variant -mx-5 duo-de-pied gap-3 border-t px-5 pt-4 pb-1">
                         <Button variant="ghost" onClick={() => setIsRenameOpen(false)}>
                             Annuler
                         </Button>
@@ -456,7 +468,7 @@ const SiteDetailsPage: React.FC<SiteDetailsPageProps> = ({
                         required
                     />
 
-                    <div className="border-outline-variant -mx-5 grid grid-cols-2 gap-3 border-t px-5 pt-4 pb-1">
+                    <div className="border-outline-variant -mx-5 duo-de-pied gap-3 border-t px-5 pt-4 pb-1">
                         <Button variant="ghost" onClick={() => setIsAddLocalOpen(false)}>
                             Annuler
                         </Button>

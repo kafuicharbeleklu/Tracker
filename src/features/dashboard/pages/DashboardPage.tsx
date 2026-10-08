@@ -39,6 +39,7 @@ import { ACTIVE_APPROVAL_STATUSES, getHistoryEventSentence } from '../../../lib/
 import { cn } from '../../../lib/utils';
 import heroImage from '../../../assets/dashboard-hero.webp';
 import { NOM_SUR_UNE_LIGNE, infobulle } from '../../../lib/nomLong';
+import { CASE_SOUPLE, RANGEE_SOUPLE } from '../../../lib/souple';
 import { useEntree } from '../../../hooks/useEntree';
 import ChiffreAnime from '../../../components/ui/ChiffreAnime';
 
@@ -417,14 +418,20 @@ const DashboardMoreAction: React.FC<{
                       'border-outline-variant text-on-surface hover:text-on-surface mt-5',
             )}
         >
-            <span className="shrink-0">{label}</span>
+            <span className="min-w-0 truncate">{label}</span>
+            {/* **La destination cède, elle ne se réduit pas à trois lettres** (07/10) : à 320,
+                « Inventaire » devenait « Inv… » et « Finances », « Fi… ». Elle demande 56 px ;
+                en deçà elle passe sur une seconde ligne que la rangée ne montre pas — le
+                chevron dit déjà qu'on part. Le témoin de largeur nulle tient la première
+                ligne : sans lui, un enfant seul ne passe jamais à la ligne. */}
             <span
                 className={cn(
-                    'ml-auto min-w-0 flex-1 truncate text-right text-[0.75rem] leading-4 font-normal',
+                    'ml-auto flex h-4 min-w-0 flex-1 flex-wrap justify-end overflow-hidden text-[0.75rem] leading-4 font-normal',
                     isInverse ? 'text-on-nav-surface-variant' : 'text-on-surface-variant',
                 )}
             >
-                {destination}
+                <span aria-hidden="true" className="h-4 w-0" />
+                <span className="min-w-0 flex-[1_1_3.5rem] truncate text-right">{destination}</span>
             </span>
             <Icon
                 glyph={CaretRight}
@@ -1052,10 +1059,25 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                         >
                                             {entry.what}
                                         </span>
-                                        <span className="text-ts-sub leading-ts-sub mt-0.5 block text-[var(--tk-color-on-dark-2)]">
-                                            {[pourMoi ? '' : entry.who, nature]
-                                                .filter(Boolean)
-                                                .join(' · ')}
+                                        {/* Une ligne, comme le titre : un nom de cinquante
+                                            signes en prenait quatre à 320, et la rangée
+                                            doublait de hauteur. **Le nom se coupe, la nature
+                                            reste** — c'est elle qui dit quoi faire (07/10). */}
+                                        <span className="text-ts-sub leading-ts-sub mt-0.5 flex min-w-0 text-[var(--tk-color-on-dark-2)]">
+                                            {!pourMoi && entry.who && (
+                                                <span
+                                                    title={infobulle(entry.who)}
+                                                    className="min-w-0 truncate"
+                                                >
+                                                    {entry.who}
+                                                </span>
+                                            )}
+                                            {nature && (
+                                                <span className="shrink-0 whitespace-pre">
+                                                    {!pourMoi && entry.who ? ' · ' : ''}
+                                                    {nature}
+                                                </span>
+                                            )}
                                         </span>
                                     </span>
                                     {age && (
@@ -1125,8 +1147,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                         })}
                     </div>
                     {/* `.qual` — trois colonnes, 22 / 28 en Archivo, le libellé 14 / 20
-                        avec sa pastille de 8. */}
-                    <div className="mt-4 grid grid-cols-3 gap-4">
+                        avec sa pastille de 8. **En rangée souple** (07/10) : des tiers égaux
+                        donnaient 88 px à « en réparation », qui en demande 101 — il mordait
+                        sur la marge de la carte à 360 et en sortait à 320. */}
+                    <div className={cn(RANGEE_SOUPLE, 'mt-4 gap-x-4 gap-y-3')}>
                         {FLEET_STATES.map((state) => (
                             <Figure
                                 key={state.key}
@@ -1134,6 +1158,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                 label={state.label}
                                 tone={state.tone}
                                 onClick={() => openFleet(state.status)}
+                                className={CASE_SOUPLE}
                             />
                         ))}
                     </div>
@@ -1145,7 +1170,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                         <Button
                             variant="text"
                             onClick={() => openFleet('')}
-                            className="text-on-surface-variant hover:text-on-surface mt-2.5 min-h-0 justify-start px-0 text-left text-[0.75rem] leading-4 font-normal hover:bg-transparent"
+                            /* `whitespace-normal` : un bouton tient son libellé sur une ligne, et
+                               cette phrase en fait deux dès que le reste compte quatre états —
+                               elle sortait de la carte de 195 px à 430, de 305 à 320 (07/10). */
+                            className="text-on-surface-variant hover:text-on-surface mt-2.5 min-h-0 justify-start px-0 text-left text-[0.75rem] leading-4 font-normal whitespace-normal hover:bg-transparent"
                         >
                             <span>
                                 Hors service :{' '}

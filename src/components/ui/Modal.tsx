@@ -241,7 +241,7 @@ const Modal: React.FC<ModalProps> = ({
 
                 {/* Actions — `.dfoot` : un filet au-dessus, pas de creux. */}
                 {footer && (
-                    <div className="border-outline-variant flex shrink-0 justify-end gap-3 border-t px-5 pt-3.5 pb-3.5">
+                    <div className="border-outline-variant pied-de-dialogue shrink-0 gap-3 border-t px-5 pt-3.5 pb-3.5">
                         {footer}
                     </div>
                 )}
