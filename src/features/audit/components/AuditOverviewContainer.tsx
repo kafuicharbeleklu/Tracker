@@ -15,6 +15,8 @@ import {
 import { rememberAuditScope, siteQuitteALInstant } from '../../../lib/auditScope';
 import { lireLaCampagne } from '../campagne';
 import { AuditOverview, type ChoixDuLieu } from './AuditOverview';
+import AuditLieux from './AuditLieux';
+import { useRouter } from '../../../hooks/useRouter';
 
 interface AuditOverviewContainerProps {
     onViewChange?: (view: ViewType) => void;
@@ -34,6 +36,10 @@ const STATUS_OPTIONS = [
 ];
 
 const normalize = (value?: string): string => (value || '').trim().toLowerCase();
+
+/** L'adresse de la page des lieux d'un pays, ou des locaux d'un de ses sites. */
+const adresseDesLieux = (country: string, site: string | null): string =>
+    `/audit/lieux/${encodeURIComponent(country)}${site ? `/${encodeURIComponent(site)}` : ''}`;
 
 /**
  * Les chiffres d'un ensemble de lieux. Il en faut **deux** au bureau : ceux du parc, que
@@ -83,6 +89,7 @@ export const AuditOverviewContainer: React.FC<AuditOverviewContainerProps> = ({
 }) => {
     const { showToast } = useToast();
     const { navigateToView } = useAppNavigation();
+    const { routeSegments, navigate } = useRouter();
     const { locationData, equipment, events, settings } = useData();
 
     const [searchQuery, setSearchQuery] = useState('');
@@ -103,6 +110,33 @@ export const AuditOverviewContainer: React.FC<AuditOverviewContainerProps> = ({
      */
     const [openedSite, setOpenedSite] = useState<{ country: string; site: string } | null>(
         siteQuitteALInstant,
+    );
+
+    /**
+     * **La page de tous les lieux d'un choix** (09/10) — `/audit/lieux/<pays>` pour les
+     * sites d'un pays, `/audit/lieux/<pays>/<site>` pour les locaux d'un site. Le panneau
+     * du bureau n'en montre qu'une part ; cette adresse les porte tous. Elle prend le pas
+     * sur le choix du panneau le temps qu'on y est, sans l'effacer : au retour, le panneau
+     * est tel qu'on l'a laissé.
+     */
+    const lieuDeLaPage = useMemo(() => {
+        if (routeSegments[0] !== 'audit' || routeSegments[1] !== 'lieux' || !routeSegments[2])
+            return null;
+        const country = decodeURIComponent(routeSegments[2]);
+        return {
+            country,
+            site: routeSegments[3] ? decodeURIComponent(routeSegments[3]) : null,
+        };
+    }, [routeSegments]);
+    const paysMontre = lieuDeLaPage ? lieuDeLaPage.country : chosenCountry;
+    const siteMontre = useMemo(
+        () =>
+            lieuDeLaPage
+                ? lieuDeLaPage.site
+                    ? { country: lieuDeLaPage.country, site: lieuDeLaPage.site }
+                    : null
+                : openedSite,
+        [lieuDeLaPage, openedSite],
     );
 
     const debouncedSearch = useDebounce(searchQuery, 250);
@@ -355,8 +389,8 @@ export const AuditOverviewContainer: React.FC<AuditOverviewContainerProps> = ({
        union de deux formes, dont l'une n'a pas `local` — et tout ce qui lit `row.local`
        en aval cesse de compiler alors que la rangée est bien une `PlaceAuditRow`. */
     const localRows = useMemo<PlaceAuditRow[]>(() => {
-        if (!openedSite) return [];
-        const { country, site } = openedSite;
+        if (!siteMontre) return [];
+        const { country, site } = siteMontre;
         const morceaux = morceauxDuSite(country, site);
         if (!morceaux) return [];
         return morceaux.map(({ local, stats }) => ({
@@ -365,7 +399,7 @@ export const AuditOverviewContainer: React.FC<AuditOverviewContainerProps> = ({
             ...(local === undefined ? { horsLocal: true } : { local }),
             ...stats,
         }));
-    }, [morceauxDuSite, openedSite]);
+    }, [morceauxDuSite, siteMontre]);
 
     /**
      * Les sites retenus — statut, recherche —, **calculés en permanence** : ils font les
@@ -418,12 +452,12 @@ export const AuditOverviewContainer: React.FC<AuditOverviewContainerProps> = ({
      * choisi, puis les locaux du site ouvert, avec leurs chiffres.
      */
     const choix = useMemo<ChoixDuLieu | null>(() => {
-        if (!chosenCountry) return null;
-        const sites = sitesAffiches.filter((row) => row.country === chosenCountry);
-        const ouvert = openedSite && openedSite.country === chosenCountry ? openedSite.site : null;
+        if (!paysMontre) return null;
+        const sites = sitesAffiches.filter((row) => row.country === paysMontre);
+        const ouvert = siteMontre && siteMontre.country === paysMontre ? siteMontre.site : null;
         const locaux = ouvert ? [...localRows].sort(compareByProgress) : [];
         return {
-            pays: chosenCountry,
+            pays: paysMontre,
             site: ouvert,
             sites,
             locaux,
@@ -436,7 +470,7 @@ export const AuditOverviewContainer: React.FC<AuditOverviewContainerProps> = ({
                plat non plus. */
             retourAuxSites: niveau === 'pays' && sites.length > 1,
         };
-    }, [chosenCountry, localRows, niveau, openedSite, sitesAffiches]);
+    }, [localRows, niveau, paysMontre, siteMontre, sitesAffiches]);
 
     /** Le héro et la bande comptent **le parc**, quel que soit le choix en cours. */
     const totals = useMemo(() => totauxDe(siteRows), [siteRows]);
@@ -513,6 +547,10 @@ export const AuditOverviewContainer: React.FC<AuditOverviewContainerProps> = ({
      */
     const handleOpenPlace = (row: PlaceAuditRow) => {
         if (!row.local && !row.horsLocal && (row.localCount ?? 0) > 0) {
+            if (lieuDeLaPage) {
+                navigate(adresseDesLieux(row.country, row.site));
+                return;
+            }
             setChosenCountry(row.country);
             setOpenedSite({ country: row.country, site: row.site });
             return;
@@ -538,10 +576,27 @@ export const AuditOverviewContainer: React.FC<AuditOverviewContainerProps> = ({
         openAuditDetails(row);
     };
 
+    /** Du panneau à la page qui porte tous les lieux du choix. */
+    const openAllPlaces = () => {
+        if (!chosenCountry) return;
+        navigate(adresseDesLieux(chosenCountry, openedSite?.site ?? null));
+    };
+
     const resetFilters = () => {
         setSelectedStatus(ALL_VALUE);
         setSearchQuery('');
     };
+
+    if (lieuDeLaPage)
+        return (
+            <AuditLieux
+                pays={lieuDeLaPage.country}
+                choix={choix}
+                onBack={onLeave}
+                onOpenPlace={handleOpenPlace}
+                onStartPlace={startAuditForRow}
+            />
+        );
 
     return (
         <AuditOverview
@@ -561,6 +616,7 @@ export const AuditOverviewContainer: React.FC<AuditOverviewContainerProps> = ({
             onOpenPlace={handleOpenPlace}
             onStartPlace={startAuditForRow}
             onBackToSites={() => setOpenedSite(null)}
+            onOpenAllPlaces={openAllPlaces}
             onCloseChoix={closeChoix}
             unscopedAssets={unscopedAssets}
             totalSiteCount={siteRows.length}

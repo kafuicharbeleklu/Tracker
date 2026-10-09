@@ -24,6 +24,8 @@ import { NATURE_MOT } from '../../tasks/lib/file';
 import { useCurrentCampaign, type CurrentCampaign } from '../../../hooks/useCurrentCampaign';
 import { useAccountMenu } from '../../../hooks/useAccountMenu';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
+import { useCeQuiTient } from '../../../hooks/useCeQuiTient';
+import { typesEnTension as releverLaTension } from '../../../lib/tensionDesTypes';
 import { MEDIA } from '../../../constants/breakpoints';
 
 import Reading from '../../../components/layout/Reading';
@@ -176,6 +178,9 @@ const TODO_SATURATION_THRESHOLD = 250;
 
 /** `.hv-forte` — la planche en dessine **quatre**, et le bureau (§2.43 bis) aussi. */
 const TODO_SHOWN = 4;
+
+/** Ce que la carte « Types en tension » donne à mesurer : elle n'en montre jamais plus. */
+const TENSION_SUR_LA_CARTE = 5;
 
 /** « 3 septembre » — la date du jour telle que `.wnote` la date (« au 3 septembre »). */
 const jourEnClair = (date: Date): string => {
@@ -670,26 +675,17 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
      * **Types en tension** : uniquement ceux dont il ne reste aucune unité
      * disponible, les plus nombreux d'abord. Ce qui est couvert tient en une phrase.
      */
+    /**
+     * **Les types en tension** — aucun n'a d'unité disponible. La carte en montre ce qui
+     * tient, cinq au plus ; au-delà elle renvoie à leur page (09/10). Le plafond coupait la
+     * liste en silence, et la note comptait les types coupés parmi ceux qui « ont au moins
+     * une unité ».
+     */
     const tension = useMemo(() => {
-        const byType = new Map<string, { label: string; total: number; available: number }>();
-        equipment.forEach((item) => {
-            const entry = byType.get(item.type) ?? {
-                label: getCategoryLabel(item.type),
-                total: 0,
-                available: 0,
-            };
-            entry.total += 1;
-            if (item.status === 'Disponible') entry.available += 1;
-            byType.set(item.type, entry);
-        });
-
-        const all = [...byType.entries()];
-        const stressed = all
-            .filter(([, entry]) => entry.available === 0)
-            .sort((a, b) => b[1].total - a[1].total)
-            .slice(0, 5);
-        return { stressed, calm: all.length - stressed.length };
+        const { enTension, calmes } = releverLaTension(equipment);
+        return { stressed: enTension, calm: calmes };
     }, [equipment]);
+    const partDeTension = useCeQuiTient(tension.stressed.length, 61);
 
     const fleet = useMemo(() => {
         const active = equipment.filter((item) => item.operationalStatus !== 'Retiré');
@@ -762,6 +758,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
         () => getRecentActivity(bureau ? 4 : 3),
         [bureau, getRecentActivity],
     );
+    const partDesEvenements = useCeQuiTient(recentEvents.length);
 
     // ---- la vue de l'utilisateur porteur ---------------------------------------
     const myEquipment = useMemo(
@@ -841,6 +838,8 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
         onNavigate?.(`/inventory/filter/${encodeURIComponent(status)}`);
 
     const isManager = permissions.canManageInventory;
+    /** La page des types en tension est au catalogue : son renvoi suit le même droit. */
+    const voitLeCatalogue = permissions.canViewManagement || permissions.canManageSystem;
     /**
      * **La grille du bureau** (≥ 1280, gestionnaire) et la largeur qu'elle donne aux
      * cartes. Sans campagne, la mosaïque tient trois cartes de 4/12 ; une campagne en
@@ -1324,14 +1323,17 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
             >
                 {tension.stressed.length > 0 ? (
                     <>
-                        <div className="min-h-0 flex-1 overflow-y-auto">
-                            {tension.stressed.map(([type, entry]) => (
+                        <div
+                            ref={partDeTension.zone}
+                            className="relative min-h-0 flex-1 overflow-clip"
+                        >
+                            {tension.stressed.slice(0, TENSION_SUR_LA_CARTE).map((entry) => (
                                 /* `.brow` — 48 px, filet au-dessus, pastille carrée
                                    de 8 en `--st-orange`. Le pictogramme d'alerte
                                    que le code posait sur chaque ligne redisait ce
                                    que la carte dit déjà par son titre. */
                                 <div
-                                    key={type}
+                                    key={entry.type}
                                     className="border-outline-variant flex min-h-12 items-center gap-3 border-t first-of-type:border-t-0"
                                 >
                                     <span className="h-2 w-2 shrink-0 rounded-xs bg-[var(--tk-color-st-orange)]" />
@@ -1350,6 +1352,13 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                     ? 'L’autre type a au moins une unité.'
                                     : `Les ${tension.calm} autres types ont au moins une unité.`}
                             </p>
+                        )}
+                        {partDeTension.tronque && voitLeCatalogue && (
+                            <DashboardMoreAction
+                                label={`Les ${tension.stressed.length} types en tension`}
+                                destination="Catalogue"
+                                onClick={() => onNavigate?.('/management/tension')}
+                            />
                         )}
                     </>
                 ) : (
@@ -1581,7 +1590,13 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
             <Card title="Derniers événements">
                 {recentEvents.length > 0 ? (
                     <>
-                        <div className="min-h-0 flex-1 overflow-y-auto">
+                        {/* **Ce qui tient, entier** (09/10) : la liste défilait dans la carte
+                            quand elle manquait de hauteur. Le renvoi à l'historique est
+                            dessous, toujours. */}
+                        <div
+                            ref={partDesEvenements.zone}
+                            className="relative min-h-0 flex-1 overflow-clip"
+                        >
                             {recentEvents.map((event) => {
                                 /*
                               `.mk` — §2.5 : 32 px, ronde, sur le creux. La passe sobre

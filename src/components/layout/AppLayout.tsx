@@ -64,6 +64,8 @@ const ImportLocationsPage = lazy(
 );
 const SiteDetailsPage = lazy(() => import('../../features/locations/pages/SiteDetailsPage'));
 const SiteLocauxPage = lazy(() => import('../../features/locations/pages/SiteLocauxPage'));
+const TypeModelesPage = lazy(() => import('../../features/management/pages/TypeModelesPage'));
+const TypesEnTensionPage = lazy(() => import('../../features/management/pages/TypesEnTensionPage'));
 const AuditDetailsPage = lazy(() => import('../../features/audit/pages/AuditDetailsPage'));
 
 interface AppLayoutProps {
@@ -379,6 +381,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
         'management',
         'rbac',
         'category_details',
+        'category_models',
+        'types_tension',
         'model_details',
         'locations',
         'site_details',
@@ -437,6 +441,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
         'tasks',
         'model_details',
         'category_details',
+        'category_models',
+        'types_tension',
         'settings',
         'rbac',
         'finance_expenses',
@@ -511,6 +517,10 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                 return DESTINATIONS.rbac.label;
             case 'category_details':
                 return 'Détail catégorie';
+            case 'category_models':
+                return 'Modèles';
+            case 'types_tension':
+                return 'Types en tension';
             case 'model_details':
                 return 'Détail modèle';
             case 'import_models':
@@ -581,6 +591,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                 view === 'rbac' ||
                 view === 'import_models' ||
                 view === 'category_details' ||
+                view === 'category_models' ||
+                view === 'types_tension' ||
                 view === 'model_details'
             ) {
                 return permissions.canViewManagement || permissions.canManageSystem;
@@ -781,6 +793,24 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                         onBack={() => retourVers('management')}
                         onModelClick={(id) => handleItemClick('model_details', id)}
                         onNavigate={handleNavigate}
+                    />
+                ) : (
+                    <ManagementPage onViewChange={handleViewChange} />
+                );
+            case 'types_tension':
+                return (
+                    <TypesEnTensionPage
+                        onBack={goBack}
+                        onOpenCategory={(id) => handleItemClick('category_details', id)}
+                    />
+                );
+            case 'category_models':
+                return selectedItemId ? (
+                    <TypeModelesPage
+                        categoryId={selectedItemId}
+                        /* Le chemin parcouru, sinon la fiche du type. */
+                        onBack={() => retourVersObjet('category_details', selectedItemId)}
+                        onModelClick={(id) => handleItemClick('model_details', id)}
                     />
                 ) : (
                     <ManagementPage onViewChange={handleViewChange} />

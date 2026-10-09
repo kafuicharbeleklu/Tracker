@@ -5723,3 +5723,62 @@ panneau ne se retire plus. Mesuré : Actifs (tableau), Tâches, Équipe au burea
 Catalogue à 768 au doigt, téléphone — 14 vérifications sur 14 (la première rangée ne bouge pas,
 « Exporter » à 77 px, ⋮ sous la barre, Échap sort) ; gestes de Tâches 30/30, clavier 14/14,
 mouvement 17/17.
+
+### Une carte montre une part, sa page montre tout (09/10)
+
+Demandé : *« évite de rendre des cartes scrollable, j'avais déjà souligné ce problème ; affiche
+une partie et rends la totalité accessible depuis une page dédiée »*. Le 08/10 la carte « Locaux »
+d'un site avait pris cette forme ; la règle vaut désormais pour toutes. **Elle revient sur
+« Listes bornées » (25/09)** et sur le « pas de Voir plus » du 23/09 : `ListeBornee` est retirée.
+La hauteur fixe des cartes du bureau (22/09) reste ; ce qui change, c'est que la suite ne se lit
+plus en défilant dedans.
+
+Relevé mesuré avant (quatre fenêtres, vingt pages) : dix cartes défilaient dans leur hauteur. La
+pire était de la veille — le panneau de l'inventaire, 101 px pour six locaux à 1366 × 657.
+
+Deux pièces communes :
+
+- `components/ui/ToutVoir` — `ToutVoir` (« Tous les modèles 8 › ») et `PiedDeCarte`, le pied qui le
+  porte sous un filet. **Le pied ne paraît que si la carte ne montre pas tout.**
+- `hooks/useCeQuiTient` — pour une carte dont la hauteur vient de la fenêtre : il montre **les
+  pièces qui tiennent entières** (les autres restent en place, `visibility: hidden`, pour être
+  mesurées quand la carte grandit) et réserve la hauteur du pied. Zone : `relative min-h-0 flex-1
+  overflow-clip`. Sur une page qui défile, un plafond fixe suffit.
+
+| Carte | Elle montre | Le reste |
+| --- | --- | --- |
+| Fiche d'un type › Modèles | 6 tuiles, 5 rangées au téléphone | `/management/categories/<type>/modeles` (`TypeModelesPage`) |
+| Accès › rôle › Qui le porte | 5 personnes | `/rbac/roles/<id>/personnes` |
+| Accès › groupe › Ses membres | 5 personnes | `/rbac/groups/<id>/membres` |
+| Paramètres › Amortissement › types | 6 types | l'écran « Plans par type » |
+| Inventaire › panneau (sites, locaux) | ce qui tient | `/audit/lieux/<pays>[/<site>]` (`AuditLieux`) |
+| Campagne › Écarts | ce qui tient, à trancher d'abord | l'écran « Écarts », ouvert au bureau |
+| Campagne › Fiches corrigées | ce qui tient | la liste « Fiches corrigées » |
+| Campagne › Activité | ce qui tient, six au plus | l'écran « Activité » |
+| Accueil › Types en tension | ce qui tient, cinq au plus | `/management/tension` (`TypesEnTensionPage`) |
+| Accueil › Derniers événements | ce qui tient | l'historique (déjà) |
+| Finances › Les postes | ce qui tient, six au plus | les lignes du budget (déjà) |
+
+Trouvé en chemin :
+
+- **Le panneau de l'inventaire demande sa hauteur** (`zonesClassName` de `ListTemplate`,
+  `expanded:min-h-[28rem]`) : sur une fenêtre basse la bande de tête ne lui laissait pas une
+  rangée. En deçà c'est la page qui défile (117 px à 1366 × 657) et le panneau garde son résumé,
+  trois rangées et son renvoi — la règle de la colonne d'une campagne (28/09). Le retour aux sites
+  du pays est rentré dans l'en-tête de la carte : sur sa ligne, il prenait la place d'un local.
+- **« Types en tension »** était plafonnée à cinq en silence, et sa note comptait les types coupés
+  parmi ceux qui « ont au moins une unité » (`lib/tensionDesTypes`).
+- L'écran « Écarts » n'existait qu'au téléphone : la chaîne de rendu du bureau passait avant lui.
+
+**Ce qui défile encore, et pourquoi** : la liste d'une page (Actifs, Tâches, Équipe, la file d'une
+campagne, le journal des dépenses), un tableau, le panneau d'un objet ouvert, une feuille. Ce ne
+sont pas des cartes qui montrent une part d'autre chose : ce sont la page, ou ce qu'on a ouvert.
+
+Mesuré au banc (émulateur 8086), à 1366 × 657, 1440 × 900, 1024 × 768 et 393 × 852 :
+132 vérifications sur 132 — pièces entières, pied présent quand la carte tronque, page d'arrivée
+complète, retour au point de départ ; l'écran « Écarts » au bureau sur quatre écarts créés pour
+l'essai. Suite `cartes` ajoutée à `qa:e2e` (17 vérifications sur le jeu de démonstration, à
+1366 × 657 ; mutée : un plafond porté à 99 la fait échouer).
+
+**À reporter sur les planches** : 09.1 (Modèles), 14.1 (amortissement), 16.1 et 16.2 (panneau,
+colonne de campagne), 03.1 (accueil), 17.x pour le pied commun.

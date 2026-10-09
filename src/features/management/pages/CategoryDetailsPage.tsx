@@ -10,7 +10,12 @@ import {
     Warning,
 } from '@phosphor-icons/react';
 import FactRow from '../../../components/ui/FactRow';
-import ListeBornee from '../../../components/ui/ListeBornee';
+import { PiedDeCarte, ToutVoir } from '../../../components/ui/ToutVoir';
+import ModelesDuType, {
+    adresseDesModeles,
+    MODELES_EN_RANGEES,
+    MODELES_EN_TUILES,
+} from '../components/ModelesDuType';
 import { FormWarn } from '../../../components/ui/FormParts';
 import { useData } from '../../../context/DataContext';
 import { useAppNavigation } from '../../../hooks/useAppNavigation';
@@ -29,7 +34,6 @@ import { useToast } from '../../../context/ToastContext';
 import AddCategoryPage from './AddCategoryPage';
 import Menu from '../../../components/ui/Menu';
 import ListActionFab from '../../../components/ui/ListActionFab';
-import { NOM_SUR_UNE_LIGNE } from '../../../lib/nomLong';
 import { cn } from '../../../lib/utils';
 
 /**
@@ -77,6 +81,7 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({
     /* Les modèles en cartes dès 840 (24/09) : sous 1 280, la rangée courait sur 700 px
        pour porter un nom et un compte. */
     const enGrille = useMediaQuery(MEDIA.expandedUp);
+    const modelesMontres = enGrille ? MODELES_EN_TUILES : MODELES_EN_RANGEES;
     const categoryEquipment = useMemo(
         () => (category ? equipment.filter((e) => e.type === category.name) : []),
         [equipment, category],
@@ -319,92 +324,21 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({
                        **l'initiale de la marque** et plus la photo, que l'aperçu de la fiche
                        du modèle ouvre en grand. */
                     <>
-                        {enGrille ? (
-                            /*
-                              **Au bureau, un modèle est une carte** (23/09), comme un type dans
-                              le catalogue et un local dans la fiche d'un site : l'initiale de la
-                              marque, le nom, la marque, puis ce qu'il compte au parc. Par trois
-                              dans la colonne de la fiche — deux rangées de 72 y faisaient une
-                              liste de 140 px sous un héro de 180.
-                            */
-                            /* **Bornée** (25/09) : trois rangées de tuiles et demie (une de plus à la
-                               demande), la suite défile dans la carte — elle grandissait avec
-                               chaque modèle. */
-                            <ListeBornee
-                                hauteur={25.75}
-                                pleineLargeur
-                                label={`Les ${categoryModels.length} modèles`}
-                            >
-                                <ul className="large:grid-cols-3 grid grid-cols-2 gap-3">
-                                    {categoryModels.map((model) => (
-                                        <li key={model.id}>
-                                            <Button
-                                                variant="text"
-                                                onClick={() => onModelClick(model.id)}
-                                                className="bg-surface-container hover:bg-surface-container-high h-full min-h-28 w-full flex-col items-stretch justify-between gap-3 rounded-md p-3 text-left font-normal whitespace-normal"
-                                            >
-                                                <span className="flex items-center gap-3">
-                                                    <span className="bg-surface text-on-surface-variant text-ts-control flex h-9 w-9 shrink-0 items-center justify-center rounded-md font-semibold">
-                                                        {(model.brand || model.name)
-                                                            .trim()
-                                                            .charAt(0)
-                                                            .toUpperCase()}
-                                                    </span>
-                                                    <span className="min-w-0 flex-1">
-                                                        <span
-                                                            title={model.name}
-                                                            className={cn(
-                                                                'text-on-surface text-ts-body leading-ts-body font-medium',
-                                                                NOM_SUR_UNE_LIGNE,
-                                                            )}
-                                                        >
-                                                            {model.name}
-                                                        </span>
-                                                        {model.brand && (
-                                                            <span className="text-on-surface-variant block truncate text-[0.75rem] leading-4">
-                                                                {model.brand}
-                                                            </span>
-                                                        )}
-                                                    </span>
-                                                </span>
-                                                <span>
-                                                    <span className="font-brand text-on-surface text-ts-head leading-ts-head block font-semibold tabular-nums">
-                                                        {model.count}
-                                                    </span>
-                                                    <span className="text-on-surface-variant block text-[0.75rem] leading-4">
-                                                        actif{model.count > 1 ? 's' : ''} au parc
-                                                    </span>
-                                                </span>
-                                            </Button>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </ListeBornee>
-                        ) : (
-                            /* Bornée à six rangées et demie au téléphone (25/09, une de plus à la demande). */
-                            <ListeBornee
-                                hauteur={26}
-                                pleineLargeur
-                                label={`Les ${categoryModels.length} modèles`}
-                            >
-                                {categoryModels.map((model) => (
-                                    <FactRow
-                                        key={model.id}
-                                        vignetteText={(model.brand || model.name)
-                                            .trim()
-                                            .charAt(0)
-                                            .toUpperCase()}
-                                        tint="bleu"
-                                        title={model.name}
-                                        subtitle={model.brand || undefined}
-                                        figure={{
-                                            value: model.count,
-                                            unit: model.count > 1 ? 'actifs' : 'actif',
-                                        }}
-                                        onOpen={() => onModelClick(model.id)}
-                                    />
-                                ))}
-                            </ListeBornee>
+                        {/* **Une part, puis sa page** (09/10) : les plus fournis ici, tous
+                            sur `/management/categories/<type>/modeles`. */}
+                        <ModelesDuType
+                            modeles={categoryModels.slice(0, modelesMontres)}
+                            enGrille={enGrille}
+                            onOuvrir={onModelClick}
+                        />
+                        {categoryModels.length > modelesMontres && (
+                            <PiedDeCarte className={cn(enGrille && 'mt-3')}>
+                                <ToutVoir
+                                    libelle="Tous les modèles"
+                                    total={categoryModels.length}
+                                    onOuvrir={() => onNavigate?.(adresseDesModeles(categoryId))}
+                                />
+                            </PiedDeCarte>
                         )}
                     </>
                 ) : (

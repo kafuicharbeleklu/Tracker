@@ -237,6 +237,11 @@ interface ListTemplateProps {
     /** La part du second niveau — 5 douzièmes par défaut, 4 quand la liste porte un tableau (16.1). */
     panelRatio?: 4 | 5;
     /**
+     * Des classes pour la rangée des deux zones — la hauteur minimale qu'un panneau demande
+     * pour montrer une part utile. En deçà, la page défile au lieu d'écraser le panneau.
+     */
+    zonesClassName?: string;
+    /**
      * **La liste et la fiche** (P2a, 25/09) — le patron liste-détail de Material et d'Apple :
      * dès **840**, la liste fixe de **360 px** à gauche, la fiche dans tout le reste. Il
      * remplace les douzièmes pour les listes d'objets (Actifs, Équipe, Historique, Tâches
@@ -375,6 +380,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
     listeEtFiche = false,
     listeLarge = false,
     panelRatio = 5,
+    zonesClassName,
     selection,
     hero,
     note,
@@ -1043,6 +1049,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                               'min-h-0 items-stretch gap-4'
                             : 'flex-col gap-4',
                         CADRE_BUREAU,
+                        deuxNiveaux && zonesClassName,
                     )}
                 >
                     <div

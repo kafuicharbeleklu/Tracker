@@ -24,6 +24,7 @@ import { exerciceParDefaut, formatNumber } from '../../../lib/financial';
 import { cn } from '../../../lib/utils';
 import { MEDIA } from '../../../constants/breakpoints';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
+import { useCeQuiTient } from '../../../hooks/useCeQuiTient';
 import { IconGestureSizeContext } from '../../../hooks/useIconGestureSize';
 import { FinanceBudgetItem, ViewType } from '../../../types';
 import FeuilleDesExercices from '../components/FeuilleDesExercices';
@@ -207,9 +208,14 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
     /* **Trois postes au téléphone, six au bureau** (23/09 : « on ne peut pas lister autant
        de postes en mobile » ; huit ramenés à six le 25/09) — les plus entamés ; le reste vit
        sur « Lignes du budget ». */
-    const postesMax = isCompact ? 3 : POSTES_MONTRES;
+    const postesPlafond = isCompact ? 3 : POSTES_MONTRES;
+    const postesMontres = postesParEntame.slice(0, postesPlafond);
+    /* **Ce qui tient dans la carte** (09/10) : au bureau elle reçoit sa hauteur de la
+       grille, et ses postes défilaient dedans quand elle en manquait. Elle montre ceux qui
+       tiennent entiers ; l'en-tête et le pied disent ce compte-là. */
+    const partDesPostes = useCeQuiTient(postesMontres.length);
+    const postesMax = Math.min(postesPlafond, partDesPostes.visibles);
     const postesTronques = postesParEntame.length > postesMax;
-    const postesMontres = postesParEntame.slice(0, postesMax);
     const plusEntame =
         postesParEntame[0] && postesParEntame[0].allocated > 0
             ? {
@@ -635,9 +641,13 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                                 </div>
                                 {/* Au bureau, **pas de filet** entre les postes (`.dsk .post`,
                                 `border-top:0`) : la grille aligne, le filet ne sépare plus rien. */}
-                                {/* Les postes défilent **dans la carte** : douze enveloppes ne
-                                    rallongent plus la page, et le pied reste au pied. */}
-                                <div className="divide-outline-variant deux:min-h-0 deux:flex-1 deux:divide-y-0 deux:overflow-y-auto divide-y">
+                                {/* La carte montre **les postes qui tiennent** : douze
+                                    enveloppes ne rallongent pas la page, le pied reste au pied
+                                    et mène à toutes. */}
+                                <div
+                                    ref={partDesPostes.zone}
+                                    className="divide-outline-variant deux:min-h-0 deux:flex-1 deux:divide-y-0 deux:overflow-clip relative divide-y"
+                                >
                                     {currentBudget.items.length > 0 ? (
                                         postesMontres.map((item, idx) => {
                                             const itemPercent =

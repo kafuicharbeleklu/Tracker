@@ -25,6 +25,8 @@ export type ViewType =
     | 'rbac'
     | 'import_models'
     | 'category_details'
+    | 'category_models'
+    | 'types_tension'
     | 'model_details'
     | 'locations'
     | 'site_details'

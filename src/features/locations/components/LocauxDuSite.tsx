@@ -1,11 +1,12 @@
 import React, { useMemo, useState } from 'react';
-import { CaretRight, DoorOpen, DotsThreeVertical, Hourglass, Plus } from '@phosphor-icons/react';
+import { DoorOpen, DotsThreeVertical, Hourglass, Plus } from '@phosphor-icons/react';
 
 import BottomSheet from '../../../components/ui/BottomSheet';
 import Button from '../../../components/ui/Button';
 import Icon from '../../../components/ui/Icon';
 import InputField from '../../../components/ui/InputField';
 import Menu from '../../../components/ui/Menu';
+import { PiedDeCarte, ToutVoir } from '../../../components/ui/ToutVoir';
 import { useConfirmation } from '../../../context/ConfirmationContext';
 import { useData } from '../../../context/DataContext';
 import { useToast } from '../../../context/ToastContext';
@@ -260,7 +261,7 @@ export const PiedDesLocaux: React.FC<{
     total: number;
     onTous?: () => void;
 }> = ({ onAjouter, total, onTous }) => (
-    <div className="border-outline-variant flex min-h-12 items-center justify-between gap-3 border-t">
+    <PiedDeCarte>
         {onAjouter && (
             <Button
                 variant="text"
@@ -271,18 +272,8 @@ export const PiedDesLocaux: React.FC<{
                 Ajouter un local
             </Button>
         )}
-        {onTous && (
-            <Button
-                variant="text"
-                onClick={onTous}
-                className="text-on-surface text-ts-control -mr-2 ml-auto min-h-12 gap-1 px-2 font-medium"
-            >
-                Tous les locaux
-                <span className="text-text-secondary tabular-nums">{total}</span>
-                <Icon glyph={CaretRight} size={18} className="text-text-secondary" />
-            </Button>
-        )}
-    </div>
+        {onTous && <ToutVoir libelle="Tous les locaux" total={total} onOuvrir={onTous} />}
+    </PiedDeCarte>
 );
 
 /** La feuille « Ajouter un local » — un champ, deux gestes (17.x, 00.5). */

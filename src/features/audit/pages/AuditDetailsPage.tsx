@@ -35,6 +35,7 @@ import FacetChip from '../../../components/ui/FacetChip';
 import SearchField from '../../../components/ui/SearchField';
 import ScreenState from '../../../components/ui/ScreenState';
 import CardEmptyState from '../../../components/ui/CardEmptyState';
+import { HAUTEUR_DU_PIED, PiedDeCarte, ToutVoir } from '../../../components/ui/ToutVoir';
 import ScanView, { type ScanHit } from '../../../components/ui/ScanView';
 import { SelectionBox } from '../../../components/ui/SelectableRow';
 import { useSelection } from '../../../hooks/useSelection';
@@ -48,6 +49,7 @@ import { FabContainer } from '../../../components/ui/FabContainer';
 import { useToast } from '../../../context/ToastContext';
 import { useAccessControl } from '../../../hooks/useAccessControl';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
+import { useCeQuiTient } from '../../../hooks/useCeQuiTient';
 import { useScanPossible } from '../../../hooks/useScanPossible';
 import { useEntree } from '../../../hooks/useEntree';
 import { MEDIA } from '../../../constants/breakpoints';
@@ -96,6 +98,11 @@ interface AuditDetailsPageProps {
  * expliquait déjà.
  */
 type AuditTab = 'todo' | 'scanned' | 'missing' | 'corrigees';
+
+const TITRE_DU_SOUS_ECRAN = { ecarts: 'Écarts', activite: 'Activité' } as const;
+
+/** Ce qu'une carte de la colonne donne à mesurer : elle n'en montre jamais autant. */
+const PIECES_PAR_CARTE = 8;
 
 /**
  * Ce qu'on a décidé d'un écart. `null` = pas encore tranché, et c'est ce qui
@@ -367,6 +374,21 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
      * au parc — pas à la vue globale.
      */
     const [vueEcarts, setVueEcarts] = useState(false);
+    /**
+     * **L'activité entière a son écran** (09/10), comme les écarts : la carte de la colonne
+     * en montre ce qui tient, et renvoie ici pour le reste.
+     */
+    const [vueActivite, setVueActivite] = useState(false);
+    /** L'écran posé par-dessus la campagne — les écarts ou l'activité, entiers. */
+    const sousEcran: 'ecarts' | 'activite' | null = vueEcarts
+        ? 'ecarts'
+        : vueActivite
+          ? 'activite'
+          : null;
+    const fermerLeSousEcran = () => {
+        setVueEcarts(false);
+        setVueActivite(false);
+    };
     /**
      * **La bande de recherche de toutes les listes** (25/09) : un terme qui borne les
      * rangées de la puce retenue — modèle, code, porteur. Ce n'est pas « Saisir un code »,
@@ -649,6 +671,21 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
     const closureBlocked = pendingExceptions.length > 0;
 
     /**
+     * **Les cartes de la colonne montrent ce qui tient** (09/10). Elles défilaient dans
+     * leur hauteur ; elles montrent des pièces entières et renvoient au reste — les écarts
+     * à leur écran, les fiches corrigées à leur liste. Les écarts à trancher passent
+     * devant : ce sont eux qu'on vient chercher.
+     */
+    const ecartsDeLaCarte = useMemo(
+        () =>
+            [...exceptionsDisplay]
+                .sort((a, b) => Number(a.resolved) - Number(b.resolved))
+                .slice(0, PIECES_PAR_CARTE),
+        [exceptionsDisplay],
+    );
+    const partDesEcarts = useCeQuiTient(exceptionsDisplay.length, HAUTEUR_DU_PIED + 10);
+
+    /**
      * **Pas de recherche sur une campagne.** La planche 16.2 n'en dessine aucune, et
      * sa feuille de style n'en déclare même pas le rôle : les trois puces *sont* le
      * filtre, sur un parc borné au service et figé au démarrage. Chercher un code
@@ -857,7 +894,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
         const base = new Set(baselineSourceIds);
         const parId = new Map(equipment.map((item) => [item.id, item]));
         const prenom = (nom?: string) => (nom || '').split(' ')[0] || 'quelqu’un';
-        return faitsDuLieu.slice(0, 6).map((event) => {
+        return faitsDuLieu.map((event) => {
             const item = parId.get(event.targetId);
             const nom = item?.model || item?.name || event.targetName || 'Actif';
             const quand = `${prenom(event.actorName)} · ${formatSince(event.timestamp)}`;
@@ -2445,6 +2482,10 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
             Boolean(entree.event),
         )
         .sort((a, b) => b.event.timestamp.localeCompare(a.event.timestamp));
+    const partDesCorrections = useCeQuiTient<HTMLUListElement>(
+        correctionsARelire.length,
+        HAUTEUR_DU_PIED + 12,
+    );
 
     const enteteDeListe = (
         <div className="border-outline-variant flex min-h-16 shrink-0 items-center gap-3 border-b px-5 py-3">
@@ -2511,6 +2552,31 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
         </div>
     );
 
+    /**
+     * **Le parc et les écarts sont deux écrans** : au téléphone la puce « Écarts » mène à
+     * l'un, au bureau le pied de la carte (09/10) ; le retour ramène à la campagne.
+     */
+    const ecranDesEcarts = (
+        <div className="space-y-3">
+            <div className="text-body-small flex items-baseline justify-between gap-3 px-1">
+                <p className="text-text-secondary">
+                    {pendingExceptions.length > 0
+                        ? `${pendingExceptions.length} décision${pendingExceptions.length > 1 ? 's' : ''} en attente`
+                        : sessionExceptions > 0
+                          ? `${sessionExceptions} écart${sessionExceptions > 1 ? 's' : ''} tranché${sessionExceptions > 1 ? 's' : ''}`
+                          : 'Aucun écart'}
+                </p>
+                <p className="text-text-muted shrink-0">scannés hors attendus</p>
+            </div>
+            {exceptionsDisplay.length === 0
+                ? renderEmptyList('exceptions')
+                : exceptionsDisplay.map(renderCarteDEcart)}
+        </div>
+    );
+
+    /** **Toute l'activité de la campagne** — ce que sa carte ne montre qu'en part. */
+    const ecranDeLActivite = <ActiviteDeCampagne faits={faitsDActivite} entiere />;
+
     return (
         /* **Le canevas derrière les cartes.** `.phone` de 16.2 est sur le canevas, `.card`
            sur la surface. */
@@ -2527,8 +2593,10 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                         <Button
                             variant="text"
                             iconOnly
-                            onClick={onBack}
-                            aria-label="Retour à l’inventaire"
+                            onClick={sousEcran ? fermerLeSousEcran : onBack}
+                            aria-label={
+                                sousEcran ? 'Retour à la campagne' : 'Retour à l’inventaire'
+                            }
                             className="text-on-surface hover:bg-surface-container doigt:h-12 doigt:max-h-12 doigt:min-h-12 doigt:w-12 doigt:max-w-12 doigt:min-w-12 -ml-2.5 h-10 max-h-10 min-h-10 w-10 max-w-10 min-w-10 shrink-0 rounded-md"
                         >
                             <Icon glyph={ArrowLeft} size={20} />
@@ -2536,9 +2604,11 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                         <div className="min-w-0">
                             <div className="flex min-w-0 items-center gap-3">
                                 <h1 className="font-brand text-on-surface truncate text-[1.75rem] leading-10 font-semibold tracking-[-0.02em]">
-                                    {lieuDansLeSite || selectedSite || 'Campagne'}
+                                    {sousEcran
+                                        ? TITRE_DU_SOUS_ECRAN[sousEcran]
+                                        : lieuDansLeSite || selectedSite || 'Campagne'}
                                 </h1>
-                                {scopeIsReady && (
+                                {scopeIsReady && !sousEcran && (
                                     <span
                                         className={cn(
                                             'inline-flex h-[26px] shrink-0 items-center gap-1.5 rounded-full px-2.5 text-[0.8125rem] font-semibold whitespace-nowrap',
@@ -2558,12 +2628,14 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                             </div>
                             {scopeIsReady && (
                                 <p className="text-text-secondary truncate text-[0.8125rem] leading-[1.125rem]">
-                                    {sousTitreDeCampagne}
+                                    {sousEcran
+                                        ? lieuDansLeSite || selectedSite
+                                        : sousTitreDeCampagne}
                                 </p>
                             )}
                         </div>
                     </div>
-                    <div className="flex shrink-0 items-center gap-2">
+                    <div className={cn('flex shrink-0 items-center gap-2', sousEcran && 'hidden')}>
                         {sessionStarted && (
                             <Button
                                 variant="outlined"
@@ -2615,10 +2687,12 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                         <BarreDePage
                             className="border-b-0"
                             title={
-                                vueEcarts ? 'Écarts' : lieuDansLeSite || selectedSite || 'Campagne'
+                                sousEcran
+                                    ? TITRE_DU_SOUS_ECRAN[sousEcran]
+                                    : lieuDansLeSite || selectedSite || 'Campagne'
                             }
                             subtitle={
-                                vueEcarts || !scopeIsReady ? undefined : (
+                                sousEcran || !scopeIsReady ? undefined : (
                                     <>
                                         {lieuDansLeSite ? selectedSite : selectedCountry} ·{' '}
                                         <span
@@ -2632,10 +2706,10 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                     </>
                                 )
                             }
-                            onBack={vueEcarts ? () => setVueEcarts(false) : onBack}
-                            backLabel={vueEcarts ? 'Retour à la campagne' : 'Retour à l’inventaire'}
+                            onBack={sousEcran ? fermerLeSousEcran : onBack}
+                            backLabel={sousEcran ? 'Retour à la campagne' : 'Retour à l’inventaire'}
                             actions={
-                                !vueEcarts && (
+                                !sousEcran && (
                                     <>
                                         {scopeIsReady && sessionTotal > 0 && (
                                             <Button
@@ -2684,7 +2758,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                 )
                             }
                         >
-                            {scopeIsReady && !vueEcarts && sessionTotal > 0 && (
+                            {scopeIsReady && !sousEcran && sessionTotal > 0 && (
                                 <>
                                     {/* La jauge : combien sont retrouvés, sur combien. */}
                                     <div className="flex flex-col gap-1.5">
@@ -2774,7 +2848,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                 <div
                     className={cn(
                         'w-full',
-                        enDeuxNiveaux
+                        enDeuxNiveaux && !sousEcran
                             ? cn(
                                   /* `pt-1` : le corps défile, donc il coupe ce qui déborde.
                                      L'anneau de la tuile choisie (2 px) et celui du focus
@@ -2787,7 +2861,11 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                               )
                             : 'px-page-sm medium:px-page mx-auto max-w-[960px] space-y-2.5 pt-3 pb-4',
                         /* La place du bouton « Scanner » flottant, sous la dernière rangée. */
-                        !enDeuxNiveaux && sessionStarted && !auditFinalized && 'pb-28',
+                        !enDeuxNiveaux &&
+                            !sousEcran &&
+                            sessionStarted &&
+                            !auditFinalized &&
+                            'pb-28',
                     )}
                 >
                     {!scopeIsReady ? (
@@ -2803,6 +2881,10 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                 </Button>
                             }
                         />
+                    ) : sousEcran === 'ecarts' ? (
+                        ecranDesEcarts
+                    ) : sousEcran === 'activite' ? (
+                        ecranDeLActivite
                     ) : enDeuxNiveaux ? (
                         <>
                             <TuilesDeCampagne tuiles={tuiles} />
@@ -2924,9 +3006,21 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                                         : `${sessionExceptions} tranché${sessionExceptions > 1 ? 's' : ''}`}
                                                 </span>
                                             </div>
-                                            <div className="-mr-2 flex min-h-0 flex-col gap-2.5 overflow-y-auto pr-2">
-                                                {exceptionsDisplay.map(renderEcartCompact)}
+                                            <div
+                                                ref={partDesEcarts.zone}
+                                                className="relative flex min-h-0 flex-1 flex-col gap-2.5 overflow-clip"
+                                            >
+                                                {ecartsDeLaCarte.map(renderEcartCompact)}
                                             </div>
+                                            {partDesEcarts.tronque && (
+                                                <PiedDeCarte>
+                                                    <ToutVoir
+                                                        libelle="Tous les écarts"
+                                                        total={exceptionsDisplay.length}
+                                                        onOuvrir={() => setVueEcarts(true)}
+                                                    />
+                                                </PiedDeCarte>
+                                            )}
                                         </section>
                                     )}
 
@@ -2939,57 +3033,76 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                             <h2 className="text-on-surface mb-2.5 shrink-0 text-[1rem] leading-6 font-semibold">
                                                 Corrigé pendant le comptage
                                             </h2>
-                                            <ul className="-mr-2 flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-2">
-                                                {correctionsARelire.map(({ item, event }) => {
-                                                    const note = event.metadata?.note;
-                                                    return (
-                                                        <li
-                                                            key={item.id}
-                                                            className="flex gap-2.5 text-[0.8125rem] leading-[1.1875rem]"
-                                                        >
-                                                            <span
-                                                                aria-hidden="true"
-                                                                className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[var(--tk-color-st-ambre)]"
-                                                            />
-                                                            <span className="min-w-0">
-                                                                <b className="text-on-surface font-medium">
-                                                                    {item.model || item.name}
-                                                                </b>{' '}
-                                                                · {item.assetId}
-                                                                {champsCorriges(event).map(
-                                                                    (champ) => (
-                                                                        <span
-                                                                            key={champ.champ}
-                                                                            className="block"
-                                                                        >
-                                                                            <span className="text-text-secondary">
-                                                                                {champ.champ} :{' '}
+                                            <ul
+                                                ref={partDesCorrections.zone}
+                                                className="relative flex min-h-0 flex-1 flex-col gap-3 overflow-clip"
+                                            >
+                                                {correctionsARelire
+                                                    .slice(0, PIECES_PAR_CARTE)
+                                                    .map(({ item, event }) => {
+                                                        const note = event.metadata?.note;
+                                                        return (
+                                                            <li
+                                                                key={item.id}
+                                                                className="flex gap-2.5 text-[0.8125rem] leading-[1.1875rem]"
+                                                            >
+                                                                <span
+                                                                    aria-hidden="true"
+                                                                    className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[var(--tk-color-st-ambre)]"
+                                                                />
+                                                                <span className="min-w-0">
+                                                                    <b className="text-on-surface font-medium">
+                                                                        {item.model || item.name}
+                                                                    </b>{' '}
+                                                                    · {item.assetId}
+                                                                    {champsCorriges(event).map(
+                                                                        (champ) => (
+                                                                            <span
+                                                                                key={champ.champ}
+                                                                                className="block"
+                                                                            >
+                                                                                <span className="text-text-secondary">
+                                                                                    {champ.champ}{' '}
+                                                                                    :{' '}
+                                                                                </span>
+                                                                                <s className="text-text-secondary">
+                                                                                    {champ.de ||
+                                                                                        'aucun'}
+                                                                                </s>{' '}
+                                                                                →{' '}
+                                                                                {champ.a || 'aucun'}
                                                                             </span>
-                                                                            <s className="text-text-secondary">
-                                                                                {champ.de ||
-                                                                                    'aucun'}
-                                                                            </s>{' '}
-                                                                            → {champ.a || 'aucun'}
-                                                                        </span>
-                                                                    ),
-                                                                )}
-                                                                <span className="text-text-secondary block">
-                                                                    {event.actorName} ·{' '}
-                                                                    {formatQuand(event.timestamp)}
-                                                                    {typeof note === 'string' &&
-                                                                    note
-                                                                        ? ` · « ${note} »`
-                                                                        : ''}
+                                                                        ),
+                                                                    )}
+                                                                    <span className="text-text-secondary block">
+                                                                        {event.actorName} ·{' '}
+                                                                        {formatQuand(
+                                                                            event.timestamp,
+                                                                        )}
+                                                                        {typeof note === 'string' &&
+                                                                        note
+                                                                            ? ` · « ${note} »`
+                                                                            : ''}
+                                                                    </span>
                                                                 </span>
-                                                            </span>
-                                                        </li>
-                                                    );
-                                                })}
+                                                            </li>
+                                                        );
+                                                    })}
                                             </ul>
+                                            {partDesCorrections.tronque && (
+                                                <PiedDeCarte className="mt-3">
+                                                    <ToutVoir
+                                                        libelle="Toutes les fiches corrigées"
+                                                        total={correctionsARelire.length}
+                                                        onOuvrir={() => choisir('corrigees')}
+                                                    />
+                                                </PiedDeCarte>
+                                            )}
                                         </section>
                                     ) : (
                                         <ActiviteDeCampagne
                                             faits={faitsDActivite}
+                                            onTout={() => setVueActivite(true)}
                                             className="min-h-[6.5rem] flex-1"
                                         />
                                     )}
@@ -3000,24 +3113,6 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                 défilement, et la dernière carte touchait le bord. */}
                             <div aria-hidden="true" className="h-1 shrink-0" />
                         </>
-                    ) : vueEcarts ? (
-                        /* **Le parc et les écarts sont deux écrans** au téléphone : la puce
-                           « Écarts » mène à l'un, son retour ramène à l'autre. */
-                        <div className="space-y-3">
-                            <div className="text-body-small flex items-baseline justify-between gap-3 px-1">
-                                <p className="text-text-secondary">
-                                    {pendingExceptions.length > 0
-                                        ? `${pendingExceptions.length} décision${pendingExceptions.length > 1 ? 's' : ''} en attente`
-                                        : sessionExceptions > 0
-                                          ? `${sessionExceptions} écart${sessionExceptions > 1 ? 's' : ''} tranché${sessionExceptions > 1 ? 's' : ''}`
-                                          : 'Aucun écart'}
-                                </p>
-                                <p className="text-text-muted shrink-0">scannés hors attendus</p>
-                            </div>
-                            {exceptionsDisplay.length === 0
-                                ? renderEmptyList('exceptions')
-                                : exceptionsDisplay.map(renderCarteDEcart)}
-                        </div>
                     ) : (
                         <>
                             {bandeauDeCampagne}

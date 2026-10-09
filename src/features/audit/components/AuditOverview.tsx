@@ -7,7 +7,6 @@ import {
     GlobeHemisphereWest,
     Info,
     MapPin,
-    Play,
 } from '@phosphor-icons/react';
 
 import ListTemplate from '../../../components/layout/ListTemplate';
@@ -18,6 +17,7 @@ import FacetChip from '../../../components/ui/FacetChip';
 import FilterButton from '../../../components/ui/FilterButton';
 import Icon from '../../../components/ui/Icon';
 import InfoTip from '../../../components/ui/InfoTip';
+import { PiedDeCarte, ToutVoir, HAUTEUR_DU_PIED } from '../../../components/ui/ToutVoir';
 import { cn } from '../../../lib/utils';
 import {
     ALL_VALUE,
@@ -33,6 +33,8 @@ import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { MEDIA } from '../../../constants/breakpoints';
 import { useEntree } from '../../../hooks/useEntree';
 import { useDerniereValeur } from '../../../hooks/useDerniereValeur';
+import { useCeQuiTient } from '../../../hooks/useCeQuiTient';
+import RangeeDeLieu, { TEINTE_STATUT } from './RangeeDeLieu';
 import ChiffreAnime from '../../../components/ui/ChiffreAnime';
 import { JAUGE, JAUGE_RANGEE } from '../../../lib/jauge';
 
@@ -42,6 +44,9 @@ import { JAUGE, JAUGE_RANGEE } from '../../../lib/jauge';
  * filtre pas. Le service avait été retiré le 06/09 : il n'est pas un lieu.
  */
 type FilterKey = 'status';
+
+/** Ce que le panneau du bureau donne à mesurer : il n'en montre jamais autant. */
+const LIEUX_AU_PANNEAU = 12;
 
 interface ScopeOption {
     value: string;
@@ -107,6 +112,8 @@ interface AuditOverviewProps {
     onStartPlace: (row: PlaceAuditRow) => void;
     /** Dans le choix, revenir des locaux d'un site aux sites du pays. */
     onBackToSites: () => void;
+    /** Le panneau n'en montre qu'une part : ouvrir la page qui porte tous les lieux du choix. */
+    onOpenAllPlaces: () => void;
     onCloseChoix: () => void;
     /** Les actifs qu'aucun site ne situe : ils ne peuvent pas être comptés. */
     unscopedAssets: number;
@@ -170,6 +177,7 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
     onOpenPlace,
     onStartPlace,
     onBackToSites,
+    onOpenAllPlaces,
     onCloseChoix,
     unscopedAssets,
     totalSiteCount,
@@ -198,6 +206,17 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
     );
     /* La feuille garde ce qu'elle montrait le temps de redescendre. */
     const choixMontre = useDerniereValeur(choix);
+    /**
+     * **Le panneau montre ce qui tient, et renvoie au reste** (09/10) : sa carte recevait
+     * sa hauteur de la fenêtre et défilait dedans — 101 px pour six locaux sur un portable
+     * de 1366 × 657. Elle montre des rangées entières et un pied, « Tous les locaux 6 › ».
+     */
+    const lieuxDuChoix = choixMontre
+        ? choixMontre.site
+            ? choixMontre.locaux.length
+            : choixMontre.sites.length
+        : 0;
+    const partDuChoix = useCeQuiTient(lieuxDuChoix, HAUTEUR_DU_PIED);
 
     const activeFilterCount = useMemo(
         () =>
@@ -359,16 +378,6 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
        rangées, sinon elles cessent de s'aligner à la première troncature. */
     const GRILLE_SITE = 'grid grid-cols-[40px_minmax(0,1fr)_96px_140px_84px] items-center gap-3';
 
-    /** La teinte de l'état d'un lieu — la même dans la vignette et dans la pastille. */
-    const TEINTE_STATUT: Record<PlaceAuditRow['status'], string> = {
-        'A lancer': 'bg-[var(--tk-color-st-ambre)]',
-        'En cours': 'bg-[var(--tk-color-st-bleu)]',
-        'A valider': 'bg-[var(--tk-color-st-orange)]',
-        Validee: 'bg-[var(--tk-color-st-vert)]',
-        Complet: 'bg-[var(--tk-color-st-vert)]',
-        'A planifier': '',
-    };
-
     /**
      * **Une rangée de site au bureau** — cinq colonnes : le lieu, ce qu'on y attend,
      * l'état, le geste. *« Cliquer une rangée ne navigue pas : elle se sélectionne et le
@@ -485,140 +494,17 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
         );
     };
 
-    /**
-     * **Une rangée de lieu** — la même au téléphone et dans le panneau du bureau : le
-     * panneau *est* la colonne 2 de la planche, mêmes rangées comprises.
-     */
-    const rangeeDeLieu = (row: PlaceAuditRow, index: number, niveau: 'site' | 'local') => {
-        /* Un site qui a des locaux **ouvre** ; un lieu qui se compte
-                       directement et n'a jamais été compté porte le verbe. */
-        const ouvreUnNiveau = !row.local && !row.horsLocal && (row.localCount ?? 0) > 0;
-        const seLance = !ouvreUnNiveau && row.status === 'A lancer';
-        const muet = row.expected === 0;
-
-        return (
-            <div
-                key={buildRowKey(row)}
-                role="button"
-                tabIndex={0}
-                onClick={() => onOpenPlace(row)}
-                onKeyDown={(event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault();
-                        onOpenPlace(row);
-                    }
-                }}
-                /* `.trow` — **56**, gouttière 12, 8 d'intérieur. Elle tenait 64 : le
-                   plancher de la rangée d'objet (04.1), quand 16.1 range des lieux en
-                   file et déclare la mesure des files. Le contenu en fait 60 de toute
-                   façon — vignette 40, deux lignes de 24 et 20 — et le plancher ne
-                   servait qu'à écarter les rangées d'un lieu sans sous-ligne. */
-                className={cn(
-                    'flex min-h-14 w-full cursor-pointer items-center gap-3 py-2 text-left',
-                    index > 0 && 'border-outline-variant border-t',
-                )}
-            >
-                {/* `.vig` — la teinte dit l'état du lieu : ambre quand rien
-                                n'a été compté, bleu pendant, vert au bout. Un local porte
-                                une porte, un site une épingle. */}
-                <div
-                    className={cn(
-                        'flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px]',
-                        muet
-                            ? 'bg-surface-container text-text-tertiary'
-                            : row.status === 'Complet'
-                              ? 'bg-tint-vert text-on-tint-vert'
-                              : row.status === 'En cours'
-                                ? 'bg-tint-bleu text-on-tint-bleu'
-                                : 'bg-tint-ambre text-on-tint-ambre',
-                    )}
-                >
-                    <Icon glyph={row.local ? DoorOpen : MapPin} size={20} />
-                </div>
-
-                <div className="min-w-0 flex-1">
-                    <span
-                        className={cn(
-                            'text-ts-body leading-ts-body block truncate',
-                            muet ? 'text-on-surface-variant' : 'text-on-surface',
-                        )}
-                    >
-                        {row.local ?? row.site}
-                    </span>
-                    {/* **L'état dans la sous-ligne, le compte à droite** (24/09) : « France ·
-                        8 attendus » disait le nombre dans la phrase ; il passe en chiffre, et la
-                        sous-ligne dit où en est le lieu, par un point de sa teinte. */}
-                    <span className="text-on-surface-variant text-ts-sub leading-ts-sub flex min-w-0 items-center gap-1.5">
-                        {/* Le pays cède la place à l'état : entre le chiffre et le ▶, la sous-ligne
-                            n'avait plus que 150 px et coupait « jamais véri… ». */}
-                        {niveau === 'local' && row.horsLocal && (
-                            <span className="shrink-0">Hors local ·</span>
-                        )}
-                        {!muet && (
-                            <i
-                                aria-hidden="true"
-                                className={cn(
-                                    'h-2 w-2 shrink-0 rounded-xs',
-                                    TEINTE_STATUT[row.status] || 'bg-outline',
-                                )}
-                            />
-                        )}
-                        <span className="truncate">
-                            {muet
-                                ? 'rien à inventorier'
-                                : row.status === 'En cours'
-                                  ? `en cours · ${row.found}/${row.expected}`
-                                  : row.status === 'Complet'
-                                    ? 'complet'
-                                    : row.status === 'A lancer'
-                                      ? 'jamais vérifié'
-                                      : STATUS_LABELS[row.status].toLowerCase()}
-                        </span>
-                    </span>
-                    {/* `.mini` — l'avancement du lieu, dans la rangée : il
-                                    n'existe qu'une fois le comptage commencé. */}
-                    {row.status === 'En cours' && (
-                        <span
-                            className={cn(
-                                'bg-outline-variant mt-1.5 flex max-w-[200px] overflow-hidden',
-                                JAUGE_RANGEE,
-                            )}
-                        >
-                            <i
-                                className="mvt-jauge duration-medium2 ease-emphasized block h-full bg-[var(--tk-color-live-vert)] transition-[width]"
-                                style={{ width: `${row.progress}%` }}
-                            />
-                        </span>
-                    )}
-                </div>
-
-                {!muet && (
-                    <span className="flex shrink-0 flex-col items-end">
-                        <span className="font-brand text-on-surface text-ts-head leading-ts-head font-semibold tabular-nums">
-                            {row.expected}
-                        </span>
-                        <span className="text-text-muted text-[0.75rem] leading-4">attendus</span>
-                    </span>
-                )}
-                {seLance ? (
-                    <Button
-                        variant="text"
-                        iconOnly
-                        aria-label={`Lancer le comptage — ${row.local ?? row.site}`}
-                        onClick={(event) => {
-                            event.stopPropagation();
-                            onStartPlace(row);
-                        }}
-                        className="bg-tint-ambre text-on-tint-ambre doigt:h-12 doigt:min-h-12 doigt:w-12 doigt:min-w-12 h-10 min-h-10 w-10 min-w-10 shrink-0 rounded-md hover:opacity-90"
-                    >
-                        <Icon glyph={Play} size={20} emphasis="fill" />
-                    </Button>
-                ) : (
-                    <Icon glyph={CaretRight} size={20} className="text-text-muted shrink-0" />
-                )}
-            </div>
-        );
-    };
+    /** **Une rangée de lieu** — la même au téléphone, dans le panneau et sur sa page. */
+    const rangeeDeLieu = (row: PlaceAuditRow, index: number, niveau: 'site' | 'local') => (
+        <RangeeDeLieu
+            key={buildRowKey(row)}
+            row={row}
+            index={index}
+            niveau={niveau}
+            onOuvrir={onOpenPlace}
+            onLancer={onStartPlace}
+        />
+    );
 
     /** La teinte de la vignette d'un lieu ou d'un pays, selon son état. */
     const teinteDeVignette = (status: PlaceAuditRow['status'], muet: boolean) =>
@@ -970,16 +856,13 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
     /* ── Le choix du lieu : les sites du pays, puis les locaux du site ───────────── */
 
     /** Revenir des locaux d'un site aux sites de son pays — quand il en a plusieurs. */
-    const retourAuxSites = (surCarte: boolean) =>
+    const retourAuxSites = () =>
         choixMontre?.site && choixMontre.retourAuxSites ? (
             <Button
                 variant="text"
                 onClick={onBackToSites}
                 icon={<Icon glyph={ArrowLeft} size={18} />}
-                className={cn(
-                    'text-on-surface-variant hover:text-on-surface text-ts-sub h-10 min-h-10 justify-start gap-1.5 px-2 font-medium',
-                    surCarte ? '-ml-2' : 'doigt:h-12 doigt:min-h-12 -ml-2 self-start',
-                )}
+                className="text-on-surface-variant hover:text-on-surface text-ts-sub doigt:h-12 doigt:min-h-12 -ml-2 h-10 min-h-10 justify-start gap-1.5 self-start px-2 font-medium"
             >
                 Les sites — {choixMontre.pays}
             </Button>
@@ -1112,7 +995,20 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
             </section>
 
             <section className="bg-surface flex min-h-0 flex-1 flex-col rounded-xl">
-                <header className="flex shrink-0 items-center gap-1 px-4 pt-3">
+                <header className="flex min-h-10 shrink-0 items-center gap-1 px-4 pt-2">
+                    {/* Le retour aux sites du pays tient dans l'en-tête de la carte (09/10) :
+                        sur sa propre ligne, il prenait la place d'une rangée de local. */}
+                    {choix?.site && choix.retourAuxSites && (
+                        <Button
+                            variant="text"
+                            onClick={onBackToSites}
+                            aria-label={`Les sites — ${choix.pays}`}
+                            icon={<Icon glyph={ArrowLeft} size={18} />}
+                            className="text-on-surface-variant hover:text-on-surface doigt:h-10 doigt:min-h-10 -ml-2 h-8 min-h-8 shrink-0 gap-1 px-2 text-[0.75rem] leading-4 font-medium"
+                        >
+                            {choix.pays}
+                        </Button>
+                    )}
                     <h3 className="text-on-surface-variant min-w-0 flex-1 text-[0.75rem] leading-4 font-medium">
                         {choix?.site
                             ? `Locaux · ${choix.locauxComptes}`
@@ -1142,9 +1038,22 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
                         />
                     )
                 ) : rangeesDuChoix.length > 0 ? (
-                    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pb-2">
-                        {retourAuxSites(true)}
-                        {rangeesDuChoix}
+                    <div className="flex min-h-0 flex-1 flex-col px-4">
+                        <div
+                            ref={partDuChoix.zone}
+                            className="relative min-h-0 flex-1 overflow-clip"
+                        >
+                            {rangeesDuChoix.slice(0, LIEUX_AU_PANNEAU)}
+                        </div>
+                        {partDuChoix.tronque && (
+                            <PiedDeCarte>
+                                <ToutVoir
+                                    libelle={choix.site ? 'Tous les locaux' : 'Tous les sites'}
+                                    total={choix.site ? choix.locauxComptes : choix.sites.length}
+                                    onOuvrir={onOpenAllPlaces}
+                                />
+                            </PiedDeCarte>
+                        )}
                     </div>
                 ) : (
                     <CardEmptyState
@@ -1207,6 +1116,11 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
                    en ligne. */
                 hero={enDeuxNiveaux ? bande : hero}
                 panel={enDeuxNiveaux ? panneau : undefined}
+                /* **La hauteur que le panneau demande** (09/10) : sur un portable de
+                   1366 × 657, la bande de tête ne lui laissait pas une rangée. En deçà de
+                   ce minimum c'est la page qui défile, et le panneau garde son résumé,
+                   trois rangées et son renvoi — comme la colonne d'une campagne (28/09). */
+                zonesClassName="expanded:min-h-[28rem]"
                 /* 8/4 : cinq colonnes à gauche pèsent plus qu'un héro et deux rangées. */
                 panelRatio={4}
                 note={
@@ -1279,7 +1193,7 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
                 }
             >
                 <div className="flex flex-col pb-2">
-                    {retourAuxSites(false)}
+                    {retourAuxSites()}
                     {rangeesDuChoix.length > 0 ? (
                         rangeesDuChoix
                     ) : (

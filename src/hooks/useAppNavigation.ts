@@ -22,6 +22,8 @@ const VIEW_TITLES: Record<ViewType, string> = {
     rbac: DESTINATIONS.rbac.label,
     import_models: 'Importer modèles',
     category_details: 'Détails catégorie',
+    category_models: 'Modèles',
+    types_tension: 'Types en tension',
     model_details: 'Détails modèle',
     locations: DESTINATIONS.locations.label,
     site_details: 'Détail site',
@@ -94,8 +96,13 @@ export const useAppNavigation = () => {
                les deux adresses d'ajout, que plus aucun geste n'écrit, y mènent aussi. */
             computedView = 'management';
             if (action === 'categories' && param && param !== 'add') {
-                computedView = 'category_details';
+                /* Les modèles d'un type ont leur page (09/10) : la fiche en montre une part. */
+                computedView =
+                    routeSegments[3] === 'modeles' ? 'category_models' : 'category_details';
                 id = param;
+            } else if (action === 'tension') {
+                /* Les types sans unité disponible, tous (09/10) : l'accueil en montre une part. */
+                computedView = 'types_tension';
             } else if (action === 'models' && param === 'import') {
                 computedView = 'import_models';
             } else if (action === 'models' && param && param !== 'add') {
@@ -168,6 +175,8 @@ export const useAppNavigation = () => {
                 management: '/management',
                 rbac: '/rbac/roles',
                 import_models: '/management/models/import',
+                category_models: '/management',
+                types_tension: '/management/tension',
                 locations: '/locations',
                 import_locations: '/locations/import',
                 site_details: '/locations',
@@ -202,6 +211,7 @@ export const useAppNavigation = () => {
                 user_details: (id) => `/users/${id}`,
                 edit_user: (id) => `/users/edit/${id}`,
                 category_details: (id) => `/management/categories/${id}`,
+                category_models: (id) => `/management/categories/${id}/modeles`,
                 model_details: (id) => `/management/models/${id}`,
                 audit_details: () => `/audit/details`,
                 site_details: (id) => `/locations/site/${encodeURIComponent(id)}`,

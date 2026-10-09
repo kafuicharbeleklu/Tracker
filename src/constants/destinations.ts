@@ -186,6 +186,8 @@ export const SECTION_OF_VIEW: Partial<Record<ViewType, DestinationId>> = {
     management: 'management',
     import_models: 'management',
     category_details: 'management',
+    category_models: 'management',
+    types_tension: 'management',
     model_details: 'management',
 
     locations: 'locations',

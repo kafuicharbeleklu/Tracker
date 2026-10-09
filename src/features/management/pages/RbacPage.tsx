@@ -30,7 +30,7 @@ import Toggle from '../../../components/ui/Toggle';
 import Notice from '../../../components/ui/Notice';
 import { type Tint } from '../../../components/ui/FormParts';
 import FacetChip from '../../../components/ui/FacetChip';
-import ListeBornee from '../../../components/ui/ListeBornee';
+import { PiedDeCarte, ToutVoir } from '../../../components/ui/ToutVoir';
 import Menu, { type MenuItem } from '../../../components/ui/Menu';
 import SearchField from '../../../components/ui/SearchField';
 import { SelectionBox } from '../../../components/ui/SelectableRow';
@@ -492,6 +492,19 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
         const membres = users.filter((user) =>
             affectations.get(user.id)?.groupIds.includes(openGroup.id),
         );
+        if (routeSegments[3] === 'membres')
+            return (
+                <PersonnesDUnAcces
+                    compact={isCompact}
+                    titre="Membres"
+                    fil={`Groupe · ${openGroup.name}`}
+                    retourLabel="Retour au groupe"
+                    onRetour={() => navigate(cheminPrecedent() ?? `/rbac/groups/${openGroup.id}`)}
+                    carte="Ses membres"
+                    personnes={membres}
+                    onOuvrir={(id) => navigate(`/users/${id}`)}
+                />
+            );
         const rolesPortes = openGroup.roleIds
             .map((id) => rolesById.get(id))
             .filter((role): role is RbacRole => Boolean(role));
@@ -564,8 +577,10 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                         description="Ajoutez-y les personnes qui doivent porter son rôle."
                     />
                 ) : (
-                    <ListeBornee hauteur={20} pleineLargeur label={`Les ${membres.length} membres`}>
-                        {membres.map((user) => (
+                    <>
+                        {/* **Une part, puis sa page** (09/10) : la carte défilait dans sa
+                            hauteur ; elle montre les premiers et renvoie à tous. */}
+                        {membres.slice(0, PERSONNES_SUR_LA_FICHE).map((user) => (
                             <FactRow
                                 key={user.id}
                                 vignetteText={initiales(user.name)}
@@ -574,7 +589,18 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                                 onOpen={() => navigate(`/users/${user.id}`)}
                             />
                         ))}
-                    </ListeBornee>
+                        {membres.length > PERSONNES_SUR_LA_FICHE && (
+                            <PiedDeCarte>
+                                <ToutVoir
+                                    libelle="Tous les membres"
+                                    total={membres.length}
+                                    onOuvrir={() =>
+                                        navigate(`/rbac/groups/${openGroup.id}/membres`)
+                                    }
+                                />
+                            </PiedDeCarte>
+                        )}
+                    </>
                 )}
                 <RuleGroup.Row
                     glyph={UserPlus}
@@ -756,6 +782,19 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
         const titulaires = users.filter((user) =>
             affectations.get(user.id)?.roleIds.includes(openRole.id),
         );
+        if (routeSegments[3] === 'personnes')
+            return (
+                <PersonnesDUnAcces
+                    compact={isCompact}
+                    titre="Personnes"
+                    fil={`Rôle · ${openRole.name}`}
+                    retourLabel="Retour au rôle"
+                    onRetour={() => navigate(cheminPrecedent() ?? `/rbac/roles/${openRole.id}`)}
+                    carte="Qui le porte"
+                    personnes={titulaires}
+                    onOuvrir={(id) => navigate(`/users/${id}`)}
+                />
+            );
 
         const quitterLEdition = () => {
             setEditing(false);
@@ -820,12 +859,8 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                         description="Affectez-le depuis la liste des accès, ou par un groupe."
                     />
                 ) : (
-                    <ListeBornee
-                        hauteur={20}
-                        pleineLargeur
-                        label={`Les ${titulaires.length} porteurs`}
-                    >
-                        {titulaires.map((user) => (
+                    <>
+                        {titulaires.slice(0, PERSONNES_SUR_LA_FICHE).map((user) => (
                             <FactRow
                                 key={user.id}
                                 vignetteText={initiales(user.name)}
@@ -834,7 +869,18 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                                 onOpen={() => navigate(`/users/${user.id}`)}
                             />
                         ))}
-                    </ListeBornee>
+                        {titulaires.length > PERSONNES_SUR_LA_FICHE && (
+                            <PiedDeCarte>
+                                <ToutVoir
+                                    libelle="Toutes les personnes"
+                                    total={titulaires.length}
+                                    onOuvrir={() =>
+                                        navigate(`/rbac/roles/${openRole.id}/personnes`)
+                                    }
+                                />
+                            </PiedDeCarte>
+                        )}
+                    </>
                 )}
             </RuleGroup>
         );
@@ -1605,6 +1651,62 @@ const AssignmentSheet: React.FC<{
         </BottomSheet>
     );
 };
+
+/** Combien la fiche d'un rôle ou d'un groupe montre de personnes avant de renvoyer à toutes. */
+const PERSONNES_SUR_LA_FICHE = 5;
+
+/**
+ * **Toutes les personnes d'un rôle ou d'un groupe** (09/10) — `/rbac/roles/<id>/personnes`,
+ * `/rbac/groups/<id>/membres`. La fiche en montre les premières et renvoie ici : sa carte
+ * ne défile plus dans sa hauteur.
+ */
+const PersonnesDUnAcces: React.FC<{
+    compact: boolean;
+    titre: string;
+    fil: string;
+    retourLabel: string;
+    onRetour: () => void;
+    /** Le titre de la carte — celui qu'elle porte sur la fiche. */
+    carte: string;
+    personnes: User[];
+    onOuvrir: (id: string) => void;
+}> = ({ compact, titre, fil, retourLabel, onRetour, carte, personnes, onOuvrir }) => (
+    <div className="flex min-h-0 w-full flex-1 flex-col">
+        <EnTeteDeFiche
+            compact={compact}
+            titre={titre}
+            fil={fil}
+            retourLabel={retourLabel}
+            onRetour={onRetour}
+        />
+        <div className="medium:px-page flex-1 overflow-y-auto px-4 py-4">
+            <div className="large:mx-0 mx-auto flex w-full max-w-[960px] flex-col gap-4 pb-16">
+                <RuleGroup
+                    header={titreDeCarte(UsersThree, carte)}
+                    headerTrailing={`${personnes.length} personne${personnes.length > 1 ? 's' : ''}`}
+                >
+                    {personnes.length === 0 ? (
+                        <CardEmptyState
+                            glyph={UsersThree}
+                            title="Personne"
+                            description="Aucune personne n'est rattachée ici."
+                        />
+                    ) : (
+                        personnes.map((user) => (
+                            <FactRow
+                                key={user.id}
+                                vignetteText={initiales(user.name)}
+                                title={user.name}
+                                subtitle={[user.site, user.department].filter(Boolean).join(' · ')}
+                                onOpen={() => onOuvrir(user.id)}
+                            />
+                        ))
+                    )}
+                </RuleGroup>
+            </div>
+        </div>
+    </div>
+);
 
 /**
  * **L'en-tête d'une fiche d'accès** — rôle ou groupe. Au téléphone, la barre commune et un

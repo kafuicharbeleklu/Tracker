@@ -11,13 +11,14 @@ import path from 'node:path';
 import process from 'node:process';
 import { chromium } from 'playwright';
 import { creerBilan } from './outils.mjs';
+import cartes from './cartes.mjs';
 import clavier from './clavier.mjs';
 import imports from './imports.mjs';
 import scan from './scan.mjs';
 import selection from './selection.mjs';
 import taches from './taches.mjs';
 
-const SUITES = { taches, selection, clavier, imports, scan };
+const SUITES = { taches, selection, clavier, imports, scan, cartes };
 const HOTE = '127.0.0.1';
 const PORT = Number(process.env.E2E_PORT ?? 4176);
 const BASE = `http://${HOTE}:${PORT}`;

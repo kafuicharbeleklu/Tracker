@@ -37,7 +37,7 @@ import PinField from '../../../components/ui/PinField';
 import { PIN_MAX_ATTEMPTS } from '../../../lib/security';
 import Slider from '../../../components/ui/Slider';
 import Stepper from '../../../components/ui/Stepper';
-import ListeBornee from '../../../components/ui/ListeBornee';
+import { PiedDeCarte, ToutVoir } from '../../../components/ui/ToutVoir';
 import { echeancierAmortissement } from '../../../lib/financial';
 import { getCategoryGlyph } from '../../../constants/categoryIcons';
 import { getCategoryLabel } from '../../../constants/glossary';
@@ -144,9 +144,14 @@ type SettingsView =
     | 'account'
     | 'currency'
     | 'depreciation'
+    /** Le plan de chaque type, tous — la carte de l'amortissement n'en montre qu'une part. */
+    | 'depreciation_types'
     | 'sources'
     /** Le recadrage d'une signature importée — 07.1, lot 28 D2. */
     | 'signature';
+
+/** Combien de types la carte de l'amortissement montre avant de renvoyer à tous. */
+const PLANS_SUR_LA_CARTE = 6;
 
 const VIEW_TITLE: Record<SettingsView, string> = {
     signature: 'Recadrer',
@@ -154,6 +159,7 @@ const VIEW_TITLE: Record<SettingsView, string> = {
     account: 'Mon compte',
     currency: 'Devise et année fiscale',
     depreciation: 'Amortissement',
+    depreciation_types: 'Plans par type',
     sources: 'Sources de collecte',
 };
 
@@ -774,7 +780,28 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
         }
     };
 
-    const goBack = () => setView('index');
+    /* Un écran de second rang revient à celui qui l'a ouvert, pas au sommaire. */
+    const goBack = () => setView(view === 'depreciation_types' ? 'depreciation' : 'index');
+
+    /** Le plan d'un type — la rangée de la carte de l'amortissement, et de sa page. */
+    const rangeeDePlan = (category: (typeof typesParPlan)[number]) => {
+        const plan = category.defaultDepreciation;
+        return (
+            <RuleGroup.Row
+                key={category.id}
+                glyph={getCategoryGlyph(category.name)}
+                title={getCategoryLabel(category.name)}
+                subtitle={
+                    plan?.years
+                        ? `${plan.method === 'degressive' ? 'Dégressif' : 'Linéaire'}${plan.salvageValuePercent ? ` · ${plan.salvageValuePercent} % résiduel` : ''}`
+                        : 'Prend le réglage par défaut'
+                }
+                value={plan?.years ? `${plan.years} an${plan.years > 1 ? 's' : ''}` : 'défaut'}
+                valueTone={plan?.years ? undefined : 'muted'}
+                onOpen={() => navigate(`/management/categories/${category.id}`)}
+            />
+        );
+    };
 
     return (
         /* **Au bureau, la page tient la fenêtre** (23/09) : la barre reste, les groupes
@@ -802,7 +829,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                     className={cn(
                         'flex flex-col gap-4 pb-16',
                         (view === 'currency' || view === 'sources') && COLONNES_FORMULAIRE,
-                        view === 'signature' && 'deux:mx-auto deux:max-w-[560px]',
+                        (view === 'signature' || view === 'depreciation_types') &&
+                            'deux:mx-auto deux:max-w-[560px]',
                     )}
                 >
                     {view === 'index' && (
@@ -1286,34 +1314,18 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                                     {/* Ceux qui prennent le défaut d'abord : ce sont eux que la
                                         page règle. Chaque type ouvre sa fiche, où son plan se
                                         modifie. */}
-                                    <ListeBornee hauteur={30} label="Les types et leur plan">
-                                        {typesParPlan.map((category) => {
-                                            const plan = category.defaultDepreciation;
-                                            return (
-                                                <RuleGroup.Row
-                                                    key={category.id}
-                                                    glyph={getCategoryGlyph(category.name)}
-                                                    title={getCategoryLabel(category.name)}
-                                                    subtitle={
-                                                        plan?.years
-                                                            ? `${plan.method === 'degressive' ? 'Dégressif' : 'Linéaire'}${plan.salvageValuePercent ? ` · ${plan.salvageValuePercent} % résiduel` : ''}`
-                                                            : 'Prend le réglage par défaut'
-                                                    }
-                                                    value={
-                                                        plan?.years
-                                                            ? `${plan.years} an${plan.years > 1 ? 's' : ''}`
-                                                            : 'défaut'
-                                                    }
-                                                    valueTone={plan?.years ? undefined : 'muted'}
-                                                    onOpen={() =>
-                                                        navigate(
-                                                            `/management/categories/${category.id}`,
-                                                        )
-                                                    }
-                                                />
-                                            );
-                                        })}
-                                    </ListeBornee>
+                                    {/* **Une part, puis sa page** (09/10) : la carte défilait
+                                        dans sa hauteur. */}
+                                    {typesParPlan.slice(0, PLANS_SUR_LA_CARTE).map(rangeeDePlan)}
+                                    {typesParPlan.length > PLANS_SUR_LA_CARTE && (
+                                        <PiedDeCarte className="px-4">
+                                            <ToutVoir
+                                                libelle="Tous les types"
+                                                total={typesParPlan.length}
+                                                onOuvrir={() => setView('depreciation_types')}
+                                            />
+                                        </PiedDeCarte>
+                                    )}
                                 </RuleGroup>
 
                                 <p className="text-text-muted text-ts-sub leading-ts-sub">
@@ -1322,6 +1334,16 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                                 </p>
                             </div>
                         </div>
+                    )}
+
+                    {view === 'depreciation_types' && (
+                        <RuleGroup
+                            form="grp"
+                            header="Ce que porte chaque type"
+                            headerTrailing={`${typesWithOwnPlan} sur ${categories.length} ont leur plan`}
+                        >
+                            {typesParPlan.map(rangeeDePlan)}
+                        </RuleGroup>
                     )}
 
                     {view === 'sources' && (
