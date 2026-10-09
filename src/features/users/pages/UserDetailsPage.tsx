@@ -1004,7 +1004,11 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                         {userEvents.length === 0 && (
                             <button
                                 type="button"
-                                onClick={() => onViewChange?.('audit')}
+                                /* « Ouvrir l'Audit » menait à l'inventaire physique : le mot
+                                   désignait l'ancien journal, la cible avait changé de sens
+                                   (09/10). Les mouvements d'une personne se lisent dans
+                                   l'Historique. */
+                                onClick={() => onViewChange?.('history')}
                                 className={rowClass}
                             >
                                 <Icon
@@ -1013,7 +1017,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                                     className="text-text-secondary shrink-0"
                                 />
                                 <p className="text-label-large text-on-surface min-w-0 flex-1 font-medium">
-                                    Ouvrir l'Audit
+                                    Ouvrir l’historique
                                 </p>
                                 <Icon
                                     glyph={CaretRight}
@@ -1105,19 +1109,19 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                                 onClick={() => onViewChange?.('tasks')}
                                 className={rowClass}
                             >
-                                <Icon
-                                    glyph={Bell}
-                                    size={20}
-                                    className="shrink-0 text-[var(--tk-color-st-ambre)]"
-                                />
+                                {/* La vignette de 40 des rangées voisines (08/10) : la cloche nue
+                                    décalait le texte de 20 px. */}
+                                <span className="rounded-vignette bg-tint-ambre text-on-tint-ambre flex h-10 w-10 shrink-0 items-center justify-center">
+                                    <Icon glyph={Bell} size={20} />
+                                </span>
                                 <div className="min-w-0 flex-1">
-                                    <p className="text-label-large text-on-surface truncate font-medium">
+                                    <p className="text-on-surface text-ts-body leading-ts-body truncate">
                                         {a.beneficiaryId === user.id
                                             ? 'Sa demande'
                                             : 'Demande déposée'}{' '}
                                         · {a.equipmentCategory}
                                     </p>
-                                    <p className="text-body-small text-text-secondary mt-px truncate">
+                                    <p className="text-on-surface-variant text-ts-sub leading-ts-sub truncate">
                                         {getStatusLabel(a.status)} · dans les Tâches
                                     </p>
                                 </div>
@@ -1367,7 +1371,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                     </label>
 
                     {/* `.sfoot` — deux colonnes égales, d'un bord à l'autre de la feuille. */}
-                    <div className="border-outline-variant -mx-5 duo-de-pied gap-3 border-t px-5 pt-4 pb-1">
+                    <div className="border-outline-variant duo-de-pied -mx-5 gap-3 border-t px-5 pt-4 pb-1">
                         <Button variant="ghost" onClick={() => setSheet(null)}>
                             Annuler
                         </Button>

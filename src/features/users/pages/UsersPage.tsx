@@ -157,25 +157,18 @@ interface UsersPageProps {
     onViewChange: (view: ViewType) => void;
     /** Le site reçu d'un autre écran — la fiche d'un site renvoie ici, filtrée (10.1, C2). */
     initialSite?: string | null;
-    /**
-     * Arrivé par `/users/add` : la feuille d'invitation s'ouvre sur la liste (24/09). L'adresse
-     * menait à un écran « Un compte se crée par invitation » et un bouton de retour — une
-     * impasse, là où l'invitation tient en trois réponses.
-     */
-    inviter?: boolean;
-    /** Ce que fait la fermeture de la feuille quand on est arrivé par `/users/add`. */
-    onInviteClose?: () => void;
     /** La fiche d'une personne, pour le panneau de la liste (P2a) — la page elle-même. */
     renderFiche?: (id: string, fermer: () => void) => React.ReactNode;
+    /** Revenir d'où l'on vient — la flèche de l'en-tête (08/10 : partout sauf à l'accueil). */
+    onBack?: () => void;
 }
 
 const UsersPage: React.FC<UsersPageProps> = ({
     onUserClick,
     onViewChange,
     initialSite,
-    inviter = false,
-    onInviteClose,
     renderFiche,
+    onBack,
 }) => {
     const { users: allUsers, equipment, deleteUser, locationData } = useData();
     const { user: currentUser, filterUsers, permissions } = useAccessControl();
@@ -209,7 +202,7 @@ const UsersPage: React.FC<UsersPageProps> = ({
 
     // Feuille montante d'ajout (05.1)
     const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
-    const [isInviteSheetOpen, setIsInviteSheetOpen] = useState(inviter);
+    const [isInviteSheetOpen, setIsInviteSheetOpen] = useState(false);
 
     const debouncedSearch = useDebounce(searchQuery, 300);
 
@@ -532,6 +525,7 @@ const UsersPage: React.FC<UsersPageProps> = ({
     return (
         <>
             <ListTemplate
+                onBack={onBack}
                 title="Équipe"
                 /* **Une arrivée pré-filtrée se dit** (04.1) : la provenance en toutes
                    lettres, et une sortie qui nomme sa destination. */
@@ -923,10 +917,7 @@ const UsersPage: React.FC<UsersPageProps> = ({
                 à compléter une fiche, plus à en créer une. */}
             <InviteSheet
                 open={isInviteSheetOpen}
-                onClose={() => {
-                    setIsInviteSheetOpen(false);
-                    onInviteClose?.();
-                }}
+                onClose={() => setIsInviteSheetOpen(false)}
                 onInvited={(user) => onUserClick?.(user.id)}
                 onOpenExisting={(user) => onUserClick?.(user.id)}
             />

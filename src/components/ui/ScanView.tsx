@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Check, Warning, X } from '@phosphor-icons/react';
+import { Check, Flashlight, TextAa, Warning, X } from '@phosphor-icons/react';
 
 import Icon from './Icon';
 import Button from './Button';
 import { cn } from '../../lib/utils';
+import { useCameraDeScan, type EtatCamera } from '../../hooks/useCameraDeScan';
 
 /**
  * Canevas de scan — planche **17.3** (composant partagé, 3 emplois de scan).
@@ -29,11 +30,15 @@ import { cn } from '../../lib/utils';
  * La clôture est **explicite** — en mode lot, la caméra ne se referme jamais
  * d'elle-même.
  *
- * **Ce que ce composant ne fait pas, et c'est délibéré : il ne décode rien.** Le
- * flux vidéo et la lecture du code appartiennent à l'appelant, qui les passe en
- * `preview` et renvoie ses lectures en `hit` / `hits`. La vue est le cadre, pas le
- * lecteur — c'est ce qui lui permet de servir les quatre emplois (numéro de série
- * 04.3, code-barres 06.1, facture 15.1, campagne d'audit) sans en connaître aucun.
+ * **La caméra lit** (09/10). La vue « ne décodait rien » : le flux et la lecture
+ * devaient venir de l'appelant, et aucun ne les fournissait — le viseur s'ouvrait sur
+ * une surface sombre, et seule la saisie au clavier enregistrait quoi que ce soit.
+ * Quand l'appelant passe `onLecture`, la vue ouvre la caméra arrière
+ * (`useCameraDeScan`) : code-barres et QR lus en continu là où le navigateur sait les
+ * décoder, texte de l'étiquette lu en photo partout ailleurs. Elle ne sait toujours
+ * pas **ce que le code désigne** : la lecture repart chez l'appelant, qui renvoie son
+ * verdict en `hit` / `hits` — c'est ce qui lui permet de servir tous ses emplois sans
+ * en connaître aucun.
  */
 
 export interface ScanHit {
@@ -55,8 +60,18 @@ interface ScanViewProps {
     /** Absent : la bascule de mode n'est pas montrée (un emploi qui n'a qu'un mode). */
     onModeChange?: (mode: 'simple' | 'batch') => void;
     onClose: () => void;
-    /** Le flux de la caméra. Sans lui, la vue rend sa surface sombre au repos. */
+    /** Un fond fourni par l'appelant — la galerie. Il remplace la caméra. */
     preview?: React.ReactNode;
+    /**
+     * **Une lecture de la caméra** (09/10) — le code tel qu'il est lu, avant tout verdict.
+     * Présent : la vue ouvre la caméra. L'appelant le traite comme une saisie à la main.
+     */
+    onLecture?: (code: string) => void;
+    /**
+     * Parmi les codes lus en photo, celui que l'appelant reconnaît passe devant, rendu
+     * comme il l'écrit (`codeConnu`).
+     */
+    reconnaitre?: (code: string) => string | undefined;
     /** L'instruction sous le cadre — **une** phrase (N1). */
     tip?: React.ReactNode;
 
@@ -87,6 +102,14 @@ interface ScanViewProps {
 
     className?: string;
 }
+
+/** Ce que la caméra empêche de faire, en une phrase — elle remplace la consigne (N1). */
+const CONSIGNE_DE_CAMERA: Partial<Record<EtatCamera, string>> = {
+    demande: 'Autorisez la caméra pour lire l’étiquette.',
+    refusee:
+        'La caméra est refusée. Autorisez-la dans les réglages du navigateur, ou saisissez le code.',
+    indisponible: 'Pas de caméra disponible ici. Saisissez le code à la main.',
+};
 
 const MODE_LABELS: Record<'simple' | 'batch', string> = {
     simple: 'Simple',
@@ -144,6 +167,8 @@ const ScanView: React.FC<ScanViewProps> = ({
     onModeChange,
     onClose,
     preview,
+    onLecture,
+    reconnaitre,
     tip,
     hit,
     acceptLabel = 'Utiliser ce numéro',
@@ -161,6 +186,16 @@ const ScanView: React.FC<ScanViewProps> = ({
     const latest = mode === 'batch' ? hits[0] : hit;
     const [manualOpen, setManualOpen] = useState(false);
     const [manualValue, setManualValue] = useState('');
+    const cadreRef = useRef<HTMLDivElement | null>(null);
+    const camera = useCameraDeScan({
+        cadreRef,
+        actif: Boolean(onLecture) && !preview,
+        /* En mode simple, une lecture attend son verdict : la caméra reste ouverte, rien
+           ne se lit par-dessus. */
+        enPause: mode === 'simple' && Boolean(hit),
+        onCode: (code) => onLecture?.(code),
+        reconnaitre,
+    });
 
     const submitManual = () => {
         const value = manualValue.trim();
@@ -190,18 +225,44 @@ const ScanView: React.FC<ScanViewProps> = ({
         return () => document.removeEventListener('keydown', surTouche);
     }, [manualOpen, onClose]);
 
+    const cameraOuverte = camera.etat === 'active';
     const exceptions = hits.filter((h) => h.kind === 'exception').length;
     const defaultTip =
         mode === 'batch'
             ? 'Enchaînez les équipements. La caméra reste ouverte.'
             : 'Cadrez le numéro de série ou le code-barres. Tenez l’appareil à environ 20 cm.';
+    const consigne =
+        mode === 'simple' && hit && cameraOuverte
+            ? 'Vérifiez le code lu avant de continuer.'
+            : camera.photo === 'rien'
+              ? 'Rien de lisible. Rapprochez-vous de l’étiquette, ou saisissez le code.'
+              : (CONSIGNE_DE_CAMERA[camera.etat] ??
+                (camera.etat === 'active' && camera.decodeur === 'photo'
+                    ? 'Cadrez l’étiquette, puis lisez-la.'
+                    : (tip ?? defaultTip)));
 
     return (
         <div className={cn('bg-inverse-surface relative flex min-h-dvh flex-col', className)}>
             {/* La caméra occupe tout ; le chrome se pose dessus. */}
-            <div className="absolute inset-0 overflow-hidden">{preview}</div>
+            <div className="absolute inset-0 overflow-hidden">
+                {preview ??
+                    (camera.etat !== 'inactive' && (
+                        <video
+                            ref={camera.videoRef}
+                            playsInline
+                            muted
+                            autoPlay
+                            aria-hidden="true"
+                            className={cn(
+                                'h-full w-full object-cover transition-opacity duration-200',
+                                camera.etat === 'active' ? 'opacity-100' : 'opacity-0',
+                            )}
+                        />
+                    ))}
+            </div>
 
-            <div className="text-inverse-on-surface relative z-10 flex min-h-14 items-center gap-1 px-2 py-1">
+            {/* `z-20` : au-dessus du voile que le cadre projette autour de lui. */}
+            <div className="text-inverse-on-surface relative z-20 flex min-h-14 items-center gap-1 px-2 py-1">
                 <button
                     type="button"
                     onClick={onClose}
@@ -211,9 +272,31 @@ const ScanView: React.FC<ScanViewProps> = ({
                     <Icon glyph={X} />
                 </button>
 
+                {/* La lampe, quand l'appareil en a une : les locaux techniques sont sombres. */}
+                {camera.lampe.possible && (
+                    <button
+                        type="button"
+                        onClick={() => void camera.basculerLampe()}
+                        aria-label={camera.lampe.allumee ? 'Éteindre la lampe' : 'Allumer la lampe'}
+                        aria-pressed={camera.lampe.allumee}
+                        className={cn(
+                            'touch-target focus-visible:ring-primary ml-auto flex h-12 w-12 shrink-0 items-center justify-center rounded-md outline-none hover:bg-white/10 focus-visible:ring-2',
+                            camera.lampe.allumee && 'bg-white/[0.13]',
+                        )}
+                    >
+                        <Icon
+                            glyph={Flashlight}
+                            emphasis={camera.lampe.allumee ? 'fill' : 'regular'}
+                        />
+                    </button>
+                )}
+
                 {onModeChange && (
                     <div
-                        className="ml-auto flex rounded-md bg-white/[0.13] p-[3px]"
+                        className={cn(
+                            'flex rounded-md bg-white/[0.13] p-[3px]',
+                            !camera.lampe.possible && 'ml-auto',
+                        )}
                         role="group"
                         aria-label="Mode de scan"
                     >
@@ -240,9 +323,17 @@ const ScanView: React.FC<ScanViewProps> = ({
 
             {/* N1 — le cadre de visée, et la phrase qui le complète. */}
             <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-6">
+                {/* **Le cadre découpe l'image** (09/10) : caméra ouverte, tout ce qui l'entoure
+                    est voilé — une ombre portée sans flou, immense. C'est ce qui dit où viser,
+                    et ce qui garde la consigne lisible sur une étiquette blanche. */}
                 <div
+                    ref={cadreRef}
                     aria-hidden="true"
-                    className={cn('relative w-[250px]', mode === 'batch' ? 'h-[120px]' : 'h-40')}
+                    className={cn(
+                        'relative w-[250px] rounded-xs',
+                        mode === 'batch' ? 'h-[120px]' : 'h-40',
+                        cameraOuverte && 'shadow-[0_0_0_200vmax_rgba(0,0,0,0.62)]',
+                    )}
                 >
                     <span className="border-primary absolute top-0 left-0 h-[30px] w-[30px] rounded-xs border-[2.5px] border-r-0 border-b-0" />
                     <span className="border-primary absolute top-0 right-0 h-[30px] w-[30px] rounded-xs border-[2.5px] border-b-0 border-l-0" />
@@ -251,9 +342,30 @@ const ScanView: React.FC<ScanViewProps> = ({
                     <span className="bg-primary/50 absolute inset-x-2 top-1/2 h-0.5 blur-[3px]" />
                     <span className="bg-primary/75 absolute inset-x-2 top-1/2 h-0.5" />
                 </div>
-                <p className="text-body-medium text-on-nav-surface-variant mt-4 max-w-[270px] text-center">
-                    {tip ?? defaultTip}
+                <p
+                    aria-live="polite"
+                    className={cn(
+                        'text-body-medium relative mt-4 max-w-[270px] text-center',
+                        cameraOuverte ? 'text-white' : 'text-on-nav-surface-variant',
+                    )}
+                >
+                    {consigne}
                 </p>
+                {/* **Lire l'étiquette en photo** — le seul moyen là où le navigateur ne
+                    décode pas les codes-barres, et le recours pour une étiquette sans code. */}
+                {camera.etat === 'active' && !(mode === 'simple' && hit) && (
+                    <button
+                        type="button"
+                        onClick={() => void camera.lireLEtiquette()}
+                        disabled={camera.photo === 'lecture'}
+                        className="touch-target text-label-large focus-visible:ring-primary relative mt-4 flex h-11 items-center gap-2 rounded-full bg-white/[0.18] px-4 text-white outline-none hover:bg-white/[0.26] focus-visible:ring-2 disabled:opacity-70"
+                    >
+                        <Icon glyph={TextAa} size={20} />
+                        {camera.photo === 'lecture'
+                            ? 'Lecture de l’étiquette…'
+                            : 'Lire l’étiquette'}
+                    </button>
+                )}
             </div>
 
             {/* Le pied porte la lecture, et rien ne s'accepte sans qu'elle soit écrite. */}
@@ -263,17 +375,22 @@ const ScanView: React.FC<ScanViewProps> = ({
                         {hit ? (
                             <>
                                 <ScanHitRow hit={hit} />
+                                {/* **Un code que rien ne porte ne s'accepte pas** (09/10) : le
+                                    bouton d'acceptation fermait le viseur sans rien ouvrir.
+                                    Il ne reste que « Reprendre », pleine largeur. */}
                                 <div className="mt-3 flex gap-3">
                                     {onRetry && (
                                         <Button
                                             variant="tonal"
                                             onClick={onRetry}
-                                            className="shrink-0"
+                                            className={
+                                                hit.kind === 'exception' ? 'flex-1' : 'shrink-0'
+                                            }
                                         >
                                             Reprendre
                                         </Button>
                                     )}
-                                    {onAccept && (
+                                    {onAccept && hit.kind !== 'exception' && (
                                         <Button
                                             variant="filled"
                                             onClick={() => onAccept(hit)}

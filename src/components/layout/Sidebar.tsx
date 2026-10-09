@@ -148,9 +148,11 @@ const RailCase: React.FC<
         >
             <Icon glyph={glyph} size={24} emphasis={active ? 'fill' : 'regular'} />
             {count !== undefined && count > 0 && (
+                /* La clé suit le nombre : il rebondit quand une tâche arrive (08/10). */
                 <span
+                    key={count}
                     className={cn(
-                        'text-on-surface absolute -top-1 -right-1 rounded-xs px-[5px] text-[0.6875rem] leading-4 font-normal tabular-nums',
+                        'mvt-pop text-on-surface absolute -top-1 -right-1 rounded-xs px-[5px] text-[0.6875rem] leading-4 font-normal tabular-nums',
                         active ? 'bg-surface' : 'bg-surface-muted-strong',
                     )}
                 >
@@ -242,8 +244,9 @@ const SideRow: React.FC<{
             */}
             {count !== undefined && count > 0 && (
                 <span
+                    key={count}
                     className={cn(
-                        'text-on-surface shrink-0 rounded-xs px-[5px] text-[0.6875rem] leading-4 tabular-nums',
+                        'mvt-pop text-on-surface shrink-0 rounded-xs px-[5px] text-[0.6875rem] leading-4 tabular-nums',
                         active ? 'bg-surface' : 'bg-surface-muted-strong',
                         collapsed ? 'absolute -top-1 -right-1' : 'ml-auto',
                     )}

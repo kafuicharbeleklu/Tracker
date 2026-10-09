@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState, useEffect } from 'react';
+import React, { Suspense, lazy, useMemo, useRef, useState, useEffect } from 'react';
 import { moisDepuis } from '../placeAudit';
 import { identifiantsDe, lireLaCampagne } from '../campagne';
 import type { Icon as PhosphorGlyph } from '@phosphor-icons/react';
@@ -46,7 +46,6 @@ import RangeeDeCampagne from '../components/RangeeDeCampagne';
 import type { ListRowStatus } from '../../../components/ui/ListRow';
 import { FabContainer } from '../../../components/ui/FabContainer';
 import { useToast } from '../../../context/ToastContext';
-import { useAppNavigation } from '../../../hooks/useAppNavigation';
 import { useAccessControl } from '../../../hooks/useAccessControl';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { useScanPossible } from '../../../hooks/useScanPossible';
@@ -57,7 +56,8 @@ import Modal from '../../../components/ui/Modal';
 import { TextArea } from '../../../components/ui/TextArea';
 import { getCategoryGlyph } from '../../../constants/categoryIcons';
 import { parseAuditQrPayload } from '../../../lib/auditQr';
-import { AUDIT_SCOPE_PREF_KEY } from '../../../lib/auditScope';
+import { codeConnu, codeProche } from '../../../lib/lectureDeCode';
+import { AUDIT_SCOPE_PREF_KEY, noterSortieDeCampagne } from '../../../lib/auditScope';
 import { buildCsvLine } from '../../../lib/csv';
 import {
     AuditScanPayload,
@@ -70,6 +70,10 @@ import { useConfirmation } from '../../../context/ConfirmationContext';
 import { cn } from '../../../lib/utils';
 import { CADRE_BUREAU } from '../../../lib/regimeBureau';
 import { NOM_SUR_UNE_LIGNE, infobulle } from '../../../lib/nomLong';
+import { JAUGE } from '../../../lib/jauge';
+
+/* Le formulaire d'une fiche ne se charge que si l'on en complète une. */
+const AddEquipmentPage = lazy(() => import('../../inventory/pages/AddEquipmentPage'));
 
 interface AuditDetailsPageProps {
     onBack: () => void;
@@ -352,8 +356,9 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
     const peutCorriger = permissions.canManageInventory;
     const { showToast } = useToast();
     const { requestConfirmation } = useConfirmation();
-    const { navigateToItem } = useAppNavigation();
     const storedScope = useMemo(() => readStoredScope(), []);
+    /* À la sortie, noter l'instant : la vue globale rouvre alors le choix sur ce site. */
+    useEffect(() => () => noterSortieDeCampagne(), []);
 
     const [activeTab, setActiveTab] = useState<AuditTab>('todo');
     /**
@@ -375,6 +380,8 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
     const [scanOpen, setScanOpen] = useState(false);
     const [manualOpen, setManualOpen] = useState(false);
     /** La fiche de comptage ouverte — pour compter un actif, ou corriger un retrouvé. */
+    /** La fiche d'un actif créé par un scan, ouverte en plein écran sur la campagne. */
+    const [ficheACompleter, setFicheACompleter] = useState<string | null>(null);
     const [ficheOuverte, setFicheOuverte] = useState<{
         id: string;
         mode: 'compter' | 'corriger';
@@ -1058,13 +1065,17 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
         ]);
     };
 
-    const handleSubmitScan = () => {
+    /**
+     * **Une lecture** — saisie dans la feuille, ou lue par la caméra du viseur (09/10). Le
+     * même traitement : le contenu d'un QR ou un code, l'actif retrouvé ou l'écart.
+     */
+    const enregistrerLecture = (brut: string) => {
         if (!sessionStarted) {
             showToast("Démarrez d'abord la session d'audit.", 'warning');
             return;
         }
 
-        const parsed = parseAuditQrPayload(scanRawValue);
+        const parsed = parseAuditQrPayload(brut);
         if (!parsed.ok || !parsed.payload) {
             showToast(parsed.error || 'QR invalide.', 'error');
             return;
@@ -1120,6 +1131,8 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
         setScanRawValue('');
         setManualOpen(false);
     };
+
+    const handleSubmitScan = () => enregistrerLecture(scanRawValue);
 
     /**
      * C7 — **la conséquence chiffrée remplace le mot-clé.** Le sujet est nommé dans la
@@ -1290,7 +1303,11 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                     : entry,
             ),
         );
-        navigateToItem('edit_equipment', item.id);
+        /* **La fiche se complète par-dessus la campagne** (09/10). Le geste menait à la page
+           d'édition : on quittait le comptage, et les écarts encore en mémoire d'écran
+           partaient avec. Le formulaire est un écran plein — il se pose ici, et se referme
+           sur la campagne. */
+        setFicheACompleter(item.id);
     };
 
     /**
@@ -2505,7 +2522,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                   à droite : exporter, « Saisir un code » (le seul jaune, pendant la
                   campagne), et le ⋮ pour le reste.
                 */
-                <header className="px-page flex shrink-0 items-start justify-between gap-6 pt-[26px] pb-5">
+                <header className="px-page flex shrink-0 items-start justify-between gap-6 pt-[26px] pb-4">
                     <div className="flex min-w-0 items-start gap-1.5">
                         <Button
                             variant="text"
@@ -2687,10 +2704,13 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                         </div>
                                         <span
                                             aria-hidden="true"
-                                            className="bg-surface-muted-strong block h-1.5 overflow-hidden rounded-full"
+                                            className={cn(
+                                                'bg-surface-muted-strong block overflow-hidden',
+                                                JAUGE,
+                                            )}
                                         >
                                             <span
-                                                className="mvt-jauge duration-medium2 ease-emphasized block h-full rounded-full bg-[var(--tk-color-st-vert)] transition-[width]"
+                                                className="mvt-jauge duration-medium2 ease-emphasized block h-full bg-[var(--tk-color-st-vert)] transition-[width]"
                                                 style={{ width: `${progressPercentage}%` }}
                                             />
                                         </span>
@@ -2756,7 +2776,11 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                         'w-full',
                         enDeuxNiveaux
                             ? cn(
-                                  'px-page flex h-full min-h-0 flex-col gap-5',
+                                  /* `pt-1` : le corps défile, donc il coupe ce qui déborde.
+                                     L'anneau de la tuile choisie (2 px) et celui du focus
+                                     (4 px) débordent en haut — ils étaient rognés (28/09).
+                                     L'en-tête a rendu ces 4 px : les tuiles ne bougent pas. */
+                                  'px-page flex h-full min-h-0 flex-col gap-5 pt-1',
                                   /* Sans lieu, l'état d'écran garde sa marge du bas ; avec un
                                      lieu, c'est l'espaceur sous la grille qui la porte. */
                                   !scopeIsReady && 'pb-6',
@@ -3112,6 +3136,13 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                         expected={sessionTotal}
                         finishLabel="Terminer le lot"
                         onFinish={() => setScanOpen(false)}
+                        /* Un code lu se rend tel que le parc l'écrit ; un QR garde tout son contenu. */
+                        onLecture={(lu) =>
+                            enregistrerLecture(
+                                lu.trim().startsWith('{') ? lu : (codeConnu(equipment, lu) ?? lu),
+                            )
+                        }
+                        reconnaitre={(code) => codeProche(equipment, code)}
                         onManualEntry={() => setManualOpen(true)}
                     />
                 </div>
@@ -3140,6 +3171,16 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                     </div>
                 </div>
             </SideSheet>
+
+            {ficheACompleter && (
+                <Suspense fallback={null}>
+                    <AddEquipmentPage
+                        equipmentId={ficheACompleter}
+                        onCancel={() => setFicheACompleter(null)}
+                        onSave={() => setFicheACompleter(null)}
+                    />
+                </Suspense>
+            )}
 
             {ficheOuverte &&
                 (() => {

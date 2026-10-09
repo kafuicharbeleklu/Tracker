@@ -10,7 +10,6 @@ import {
     Keyboard,
     Package,
     Scan,
-    Warning,
 } from '@phosphor-icons/react';
 
 import { useData } from '../../../context/DataContext';
@@ -45,12 +44,14 @@ import BulkOverflow from '../../../components/ui/BulkOverflow';
 import { getDisplayedEquipmentStatus, getStatusLabel } from '../../../lib/businessRules';
 import { getCategoryLabel } from '../../../constants/glossary';
 import { getStatusPresentation } from '../../../constants/statusPresentation';
-import { presentationEtat } from '../reparation';
+import { debutDEtape, presentationEtat } from '../reparation';
 import { buildCsvLine } from '../../../lib/csv';
 import { cn } from '../../../lib/utils';
 import { DEMO_RESEED_NOTICE, isDemoSeedEquipment } from '../../../lib/demoSeed';
 import { VIRTUAL_SPACER, useVirtualWindow } from '../../../hooks/useVirtualWindow';
 import { getCategoryGlyph } from '../../../constants/categoryIcons';
+import { codeDeLaLecture, codeProche, trouverParCode } from '../../../lib/lectureDeCode';
+import { SANS_LOCAL, type PerimetreDuParc } from '../../../lib/perimetreDuParc';
 
 /**
  * Liste des équipements — **portée sur la planche 04.1** (gabarit `ListTemplate`).
@@ -251,19 +252,34 @@ interface InventoryPageProps {
     initialStatus?: string | null;
     /** Le site reçu d'un autre écran — la fiche d'un site renvoie ici, filtrée (10.1, C2). */
     initialSite?: string | null;
+    /** Le local, le type ou le modèle reçu d'un autre écran (09/10) — `lib/perimetreDuParc`. */
+    initialPerimetre?: PerimetreDuParc | null;
     /**
      * **La fiche d'un actif, pour le panneau** (P2a) — dès 840 et en cartes, toucher une
      * rangée l'ouvre à côté de la liste. La coque la fournit : c'est la page de l'objet.
      */
     renderFiche?: (id: string, fermer: () => void) => React.ReactNode;
+    /** Revenir d'où l'on vient — la flèche de l'en-tête (08/10 : partout sauf à l'accueil). */
+    onBack?: () => void;
 }
+
+/**
+ * Ce qu'attend un objet chez son porteur — la seconde ligne le dit après le nom (08/10), avec
+ * les mots de la file des tâches. Court : à 320, le nom et l'attente tiennent ensemble.
+ */
+const ATTENTE_DU_PORTEUR: Record<string, string> = {
+    PENDING_DELIVERY: 'à confirmer',
+    PENDING_RETURN: 'en retour',
+};
 
 const InventoryPage: React.FC<InventoryPageProps> = ({
     onViewChange,
     onEquipmentClick,
     initialStatus,
     initialSite,
+    initialPerimetre,
     renderFiche,
+    onBack,
 }) => {
     const { equipment, users, deleteEquipment } = useData();
     const { currentUser } = useAuth();
@@ -297,19 +313,41 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
     );
     /** Vrai tant qu'on n'a pas quitté le filtre reçu d'un autre écran. */
     const [arrivedFiltered, setArrivedFiltered] = useState(() =>
-        Boolean(initialStatus || initialSite),
+        Boolean(
+            initialStatus ||
+            initialSite ||
+            initialPerimetre?.local ||
+            initialPerimetre?.type ||
+            initialPerimetre?.model,
+        ),
     );
     const [isScanning, setIsScanning] = useState(false);
     const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
     const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
     const [sortIndex, setSortIndex] = useState(DEFAULT_SORT_INDEX);
     const [scanHit, setScanHit] = useState<ScanHit | null>(null);
+    /** Une lecture — caméra ou clavier — et l'actif qui porte ce code, écrit en clair (N2). */
+    const lireUnCode = (code: string) => {
+        const found = trouverParCode(accessibleEquipment, code);
+        setScanHit({
+            id: `scan_${Date.now()}`,
+            /* D'un QR, sa valeur utile : « ASSET-10009 », pas son JSON. */
+            code: codeDeLaLecture(code),
+            detail: found ? `${found.name} · ${found.model}` : 'Aucun actif ne porte ce code',
+            kind: found ? 'expected' : 'exception',
+        });
+    };
     const selection = useSelection();
 
     // Filtres de la feuille montante
     const [familyFilter, setFamilyFilter] = useState<string>('Toutes');
-    const [typeFilter, setTypeFilter] = useState<string>('');
+    const [typeFilter, setTypeFilter] = useState<string>(() => initialPerimetre?.type || '');
     const [locationFilter, setLocationFilter] = useState<string>(() => initialSite || 'Tous');
+    /* Le local et le modèle ne se choisissent pas dans la feuille de filtre : ils arrivent
+       d'un autre écran — la rangée d'un local, la fiche d'un modèle — et se lèvent au pied
+       de la liste. */
+    const [localFilter, setLocalFilter] = useState<string>(() => initialPerimetre?.local || '');
+    const [modelFilter, setModelFilter] = useState<string>(() => initialPerimetre?.model || '');
     const [periodFilter, setPeriodFilter] = useState<string>('Toute période');
 
     const availableLocations = useMemo(() => {
@@ -397,6 +435,10 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
 
             // Filtre Emplacement
             const matchesLocation = locationFilter === 'Tous' || item.site === locationFilter;
+            const matchesLocal =
+                !localFilter ||
+                (localFilter === SANS_LOCAL ? !item.local : item.local === localFilter);
+            const matchesModel = !modelFilter || item.model === modelFilter;
 
             // Filtre Période
             let matchesPeriod = true;
@@ -414,6 +456,8 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                 matchesFamily &&
                 matchesType &&
                 matchesLocation &&
+                matchesLocal &&
+                matchesModel &&
                 matchesPeriod
             );
         });
@@ -447,6 +491,8 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
         familyFilter,
         typeFilter,
         locationFilter,
+        localFilter,
+        modelFilter,
         periodFilter,
         sortIndex,
         isManager,
@@ -813,15 +859,37 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
     const clearArrivalFilter = () => {
         setStatusFilter('');
         setLocationFilter('Tous');
+        setLocalFilter('');
+        setModelFilter('');
+        if (initialPerimetre?.type) setTypeFilter('');
         setArrivedFiltered(false);
         setSortIndex(DEFAULT_SORT_INDEX);
     };
+
+    /**
+     * **Ce que la liste a reçu d'un autre écran, en mots** — l'état, le modèle, le local dans
+     * son site, le type, ou le site. La ligne de compte le nomme, et le pied de liste rend le
+     * geste qui le lève.
+     */
+    const perimetreRecu = statusFilter
+        ? getStatusLabel(statusFilter)
+        : modelFilter
+          ? modelFilter
+          : localFilter
+            ? `${localFilter === SANS_LOCAL ? 'sans local' : localFilter} · ${locationFilter}`
+            : initialPerimetre?.type && typeFilter
+              ? getCategoryLabel(typeFilter)
+              : initialSite && locationFilter !== 'Tous'
+                ? locationFilter
+                : '';
 
     const handleClearAllSheetFilters = () => {
         setStatusFilter('');
         setFamilyFilter('Toutes');
         setTypeFilter('');
         setLocationFilter('Tous');
+        setLocalFilter('');
+        setModelFilter('');
         setPeriodFilter('Toute période');
         setArrivedFiltered(false);
     };
@@ -844,6 +912,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
     return (
         <>
             <ListTemplate
+                onBack={onBack}
                 /* **« Actifs », pour les deux rôles** — le mot de la barre du bas (17.7),
                    et celui que 04.1 pose en titre dans ses deux vues (relu le 10/09) : le
                    porteur n'a pas « ses équipements » sous un autre nom que celui de
@@ -894,9 +963,9 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                        pied de liste — qui **nomme sa destination**, jamais « effacer
                        les filtres ». Le bandeau faisait une quatrième marque pour la
                        même chose, au-dessus des rangées qu'on est venu lire. */
-                    arrivedFiltered && (statusFilter || (initialSite && locationFilter !== 'Tous'))
+                    arrivedFiltered && perimetreRecu
                         ? {
-                              token: statusFilter ? getStatusLabel(statusFilter) : locationFilter,
+                              token: perimetreRecu,
                               clearLabel: `Voir les ${accessibleEquipment.length} actifs du parc`,
                               onClear: clearArrivalFilter,
                               displayToken: false,
@@ -919,7 +988,9 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                               */
                               noun: statusFilter
                                   ? `actifs · ${getStatusLabel(statusFilter).toLowerCase()}`
-                                  : 'actifs',
+                                  : arrivedFiltered && perimetreRecu
+                                    ? `actifs · ${perimetreRecu}`
+                                    : 'actifs',
                           }
                         : undefined
                 }
@@ -1130,9 +1201,12 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                         {filteredEquipment.slice(liste.start, liste.end).map((item) => {
                             if (!isManager) {
                                 // Vue Utilisateur final (Colonne 3)
-                                const isRep = item.status === 'En réparation';
+                                const isRep =
+                                    item.status === 'En réparation' || Boolean(item.repair);
                                 const isPending = item.assignmentStatus === 'PENDING_DELIVERY';
-                                const repairDays = getDaysSince(item.repairStartDate);
+                                const repairDays = getDaysSince(debutDEtape(item));
+                                /* L'étape de réparation, son mot et son glyphe ensemble (08/10). */
+                                const etape = presentationEtat(item);
                                 /* « Depuis le — » : la fiche n'a ni confirmation ni dernier
                            mouvement. La planche n'écrit jamais une date absente ;
                            sans date, la rangée dit l'état, qui reste vrai. */
@@ -1142,10 +1216,10 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                                     ? {
                                           label:
                                               repairDays > 0
-                                                  ? `En réparation · ${repairDays} j`
-                                                  : 'En réparation',
-                                          icon: Warning,
-                                          tone: 'attention' as const,
+                                                  ? `${etape.label} · ${repairDays} j`
+                                                  : etape.label,
+                                          icon: etape.icon,
+                                          tone: etape.tone,
                                       }
                                     : isPending
                                       ? {
@@ -1199,15 +1273,33 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                        site n'ajoute rien qu'on soit venu chercher. Le porteur prend
                        la place dès qu'il existe, et un local en tient lieu quand
                        l'objet est attribué à une pièce (« Salle serveurs »). */
-                            const repairDays = getDaysSince(item.repairStartDate);
+                            /* **Le mot suit le glyphe** (08/10). La ligne écrivait « En réparation »
+                               à toutes les étapes, quand le glyphe et la teinte disaient déjà
+                               « Devis à valider » ou « À prendre en charge » ; et une horloge
+                               ambre se posait devant le seul nom du porteur, sans dire ce qui
+                               était attendu. */
+                            const repairDays = getDaysSince(debutDEtape(item));
+                            const attente = ATTENTE_DU_PORTEUR[item.assignmentStatus ?? ''];
                             const holderText =
-                                item.status === 'En réparation'
-                                    ? repairDays > 0
-                                        ? `En réparation · ${repairDays} j`
-                                        : 'En réparation'
-                                    : (item.user?.name ??
-                                      (item.status === 'Attribué' ? item.site : undefined) ??
-                                      status.label);
+                                item.status === 'En réparation' || item.repair ? (
+                                    repairDays > 0 ? (
+                                        `${status.label} · ${repairDays} j`
+                                    ) : (
+                                        status.label
+                                    )
+                                ) : item.user?.name && attente ? (
+                                    /* Un nom long cède, l'attente reste entière. */
+                                    <span className="flex min-w-0">
+                                        <span className="truncate">{item.user.name}</span>
+                                        <span className="shrink-0 whitespace-pre">
+                                            {` · ${attente}`}
+                                        </span>
+                                    </span>
+                                ) : (
+                                    (item.user?.name ??
+                                    (item.status === 'Attribué' ? item.site : undefined) ??
+                                    status.label)
+                                );
 
                             return (
                                 <ListRow
@@ -1358,7 +1450,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                             et 4 au pied (relevé du 13/09). */}
                         <div
                             data-pied
-                            className="border-outline-variant -mx-5 duo-de-pied gap-3 border-t px-5 pt-4 pb-1"
+                            className="border-outline-variant duo-de-pied -mx-5 gap-3 border-t px-5 pt-4 pb-1"
                         >
                             <Button variant="ghost" onClick={handleClearAllSheetFilters}>
                                 Tout effacer
@@ -1421,8 +1513,11 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                     </div>
                 </BottomSheet>
 
+                {/* `z-[90]`, comme la campagne : à `z-50`, la barre du bas et le bouton
+                    d'ajout — même rang, plus loin dans le document — passaient par-dessus
+                    le viseur et couvraient « Ouvrir la fiche » (09/10). */}
                 {isScanning && (
-                    <div className="fixed inset-0 z-50 bg-[var(--tk-color-inverse-surface)]">
+                    <div className="fixed inset-0 z-[90] bg-[var(--tk-color-inverse-surface)]">
                         <ScanView
                             mode="simple"
                             onClose={() => setIsScanning(false)}
@@ -1431,35 +1526,17 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                             acceptLabel="Ouvrir la fiche"
                             onAccept={(hit) => {
                                 setIsScanning(false);
-                                const found = accessibleEquipment.find(
-                                    (item) =>
-                                        item.assetId.toLowerCase() === hit.code.toLowerCase() ||
-                                        item.serialNumber?.toLowerCase() === hit.code.toLowerCase(),
-                                );
+                                const found = trouverParCode(accessibleEquipment, hit.code);
                                 if (found) {
                                     onEquipmentClick?.(found.id);
                                 }
                             }}
                             onRetry={() => setScanHit(null)}
-                            /* La vue ne décode rien (17.3) : sans cette saisie, le viseur
-                               s'ouvrait sur un cadre qui ne pouvait jamais rien lire, et
-                               « Saisir à la main » se contentait de le refermer. */
-                            onManualSubmit={(code) => {
-                                const found = accessibleEquipment.find(
-                                    (item) =>
-                                        item.assetId.toLowerCase() === code.toLowerCase() ||
-                                        item.serialNumber?.toLowerCase() === code.toLowerCase() ||
-                                        item.name.toLowerCase() === code.toLowerCase(),
-                                );
-                                setScanHit({
-                                    id: `scan_${Date.now()}`,
-                                    code,
-                                    detail: found
-                                        ? `${found.name} · ${found.model}`
-                                        : 'Aucun actif ne porte ce code',
-                                    kind: found ? 'expected' : 'exception',
-                                });
-                            }}
+                            /* Lue par la caméra ou saisie (09/10) : la même lecture, le même
+                               verdict — l'actif du parc qui porte ce code, ou son absence. */
+                            onLecture={lireUnCode}
+                            reconnaitre={(code) => codeProche(accessibleEquipment, code)}
+                            onManualSubmit={lireUnCode}
                         />
                     </div>
                 )}

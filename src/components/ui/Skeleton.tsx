@@ -16,8 +16,12 @@ import { cn } from '../../lib/utils';
  * Un squelette approximatif fait sauter la page à l'arrivée des données, et coûte
  * alors plus qu'il ne rapporte.
  *
- * **A3 — ni couleur, ni vague brillante.** Une seule nuance, et aucune animation :
- * le balayage lumineux attire l'œil **sur l'attente** au lieu de l'en détourner.
+ * **A3 — ni couleur, ni vague brillante.** Une seule nuance, et pas de balayage lumineux :
+ * il attire l'œil **sur l'attente** au lieu de l'en détourner. **Mais l'attente respire**
+ * (08/10, à la demande du commanditaire) : immobile, le squelette se lisait comme une page
+ * figée, pas comme une page qui arrive. Une pulsation douce de l'opacité (`mvt-attente`),
+ * qui descend la liste une rangée après l'autre ; rien ne bouge sous « réduire les
+ * animations ». La planche 17.3 disait « aucune animation » : elle est à mettre à jour.
  *
  * **A4 — ce qui est déjà connu est déjà vrai.** Le titre de l'écran, les onglets, le
  * fil d'Ariane ne dépendent d'aucune donnée : ils restent affichés pour de bon.
@@ -46,8 +50,12 @@ interface SkeletonProps {
  * connaît que 2/4/8 et le registre interdit d'en inventer un quatrième).
  */
 export const Skeleton: React.FC<SkeletonProps> = ({ className }) => (
-    <div className={cn('bg-skeleton h-3 rounded-xs', className)} aria-hidden="true" />
+    <div className={cn('bg-skeleton mvt-attente h-3 rounded-xs', className)} aria-hidden="true" />
 );
+
+/** Le décalage d'une rangée dans la respiration — la vague descend la liste. */
+const retardDeRangee = (index: number) =>
+    ({ '--attente-retard': `${index * 120}ms` }) as React.CSSProperties;
 
 /** La vignette de rangée en attente — 40 × 40, rayon 6 (§2.2). */
 const SkeletonVignette: React.FC<{ round?: boolean }> = ({ round = false }) => (
@@ -86,7 +94,10 @@ export const SkeletonRow: React.FC<SkeletonRowProps> = ({
     const [title, sub] = ROW_WIDTHS[index % ROW_WIDTHS.length];
 
     return (
-        <div className={cn('flex min-h-[68px] items-center gap-4 py-3', className)}>
+        <div
+            className={cn('flex min-h-[68px] items-center gap-4 py-3', className)}
+            style={retardDeRangee(index)}
+        >
             {withThumb && <SkeletonVignette />}
             <div className="flex min-w-0 flex-1 flex-col gap-2">
                 <Skeleton className={cn('h-[15px]', title)} />
@@ -154,7 +165,11 @@ export const SkeletonQueue: React.FC<SkeletonQueueProps> = ({
     >
         <span className="sr-only">{label}</span>
         {Array.from({ length: rows }, (_, i) => (
-            <div key={i} className="flex min-h-14 items-center gap-3 py-2">
+            <div
+                key={i}
+                className="flex min-h-14 items-center gap-3 py-2"
+                style={retardDeRangee(i)}
+            >
                 <SkeletonVignette round />
                 <div className="flex min-w-0 flex-1 flex-col gap-2">
                     <Skeleton className="h-[17px] w-4/5" />
@@ -203,13 +218,17 @@ export const SkeletonDetail: React.FC<SkeletonDetailProps> = ({
             </div>
         </div>
 
-        <div className="flex flex-col gap-5 p-4">
+        <div className="flex flex-col gap-5 p-4" style={retardDeRangee(1)}>
             <Skeleton className="h-12 rounded-sm" />
             <div className="rounded-card bg-surface p-4">
                 <Skeleton className="mb-3.5 h-[11px] w-32" />
                 <div className="divide-outline-variant divide-y">
                     {Array.from({ length: rows }, (_, i) => (
-                        <div key={i} className="flex min-h-14 items-center gap-3 py-2.5">
+                        <div
+                            key={i}
+                            className="flex min-h-14 items-center gap-3 py-2.5"
+                            style={retardDeRangee(i + 2)}
+                        >
                             <Skeleton className="h-2.5 w-2.5 shrink-0 rounded-full" />
                             <div className="flex min-w-0 flex-1 flex-col gap-2">
                                 <Skeleton className="h-[15px] w-2/3" />

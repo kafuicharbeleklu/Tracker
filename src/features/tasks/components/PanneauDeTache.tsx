@@ -1,35 +1,27 @@
 import React, { useMemo } from 'react';
-import { ArrowSquareOut, Warning } from '@phosphor-icons/react';
+import { Warning } from '@phosphor-icons/react';
 
 import Button from '../../../components/ui/Button';
+import CloseButton from '../../../components/ui/CloseButton';
 import FacetChip from '../../../components/ui/FacetChip';
 import Icon from '../../../components/ui/Icon';
 import { TextArea } from '../../../components/ui/TextArea';
 import Touche from '../../../components/ui/Touche';
-import { getCategoryLabel } from '../../../constants/glossary';
 import { useData } from '../../../context/DataContext';
-import { useFinanceData } from '../../../context/FinanceDataContext';
 import { useAccessControl } from '../../../hooks/useAccessControl';
 import { useJournalComplet } from '../../../hooks/useJournalComplet';
-import {
-    formatCurrency,
-    formatNumber,
-    getBudgetCategoryByExpenseType,
-} from '../../../lib/financial';
-import { NOM_SUR_UNE_LIGNE } from '../../../lib/nomLong';
 import { cn } from '../../../lib/utils';
-import type { ApprovalStatus, Equipment } from '../../../types';
+import type { ApprovalStatus } from '../../../types';
 import { NATURE_MOT, daysSince, type Task } from '../lib/file';
-import { useAppNavigation } from '../../../hooks/useAppNavigation';
 import { parcoursDeLaDemande, type Registres } from '../../history/lib/journal';
 import {
     FilDeLaDemande,
     INTITULE,
-    PartiesDeLaDemande,
     SignaturesDeLaDemande,
-    etapesSignees,
 } from '../../history/components/ParcoursDeDemande';
-import { ageDeLObjet, unitesARemettre } from '../lib/unites';
+import { useDossierDeTache } from '../hooks/useDossierDeTache';
+import DetailDeTache from './DetailDeTache';
+import ExamenDeMachine from './ExamenDeMachine';
 
 /**
  * **Les motifs courants d'un refus** — une puce remplit le motif, qui reste modifiable.
@@ -58,22 +50,6 @@ const MOTIFS_COURANTS: Record<string, string[]> = {
     ],
 };
 
-type TonDuFait = 'ok' | 'att' | 'neutre';
-
-const TON: Record<TonDuFait, string> = {
-    ok: 'text-[var(--tk-color-st-vert)]',
-    att: 'text-[var(--tk-color-st-ambre)]',
-    neutre: 'text-on-surface-variant',
-};
-
-interface Fait {
-    cle: string;
-    libelle: string;
-    valeur: string;
-    note?: string;
-    ton?: TonDuFait;
-}
-
 export interface EtatDuRefus {
     ouvert: boolean;
     motif: string;
@@ -85,31 +61,45 @@ interface PanneauDeTacheProps {
     tache: Task;
     /** Les marques des touches — au bureau, sous un pointeur fin. */
     touches: boolean;
-    /** L'unité choisie pour une remise. */
-    unite: string | null;
-    onUnite: (id: string) => void;
     refus: EtatDuRefus;
     onRefus: (etat: EtatDuRefus) => void;
     /** L'acte principal — valider, remettre, confirmer, ouvrir. */
     onPrincipal: () => void;
     /** Refuser, le motif écrit. */
     onRefuser: () => void;
-    /** L'écran de la demande (06.5). */
-    onDetail?: () => void;
     onAnnulerDemande?: () => void;
     onRelancer?: () => void;
+    /** Ignorer une machine remontée — la collecte. */
+    onIgnorer?: () => void;
+    /** Ouvrir la fiche d'un actif — les candidats d'une collecte. */
+    onOuvrirActif?: (id: string) => void;
+    /**
+     * **Où il se pose** (08/10). `panneau` — la colonne de droite du bureau. `feuille` — la
+     * feuille du téléphone : la même tâche, le même détail, une croix pour fermer, un pied qui
+     * reste en bas pendant qu'on fait défiler, deux gestes au doigt.
+     */
+    surface?: 'panneau' | 'feuille';
+    /** Fermer la feuille — `surface="feuille"`. */
+    onFermer?: () => void;
+    /**
+     * Refuser **ailleurs** : au téléphone, le refus passe par la feuille d'acte (motif et
+     * attestation, 17.4) plutôt que par le motif du pied.
+     */
+    onDemanderRefus?: () => void;
 }
 
 /** Le libellé du geste principal, tel que le pied l'écrit. */
-export const libelleDuPrincipal = (tache: Task, uniteChoisie: Equipment | null): string | null => {
+export const libelleDuPrincipal = (tache: Task): string | null => {
     if (tache.transition) {
         return tache.force
             ? `${tache.action ?? 'Valider'} à sa place`
             : (tache.action ?? 'Valider');
     }
-    if (tache.assign) return uniteChoisie ? `Remettre ${uniteChoisie.name}` : 'Choisir et remettre';
+    /* L'unité se choisit dans « Remettre l'équipement », pas dans le détail (08/10). */
+    if (tache.assign) return 'Remettre';
     if (tache.reception) return tache.action ?? 'Confirmer';
-    if (tache.deviceId) return 'Examiner';
+    /* L'examen est dans le panneau : le geste est l'import (08/10). */
+    if (tache.deviceId) return 'Importer au parc';
     if (tache.target && tache.targetId) return tache.action ?? 'Ouvrir la fiche';
     return null;
 };
@@ -133,21 +123,22 @@ export const libelleDuPrincipal = (tache: Task, uniteChoisie: Equipment | null):
 const PanneauDeTache: React.FC<PanneauDeTacheProps> = ({
     tache,
     touches,
-    unite,
-    onUnite,
     refus,
     onRefus,
     onPrincipal,
     onRefuser,
-    onDetail,
     onAnnulerDemande,
     onRelancer,
+    onIgnorer,
+    onOuvrirActif,
+    surface = 'panneau',
+    onFermer,
+    onDemanderRefus,
 }) => {
-    const { approvals, equipment, users, settings, events } = useData();
+    const enFeuille = surface === 'feuille';
+    const { approvals, equipment, users, events, detectedDevices } = useData();
     useJournalComplet();
-    const { financeBudgets } = useFinanceData();
-    const { user: currentUser, permissions } = useAccessControl();
-    const { navigateToItem } = useAppNavigation();
+    const { user: currentUser } = useAccessControl();
 
     const demande = useMemo(
         () => approvals.find((item) => item.id === tache.approvalId) ?? null,
@@ -159,115 +150,6 @@ const PanneauDeTache: React.FC<PanneauDeTacheProps> = ({
     );
 
     /** Ce qui peut être remis pour cette demande : même catégorie, le site d'abord. */
-    const unites = useMemo<Equipment[]>(
-        () => (demande ? unitesARemettre(equipment, demande, beneficiaire?.site) : []),
-        [equipment, demande, beneficiaire?.site],
-    );
-
-    const faits = useMemo<Fait[]>(() => {
-        /* Les faits servent à décider : une demande close, ou qui attend quelqu'un d'autre
-           sans geste possible ici, ne les montre pas. */
-        const aDecider = Boolean(tache.transition || tache.assign || tache.refusal);
-        if (!demande || demande.status === 'PENDING_DELIVERY' || !aDecider) return [];
-        const out: Fait[] = [];
-        const categorie = getCategoryLabel(demande.equipmentCategory).toLowerCase();
-
-        /* Le coût, et ce qu'il reste sur la ligne du matériel — pour qui lit la finance. */
-        const ligne = permissions.canViewFinance
-            ? financeBudgets
-                  .find((budget) => budget.year === new Date().getFullYear())
-                  ?.items.find(
-                      (item) => item.category === getBudgetCategoryByExpenseType('Purchase'),
-                  )
-            : undefined;
-        const reste = ligne ? ligne.allocated - ligne.spent : null;
-        const cout = demande.estimatedCost;
-        out.push({
-            cle: 'cout',
-            libelle: 'Coût estimé',
-            valeur:
-                typeof cout === 'number' ? formatCurrency(cout, settings.currency) : 'Non chiffré',
-            note:
-                ligne && reste !== null
-                    ? `${ligne.category} : ${formatNumber(reste)} restants`
-                    : undefined,
-            ton:
-                reste !== null && typeof cout === 'number'
-                    ? cout > reste
-                        ? 'att'
-                        : 'ok'
-                    : 'neutre',
-        });
-
-        if (demande.status === 'WAITING_DOTATION_APPROVAL') {
-            const proposee = equipment.find((item) => item.id === demande.assignedEquipmentId);
-            const age = proposee ? ageDeLObjet(proposee) : null;
-            out.push({
-                cle: 'proposee',
-                libelle: 'Unité proposée',
-                valeur: demande.assignedEquipmentName ?? 'Aucune',
-                note: [proposee?.model, age?.mot].filter(Boolean).join(' · ') || undefined,
-                ton: 'neutre',
-            });
-        } else {
-            const site = beneficiaire?.site;
-            const auSite = site
-                ? unites.filter((item) => item.site === site).length
-                : unites.length;
-            const ailleurs = unites.length - auSite;
-            out.push({
-                cle: 'stock',
-                libelle: 'En stock',
-                valeur:
-                    unites.length === 0
-                        ? 'Aucune unité'
-                        : `${auSite} unité${auSite > 1 ? 's' : ''}`,
-                note:
-                    unites.length === 0
-                        ? 'à commander'
-                        : [
-                              site ? `au ${site}` : null,
-                              auSite === 0 && ailleurs > 0 ? `${ailleurs} ailleurs` : null,
-                          ]
-                              .filter(Boolean)
-                              .join(' · ') || undefined,
-                ton: unites.length === 0 || auSite === 0 ? 'att' : 'ok',
-            });
-        }
-
-        const detenus = equipment.filter((item) => item.user?.id === demande.beneficiaryId);
-        const pareils = detenus
-            .filter((item) => item.type === demande.equipmentCategory)
-            .sort((a, b) => (ageDeLObjet(b)?.ans ?? 0) - (ageDeLObjet(a)?.ans ?? 0));
-        const plusAncien = pareils[0];
-        const ageAncien = plusAncien ? ageDeLObjet(plusAncien) : null;
-        out.push({
-            cle: 'detient',
-            libelle: 'Détient déjà',
-            valeur:
-                pareils.length > 0
-                    ? `${pareils.length} ${categorie}${pareils.length > 1 ? 's' : ''}`
-                    : 'Rien de tel',
-            note: plusAncien
-                ? [plusAncien.name, ageAncien?.mot].filter(Boolean).join(' · ')
-                : detenus.length > 0
-                  ? `${detenus.length} objet${detenus.length > 1 ? 's' : ''} en tout`
-                  : 'aucun objet',
-            ton: ageAncien && ageAncien.ans >= 3 ? 'att' : 'neutre',
-        });
-        return out;
-    }, [
-        demande,
-        tache.transition,
-        tache.assign,
-        tache.refusal,
-        beneficiaire?.site,
-        equipment,
-        financeBudgets,
-        permissions.canViewFinance,
-        settings.currency,
-        unites,
-    ]);
 
     /* **Le parcours, celui de l'historique** (08/10) — la frise à points en 13 de la maquette
        du 26/09 racontait la demande autrement que la fiche de l'historique et l'écran de la
@@ -301,8 +183,14 @@ const PanneauDeTache: React.FC<PanneauDeTacheProps> = ({
             )?.actorName;
     }, [demande, events]);
 
-    const uniteChoisie = unites.find((item) => item.id === unite) ?? null;
-    const principal = libelleDuPrincipal(tache, uniteChoisie);
+    /* Une réparation, un retour, une remise, une réception : leur dossier (08/10). */
+    const dossier = useDossierDeTache(tache);
+    /* Une collecte : la machine remontée, examinée ici comme ailleurs au téléphone. */
+    const machine = tache.deviceId
+        ? (detectedDevices.find((device) => device.id === tache.deviceId) ?? null)
+        : null;
+
+    const principal = libelleDuPrincipal(tache);
     const motifs =
         demande && tache.refusal
             ? (MOTIFS_COURANTS[`${demande.status}>${tache.refusal.nextStatus as ApprovalStatus}`] ??
@@ -328,38 +216,56 @@ const PanneauDeTache: React.FC<PanneauDeTacheProps> = ({
           ]
               .filter(Boolean)
               .join(' · ')
-        : [tache.who, tache.context].filter(Boolean).join(' · ');
+        : (dossier?.sousLigne ?? [tache.who, tache.context].filter(Boolean).join(' · '));
 
-    /** Le geste d'un pied de panneau : 40 de haut, 16 d'intérieur, 14 en 500 (maquette). */
-    const GESTE = 'h-10 min-h-10 gap-2 rounded-md px-4 text-[0.875rem] leading-5 font-medium';
+    /** Le geste d'un pied de panneau : 40 de haut, 16 d'intérieur, 14 en 500 (maquette). Au
+        téléphone, la taille du doigt (`Button` par défaut). */
+    const GESTE = enFeuille
+        ? ''
+        : 'h-10 min-h-10 gap-2 rounded-md px-4 text-[0.875rem] leading-5 font-medium';
 
     return (
-        <div className="bg-surface @container flex h-full min-h-0 flex-col overflow-hidden rounded-xl">
+        <div
+            className={
+                enFeuille
+                    ? '@container flex flex-col'
+                    : 'bg-surface @container flex h-full min-h-0 flex-col overflow-hidden rounded-xl'
+            }
+        >
             <div
                 key={tache.id}
-                className="mvt-contenu flex min-h-0 flex-1 flex-col gap-4.5 overflow-y-auto overscroll-contain px-6 py-5"
+                className={
+                    enFeuille
+                        ? 'mvt-contenu flex flex-col gap-4.5 pb-4'
+                        : 'mvt-contenu flex min-h-0 flex-1 flex-col gap-4.5 overflow-y-auto overscroll-contain px-5 py-5'
+                }
             >
                 {/* L'en-tête — la nature et l'urgence, l'objet et pour qui, puis qui l'a
-                    demandé et qui l'a validé. */}
-                <div className="flex flex-col gap-1">
-                    <p className="text-text-secondary flex items-center gap-2.5 text-[0.75rem] leading-4 font-medium tracking-[0.06em] uppercase">
-                        {NATURE_MOT[tache.nature]}
-                        {tache.urgent && (
-                            <span className="flex items-center gap-1 text-[0.6875rem] leading-4 font-semibold tracking-normal text-[var(--tk-color-st-rouge)] normal-case">
-                                <span
-                                    aria-hidden="true"
-                                    className="h-1.5 w-1.5 rounded-full bg-[var(--tk-color-st-rouge)]"
-                                />
-                                Urgent
-                            </span>
-                        )}
-                    </p>
-                    <h2 className="font-brand text-on-surface text-ts-sheet leading-ts-sheet font-semibold tracking-[-0.015em] text-pretty">
-                        {tache.title}
-                        {demande &&
-                            ` pour ${demande.beneficiaryId === currentUser?.id ? 'vous' : demande.beneficiaryName}`}
-                    </h2>
-                    <p className="text-text-secondary text-[0.8125rem] leading-5">{sousLigne}</p>
+                    demandé et qui l'a validé. Dans la feuille, la croix à droite. */}
+                <div className="flex items-start gap-3">
+                    <div className="flex min-w-0 flex-1 flex-col gap-1">
+                        <p className="text-text-secondary flex items-center gap-2.5 text-[0.75rem] leading-4 font-medium tracking-[0.06em] uppercase">
+                            {NATURE_MOT[tache.nature]}
+                            {tache.urgent && (
+                                <span className="flex items-center gap-1 text-[0.6875rem] leading-4 font-semibold tracking-normal text-[var(--tk-color-st-rouge)] normal-case">
+                                    <span
+                                        aria-hidden="true"
+                                        className="h-1.5 w-1.5 rounded-full bg-[var(--tk-color-st-rouge)]"
+                                    />
+                                    Urgent
+                                </span>
+                            )}
+                        </p>
+                        <h2 className="font-brand text-on-surface text-ts-sheet leading-ts-sheet font-semibold tracking-[-0.015em] text-pretty">
+                            {tache.title}
+                            {demande &&
+                                ` pour ${demande.beneficiaryId === currentUser?.id ? 'vous' : demande.beneficiaryName}`}
+                        </h2>
+                        <p className="text-text-secondary text-[0.8125rem] leading-5">
+                            {sousLigne}
+                        </p>
+                    </div>
+                    {enFeuille && onFermer && <CloseButton onClick={onFermer} />}
                 </div>
 
                 {/* Ce qu'un autre doit faire, et que le super administrateur peut forcer. */}
@@ -370,168 +276,43 @@ const PanneauDeTache: React.FC<PanneauDeTacheProps> = ({
                     </p>
                 )}
 
-                {(tache.reason || tache.quote) && (
+                {/* Un dossier porte ses motifs dans son parcours. */}
+                {(tache.reason || (!dossier && tache.quote)) && (
                     <blockquote className="bg-surface-container text-on-surface text-ts-body leading-ts-body rounded-md px-3.5 py-2.5 italic">
                         «&nbsp;{tache.reason || tache.quote}&nbsp;»
                     </blockquote>
                 )}
 
-                {/* Les faits de la décision — trois cartes côte à côte dès 520 de panneau ; en
-                    deçà, une seule carte à trois lignes. */}
-                {faits.length > 0 && (
-                    <dl className="border-outline-variant divide-outline-variant grid grid-cols-1 divide-y rounded-md border @min-[520px]:grid-cols-3 @min-[520px]:gap-2.5 @min-[520px]:divide-y-0 @min-[520px]:rounded-none @min-[520px]:border-0">
-                        {faits.map((fait) => (
-                            <div
-                                key={fait.cle}
-                                className="@min-[520px]:border-outline-variant flex min-w-0 items-start justify-between gap-3 px-3 py-2.5 @min-[520px]:flex-col @min-[520px]:justify-start @min-[520px]:gap-0.5 @min-[520px]:rounded-md @min-[520px]:border"
-                            >
-                                <dt className="text-text-secondary pt-0.5 text-[0.75rem] leading-4 @min-[520px]:pt-0">
-                                    {fait.libelle}
-                                </dt>
-                                <dd className="flex min-w-0 flex-col items-end gap-0.5 text-right @min-[520px]:items-start @min-[520px]:text-left">
-                                    <span className="text-on-surface text-[0.9375rem] leading-5 font-semibold tabular-nums">
-                                        {fait.valeur}
-                                    </span>
-                                    {fait.note && (
-                                        <span
-                                            className={cn(
-                                                'text-[0.75rem] leading-4',
-                                                TON[fait.ton ?? 'neutre'],
-                                            )}
-                                        >
-                                            {fait.note}
-                                        </span>
-                                    )}
-                                </dd>
-                            </div>
-                        ))}
-                    </dl>
+                {dossier && <DetailDeTache dossier={dossier} />}
+                {machine && (
+                    <ExamenDeMachine
+                        machine={machine}
+                        onOuvrirActif={(id) => onOuvrirActif?.(id)}
+                    />
                 )}
 
-                {/* L'unité à remettre — choisie ici ; la feuille de remise l'atteste. */}
-                {tache.assign && (
-                    <section>
-                        <h3 className="text-text-secondary mb-1.5 text-[0.75rem] leading-4 font-medium">
-                            Unité à remettre
-                        </h3>
-                        {unites.length > 0 ? (
-                            <div
-                                role="radiogroup"
-                                aria-label="Unité à remettre"
-                                className="flex flex-col gap-1.5"
-                            >
-                                {unites.slice(0, 4).map((item) => {
-                                    const choisie = item.id === unite;
-                                    const age = ageDeLObjet(item);
-                                    const recue = item.financial?.purchaseDate
-                                        ? new Date(item.financial.purchaseDate)
-                                        : null;
-                                    return (
-                                        <Button
-                                            key={item.id}
-                                            variant="text"
-                                            layout="card"
-                                            role="radio"
-                                            aria-checked={choisie}
-                                            onClick={() => onUnite(item.id)}
-                                            className={cn(
-                                                'h-auto min-h-0 w-full items-center gap-2.5 rounded-md border px-3 py-2 text-[0.8125rem] leading-[1.125rem] font-normal',
-                                                'duration-short4 transition-[border-color,box-shadow,background-color]',
-                                                choisie
-                                                    ? 'border-inverse-surface shadow-[inset_0_0_0_1px_var(--tk-color-inverse-surface)]'
-                                                    : 'border-outline-variant hover:bg-surface-container/50',
-                                            )}
-                                        >
-                                            <span
-                                                aria-hidden="true"
-                                                className={cn(
-                                                    'h-4 w-4 shrink-0 rounded-full transition-[border-width]',
-                                                    choisie
-                                                        ? 'border-inverse-surface border-[5px]'
-                                                        : 'border-outline border-[1.5px]',
-                                                )}
-                                            />
-                                            <span
-                                                className={cn(
-                                                    'text-text-secondary flex-1',
-                                                    NOM_SUR_UNE_LIGNE,
-                                                )}
-                                            >
-                                                <b className="text-on-surface font-semibold">
-                                                    {item.name}
-                                                </b>
-                                                {[
-                                                    item.model !== demande?.equipmentModel
-                                                        ? item.model
-                                                        : null,
-                                                    item.site,
-                                                    recue && !Number.isNaN(recue.getTime())
-                                                        ? `reçue le ${recue.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', ...(recue.getFullYear() !== new Date().getFullYear() ? { year: 'numeric' } : {}) })}`
-                                                        : null,
-                                                ]
-                                                    .filter(Boolean)
-                                                    .map((morceau) => ` · ${morceau}`)
-                                                    .join('')}
-                                            </span>
-                                            {age && (
-                                                <span className="text-text-secondary shrink-0 tabular-nums">
-                                                    {age.mot}
-                                                </span>
-                                            )}
-                                        </Button>
-                                    );
-                                })}
-                            </div>
-                        ) : (
-                            <p className="text-text-secondary text-[0.8125rem] leading-[1.125rem]">
-                                Aucune unité disponible de ce type. La feuille de remise permet d’en
-                                choisir une autre.
-                            </p>
-                        )}
-                    </section>
-                )}
-
-                {/* Le parcours, ses signatures et ses parties — les pièces de l'historique. */}
+                {/* Le parcours et ses signatures — les pièces de l'historique. Pas de liste des
+                    parties prenantes (08/10) : le parcours nomme déjà chacune, avec son rôle. */}
                 {parcours && (
                     <section>
                         <h3 className={INTITULE}>Le parcours de la demande</h3>
                         <FilDeLaDemande parcours={parcours} />
                     </section>
                 )}
-                {parcours && etapesSignees(parcours.etapes).length > 0 && (
-                    <section>
-                        <h3 className={INTITULE}>Les signatures</h3>
-                        <SignaturesDeLaDemande etapes={parcours.etapes} registres={registres} />
-                    </section>
-                )}
-                {parcours && parcours.parties.length > 0 && (
-                    <section>
-                        <h3 className={INTITULE}>Les parties prenantes</h3>
-                        <PartiesDeLaDemande
-                            parcours={parcours}
-                            canOpenUser={(id) => permissions.canViewUsers || id === currentUser?.id}
-                            onOpenUser={(id) => navigateToItem('user_details', id)}
-                        />
-                    </section>
-                )}
-
-                {/* Au doigt, pas de touche Entrée à rappeler : la porte vers la demande est écrite. */}
-                {onDetail && !touches && (
-                    <Button
-                        variant="text"
-                        onClick={onDetail}
-                        icon={<Icon glyph={ArrowSquareOut} size={18} />}
-                        className="border-outline-variant text-on-surface min-h-12 w-full justify-start gap-2 rounded-none border-t px-0"
-                    >
-                        Ouvrir le détail de la demande
-                    </Button>
+                {parcours && (
+                    <SignaturesDeLaDemande
+                        etapes={parcours.etapes}
+                        registres={registres}
+                        titre={<h3 className={INTITULE}>Les signatures</h3>}
+                    />
                 )}
             </div>
 
-            {/* Le pied — il reste en bas du panneau, quoi qu'il y ait au-dessus. */}
-            {refus.ouvert && tache.refusal ? (
+            {/* Le pied — il reste en bas du panneau, quoi qu'il y ait au-dessus. Dans la feuille,
+                il colle au bas pendant qu'on fait défiler le parcours. */}
+            {refus.ouvert && tache.refusal && !enFeuille ? (
                 <form
-                    className="border-outline-variant flex flex-col gap-3 border-t px-6 pt-4 pb-5"
+                    className="border-outline-variant flex flex-col gap-3 border-t px-5 pt-4 pb-5"
                     onSubmit={(event) => {
                         event.preventDefault();
                         if (!refus.motif.trim()) {
@@ -611,7 +392,14 @@ const PanneauDeTache: React.FC<PanneauDeTacheProps> = ({
                     </div>
                 </form>
             ) : (
-                <div className="border-outline-variant flex flex-wrap items-center gap-2.5 border-t px-6 py-3">
+                <div
+                    className={cn(
+                        'border-outline-variant flex flex-wrap items-center gap-2.5 border-t',
+                        enFeuille
+                            ? 'bg-surface sticky bottom-0 -mx-5 -mb-3 px-5 pt-3 pb-[max(12px,env(safe-area-inset-bottom,0px))]'
+                            : 'px-5 py-3',
+                    )}
+                >
                     {touches && (
                         <span className="text-text-tertiary hidden items-center gap-3 text-[0.75rem] leading-4 @min-[560px]:flex">
                             <span className="flex items-center gap-1">
@@ -619,24 +407,23 @@ const PanneauDeTache: React.FC<PanneauDeTacheProps> = ({
                                 <Touche>K</Touche>
                                 <span className="ml-0.5">tâche suivante</span>
                             </span>
-                            {onDetail && (
-                                <Button
-                                    variant="text"
-                                    size="sm"
-                                    onClick={onDetail}
-                                    aria-keyshortcuts="Enter"
-                                    className="text-text-tertiary hover:text-on-surface h-auto min-h-0 gap-1 p-0 text-[0.75rem] leading-4 font-normal hover:bg-transparent"
-                                >
-                                    <Touche>↵</Touche>
-                                    <span className="ml-0.5">détail</span>
-                                </Button>
-                            )}
                         </span>
                     )}
-                    <span className="ml-auto flex flex-wrap items-center justify-end gap-2.5">
+                    <span
+                        className={cn(
+                            enFeuille
+                                ? 'duo-de-pied w-full gap-3'
+                                : 'ml-auto flex flex-wrap items-center justify-end gap-2.5',
+                        )}
+                    >
                         {tache.remind && onRelancer && (
                             <Button variant="outlined" className={GESTE} onClick={onRelancer}>
                                 Relancer
+                            </Button>
+                        )}
+                        {onIgnorer && (
+                            <Button variant="outlined" className={GESTE} onClick={onIgnorer}>
+                                Ignorer
                             </Button>
                         )}
                         {tache.cancel && onAnnulerDemande && (
@@ -648,7 +435,9 @@ const PanneauDeTache: React.FC<PanneauDeTacheProps> = ({
                             <Button
                                 variant="outlined"
                                 className={GESTE}
-                                onClick={() => onRefus({ ouvert: true, motif: '' })}
+                                onClick={
+                                    onDemanderRefus ?? (() => onRefus({ ouvert: true, motif: '' }))
+                                }
                                 aria-keyshortcuts={touches ? 'R' : undefined}
                             >
                                 {verbeDuRefus}

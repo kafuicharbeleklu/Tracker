@@ -7,6 +7,10 @@ import './index.css';
 import { PublicClientApplication } from "@azure/msal-browser";
 import { MsalProvider } from "@azure/msal-react";
 import { msalConfig } from "./src/lib/authConfig";
+import { enregistrerLeServiceWorker } from "./src/lib/avis";
+
+// Les notifications système passent par un service worker (08/10) — voir src/lib/avis.ts.
+void enregistrerLeServiceWorker();
 
 const msalInstance = new PublicClientApplication(msalConfig);
 

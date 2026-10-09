@@ -4,6 +4,7 @@ import { formatNumber } from '../../../lib/financial';
 import { cn } from '../../../lib/utils';
 import ChiffreAnime from '../../../components/ui/ChiffreAnime';
 import { useEntree } from '../../../hooks/useEntree';
+import { JAUGE } from '../../../lib/jauge';
 
 /**
  * **Les quatre chiffres de l'exercice, chacun sa tuile** — la bande sombre de 15.1
@@ -172,7 +173,7 @@ const FinanceKpiTiles: React.FC<FinanceKpiTilesProps> = ({
                     {tuile.jauge !== undefined && (
                         /* Le ruban de 8 — la variante épaisse de Material 3, comme les jauges
                            de l'accueil — à 16 de sa phrase. */
-                        <div className="bg-surface-container mt-4 h-2 overflow-hidden rounded-xs">
+                        <div className={cn('bg-surface-container mt-4 overflow-hidden', JAUGE)}>
                             <i
                                 className={cn(
                                     'mvt-jauge duration-medium2 ease-emphasized transition-[width]',

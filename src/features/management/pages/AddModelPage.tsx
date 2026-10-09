@@ -18,6 +18,8 @@ interface AddModelPageProps {
     isOpen: boolean;
     onClose: () => void;
     modelToEdit?: Model | null;
+    /** Le modèle vient d'être créé : l'appelant ouvre sa fiche (09/10). */
+    onCreated?: (id: string) => void;
     /**
      * Le type déjà posé à l'ouverture. Sert au geste « Ajouter le premier modèle » de
      * la fiche d'un type sans modèle (09.1, colonne 3) : le geste qui lève la situation
@@ -39,6 +41,7 @@ const AddModelPage: React.FC<AddModelPageProps> = ({
     onClose,
     modelToEdit,
     initialType,
+    onCreated,
 }) => {
     const { showToast } = useToast();
     const { addModel, updateModel, categories } = useData();
@@ -110,8 +113,11 @@ const AddModelPage: React.FC<AddModelPageProps> = ({
             updateModel(modelToEdit.id, payload);
             showToast(`Modèle "${formData.name}" mis à jour`, 'success');
         } else {
-            addModel(payload);
+            const id = addModel(payload);
             showToast('Modèle créé avec succès', 'success');
+            onClose();
+            if (id) onCreated?.(id);
+            return;
         }
         onClose();
     };

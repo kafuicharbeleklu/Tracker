@@ -1,9 +1,13 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 
 import ReferentialImportTemplate, {
     type ImportCandidate,
     type ImportColumn,
+    type TableauImporte,
 } from '../../../components/layout/ReferentialImportTemplate';
+import SelectField from '../../../components/ui/SelectField';
+import { trouverModele } from '../../../lib/correspondanceModele';
+import { normaliserNom, plusProche } from '../../../lib/tableur';
 import { getCategoryLabel } from '../../../constants/glossary';
 import { useData } from '../../../context/DataContext';
 import { useToast } from '../../../context/ToastContext';
@@ -26,15 +30,61 @@ const COLUMNS: ImportColumn[] = [
         description: "Le nom du modèle, tel qu'il s'affichera",
         requirement: 'requis',
         required: true,
+        alias: ['Nom', 'Modèle', 'Model Commercial', 'Désignation'],
     },
     {
         key: 'Category',
         description: 'Un type du catalogue — sinon la ligne est refusée',
         requirement: 'requis',
         required: true,
+        alias: ['Catégorie', 'Type'],
     },
-    { key: 'Brand', description: 'La marque', requirement: 'facultatif' },
+    {
+        key: 'Brand',
+        description: 'La marque',
+        requirement: 'facultatif',
+        alias: ['Marque', 'Fabricant', 'Constructeur'],
+    },
 ];
+
+/** Ce qu'un nom de feuille dit du type de ses lignes, au-delà du libellé du catalogue. */
+const FEUILLES: Record<string, string> = {
+    ordinateur: 'Laptop',
+    portable: 'Laptop',
+    ecran: 'Monitor',
+    moniteur: 'Monitor',
+    phone: 'Phone',
+    telephone: 'Phone',
+    mobile: 'Phone',
+    tablette: 'Tablet',
+    videoprojecteur: 'Projector',
+    projecteur: 'Projector',
+    stationaccueil: 'DockingStation',
+    dock: 'DockingStation',
+    switch: 'Switch',
+    serveur: 'Server',
+    accesspoint: 'AccessPoint',
+    borne: 'AccessPoint',
+    parefeu: 'Firewall',
+    firewall: 'Firewall',
+    imprimante: 'Printer',
+    nas: 'NetworkDevice',
+    interco: 'NetworkDevice',
+    routeur: 'NetworkDevice',
+};
+
+/** Le type que le nom d'une feuille désigne — « Imprimantes » → Printer —, s'il est au catalogue. */
+const typeDeFeuille = (feuille: string, categories: readonly { name: string }[]) => {
+    const cle = normaliserNom(feuille).replace(/(s|x)$/, '');
+    const parLibelle = categories.find(
+        (c) =>
+            normaliserNom(c.name) === cle ||
+            normaliserNom(getCategoryLabel(c.name)).replace(/(s|x)$/, '') === cle,
+    );
+    if (parLibelle) return parLibelle.name;
+    const type = FEUILLES[cle];
+    return type && categories.some((c) => c.name === type) ? type : undefined;
+};
 
 const SAMPLE = {
     fileName: 'modeles-exemple.csv',
@@ -74,37 +124,58 @@ const ImportModelsPage: React.FC<ImportModelsPageProps> = ({ onCancel, onSave })
         return table;
     }, [categories]);
 
-    const parse = (text: string): ImportCandidate<ModelDraft>[] => {
-        const lines = text.split(/\r?\n/).filter((line) => line.trim());
-        if (lines.length < 2) return [];
+    /**
+     * **Le type des lignes qui n'en portent pas** (09/10) — la feuille « Imprimantes » de
+     * l'inventaire n'a pas de colonne de catégorie : son nom la dit. Le type deviné de la
+     * feuille est proposé ; on peut en choisir un autre.
+     */
+    const [typeChoisi, setTypeChoisi] = useState<{ feuille: string; type: string } | null>(null);
+    const typeDeLaFeuille = (feuille: string) =>
+        typeChoisi?.feuille === feuille
+            ? typeChoisi.type
+            : (typeDeFeuille(feuille, categories) ?? '');
 
-        const separator = lines[0].includes(';') ? ';' : ',';
-        /* Le référentiel grandit au fil du fichier : deux lignes qui portent le même
-           nom ne peuvent pas entrer toutes les deux, et la seconde doit le savoir
-           avant l'écriture plutôt que d'être perdue en silence. */
-        const knownNames = new Set(models.map((model) => model.name.toLowerCase()));
+    const parse = (tableau: TableauImporte): ImportCandidate<ModelDraft>[] => {
+        /* Le référentiel grandit au fil du fichier : un inventaire porte le même modèle sur
+           dix lignes, et il n'entre qu'une fois. */
+        const auCatalogue = new Set(models.map((model) => normaliserNom(model.name)));
+        const lus = new Set<string>();
+        const typeParDefaut = typeDeLaFeuille(tableau.feuille);
 
-        return lines.slice(1).map((line, index) => {
-            const values = line
-                .split(separator)
-                .map((value) => value.replace(/^["']|["']$/g, '').trim());
-            const [name = '', rawType = '', brand = ''] = values;
-            const resolvedType = typeByKey.get(rawType.toLowerCase());
+        return tableau.lignes.map((ligne) => {
+            const name = ligne.get('Name');
+            const rawType = ligne.get('Category');
+            const brand = ligne.get('Brand');
+            const cle = normaliserNom(name);
+            const resolvedType = rawType ? typeByKey.get(rawType.toLowerCase()) : typeParDefaut;
+
+            /* Au catalogue sous un autre nom — « T14 Gen 4 » est « ThinkPad T14 Gen 4 » :
+               ne pas le créer une seconde fois. */
+            const sousUnAutreNom = !auCatalogue.has(cle)
+                ? trouverModele(models, name, brand).modele
+                : undefined;
 
             let error: string | undefined;
+            let ecartee: string | undefined;
             if (!name) error = 'Nom absent';
-            else if (!rawType) error = 'Type absent — la colonne Category est vide';
-            else if (!resolvedType) error = `Type « ${rawType} » inconnu au catalogue`;
-            else if (knownNames.has(name.toLowerCase()))
-                error = `« ${name} » existe déjà au catalogue`;
+            else if (auCatalogue.has(cle)) ecartee = 'Déjà au catalogue';
+            else if (sousUnAutreNom) ecartee = `Déjà au catalogue sous « ${sousUnAutreNom.name} »`;
+            else if (lus.has(cle)) ecartee = 'Répète un modèle lu plus haut';
+            else if (!rawType && !typeParDefaut)
+                error = 'Type absent — la colonne Category est vide';
+            else if (!resolvedType) {
+                const proche = plusProche(rawType, [...typeByKey.keys()]);
+                error = `Type « ${rawType} » inconnu au catalogue${proche ? ` — « ${getCategoryLabel(typeByKey.get(proche) as string)} » ?` : ''}`;
+            }
 
-            if (!error) knownNames.add(name.toLowerCase());
+            if (!error && !ecartee) lus.add(cle);
 
             return {
-                line: index + 2,
-                label: name || '(sans nom)',
+                line: ligne.line,
+                label: brand ? `${name} · ${brand}` : name || '(sans nom)',
                 error,
-                value: error ? undefined : { name, type: resolvedType as string, brand },
+                ecartee,
+                value: error || ecartee ? undefined : { name, type: resolvedType as string, brand },
             };
         });
     };
@@ -147,6 +218,31 @@ const ImportModelsPage: React.FC<ImportModelsPageProps> = ({ onCancel, onSave })
             }
             parse={parse}
             onImport={handleImport}
+            reglages={(tableau) =>
+                /* Seulement si des lignes n'ont pas de catégorie. */
+                tableau.lignes.some((ligne) => ligne.get('Name') && !ligne.get('Category')) ? (
+                    <SelectField
+                        label="Type des lignes sans catégorie"
+                        name="typeParDefaut"
+                        value={typeDeLaFeuille(tableau.feuille)}
+                        onChange={(e) =>
+                            setTypeChoisi({ feuille: tableau.feuille, type: e.target.value })
+                        }
+                        options={[
+                            { value: '', label: 'Aucun — elles sont refusées' },
+                            ...categories.map((c) => ({
+                                value: c.name,
+                                label: getCategoryLabel(c.name),
+                            })),
+                        ]}
+                        supportingText={
+                            typeDeFeuille(tableau.feuille, categories)
+                                ? `Deviné du nom de la feuille, « ${tableau.feuille} ».`
+                                : 'Une colonne Category renseignée l’emporte, ligne par ligne.'
+                        }
+                    />
+                ) : null
+            }
         />
     );
 };

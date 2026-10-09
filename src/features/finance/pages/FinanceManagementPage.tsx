@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-    ArrowLeft,
     CalendarBlank,
     CalendarPlus,
     Calculator,
@@ -15,6 +14,7 @@ import {
 import { PageContainer } from '../../../components/layout/PageContainer';
 import Reading from '../../../components/layout/Reading';
 import Button from '../../../components/ui/Button';
+import FlecheDeRetour from '../../../components/ui/FlecheDeRetour';
 import CardEmptyState from '../../../components/ui/CardEmptyState';
 import Icon from '../../../components/ui/Icon';
 import Menu from '../../../components/ui/Menu';
@@ -26,7 +26,7 @@ import { MEDIA } from '../../../constants/breakpoints';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { IconGestureSizeContext } from '../../../hooks/useIconGestureSize';
 import { FinanceBudgetItem, ViewType } from '../../../types';
-import { AddBudgetModal } from '../components/AddBudgetModal';
+import FeuilleDesExercices from '../components/FeuilleDesExercices';
 import { AddExpenseModal } from '../components/AddExpenseModal';
 import ExpenseDetailSheet from '../components/ExpenseDetailSheet';
 import { useBudgetExercise } from '../hooks/useBudgetExercise';
@@ -39,6 +39,7 @@ import { useEntree } from '../../../hooks/useEntree';
 import ChiffreAnime from '../../../components/ui/ChiffreAnime';
 import ChiffreAjuste from '../../../components/ui/ChiffreAjuste';
 import PartDesPostes from '../components/PartDesPostes';
+import { JAUGE, JAUGE_RANGEE } from '../../../lib/jauge';
 
 interface FinanceManagementPageProps {
     onViewChange: (view: ViewType) => void;
@@ -92,7 +93,6 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
     const { financeExpenses, financeBudgets } = useFinanceData();
 
     const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
-    const [isAddBudgetModalOpen, setIsAddBudgetModalOpen] = useState(false);
     const [selectedExpenseId, setSelectedExpenseId] = useState<string | null>(null);
 
     /* L'exercice demandé par l'adresse (`/finance?annee=2025`, depuis « Exercices »), sinon
@@ -104,10 +104,23 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
             ? annee
             : (exerciceParDefaut(financeBudgets) ?? new Date().getFullYear());
     });
-    /** 15.1, colonne 3 — l'écran « Exercices », où l'on change d'année et en ouvre une. */
-    const ouvrirLesExercices = () => {
-        window.location.hash = '/finance/exercices';
-    };
+    /**
+     * 15.1, colonne 3 — « Exercices », où l'on change d'année et en ouvre une : **une
+     * feuille sur cette page** depuis le 09/10, plus un écran. L'ancienne adresse
+     * (`/finance/exercices`) l'ouvre d'emblée.
+     */
+    const [exercicesOuverts, setExercicesOuverts] = useState(() =>
+        window.location.hash.startsWith('#/finance/exercices'),
+    );
+    const ouvrirLesExercices = () => setExercicesOuverts(true);
+    /* L'adresse peut arriver alors que la page est déjà là : elle ouvre aussi la feuille. */
+    useEffect(() => {
+        const surAdresse = () => {
+            if (window.location.hash.startsWith('#/finance/exercices')) setExercicesOuverts(true);
+        };
+        window.addEventListener('hashchange', surAdresse);
+        return () => window.removeEventListener('hashchange', surAdresse);
+    }, []);
 
     useEffect(() => {
         if (financeBudgets.length === 0) return;
@@ -221,9 +234,11 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                 isOpen={isAddExpenseModalOpen}
                 onClose={() => setIsAddExpenseModalOpen(false)}
             />
-            <AddBudgetModal
-                isOpen={isAddBudgetModalOpen}
-                onClose={() => setIsAddBudgetModalOpen(false)}
+            <FeuilleDesExercices
+                open={exercicesOuverts}
+                onClose={() => setExercicesOuverts(false)}
+                anneeAffichee={selectedYear}
+                onChoisir={setSelectedYear}
             />
             <ExpenseDetailSheet
                 expenseId={selectedExpenseId}
@@ -282,24 +297,26 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                             'sticky top-0 z-20 mb-4 flex flex-col gap-3',
                             isCompact
                                 ? 'border-outline-variant bg-surface -mx-page-sm -mt-page-sm border-b px-4 pt-2 pb-3'
-                                : 'bg-background -mt-page pt-[calc(var(--tk-space-page)-0.25rem)]',
+                                : 'bg-background -mt-page pt-5',
                         )}
                     >
-                        <div className="flex min-h-12 items-center gap-1">
+                        <div
+                            className={cn(
+                                'flex items-center gap-1',
+                                isCompact ? 'min-h-12' : 'min-h-[52px]',
+                            )}
+                        >
                             {/* `.tt` de 15.1 ouvre sur `.tb` — **la flèche de retour**, que la
                                 page n'avait pas : atteinte depuis « Plus », elle ne se
                                 quittait que par la barre du bas. Au bureau, 15.1 n'en dessine
                                 pas : la barre latérale mène déjà partout. */}
-                            {onBack && isCompact && (
-                                <Button
-                                    variant="text"
-                                    iconOnly
-                                    aria-label="Retour"
-                                    onClick={onBack}
-                                    className="text-on-surface hover:bg-surface-container -ml-3 shrink-0 rounded-md"
-                                >
-                                    <Icon glyph={ArrowLeft} size={24} />
-                                </Button>
+                            {onBack && (
+                                <FlecheDeRetour
+                                    onBack={onBack}
+                                    compact={isCompact}
+                                    /* 8 jusqu'au titre, comme les listes : la rangée n'en met que 4. */
+                                    className={isCompact ? undefined : 'mr-1'}
+                                />
                             )}
                             {/* `.tt2` de 15.1 au bureau — **le titre et, sous lui, l'exercice
                                 que l'on regarde** : *« Exercice 2026 · en cours · au 3
@@ -435,7 +452,7 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                                         onClick={ouvrirLesExercices}
                                         aria-label={`Changer d'exercice — ${selectedYear}`}
                                         icon={<Icon glyph={CalendarBlank} size={18} />}
-                                        className="text-inverse-on-surface hover:text-inverse-on-surface -mr-2 h-8 min-h-8 shrink-0 gap-1.5 rounded-md bg-white/10 px-2.5 text-[0.8125rem] leading-4 font-medium hover:bg-white/15"
+                                        className="text-inverse-on-surface hover:text-inverse-on-surface h-8 min-h-8 shrink-0 gap-1.5 rounded-md bg-white/10 px-2.5 text-[0.8125rem] leading-4 font-medium hover:bg-white/15"
                                     >
                                         {/* Sous 360 px, le calendrier seul : le mot prenait la
                                             place du statut de l'exercice. Le nom du geste
@@ -482,7 +499,12 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                                 {budgetStats.totalAllocated > 0 && (
                                     <>
                                         {/* `.prog` — 6 px, rayon 2, sur le voile à 12 %. */}
-                                        <div className="mt-5 h-1.5 overflow-hidden rounded-xs bg-white/[0.12]">
+                                        <div
+                                            className={cn(
+                                                'mt-5 overflow-hidden bg-white/[0.12]',
+                                                JAUGE,
+                                            )}
+                                        >
                                             <i
                                                 className="mvt-jauge duration-medium2 ease-emphasized block h-full bg-[var(--tk-color-live-vert)] transition-[width]"
                                                 style={{ width: `${Math.min(spentPercent, 100)}%` }}
@@ -673,7 +695,12 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                                                     {/* `.gauge` — **le vert d'état**, l'orange
                                                     quand l'enveloppe est épuisée. Elle
                                                     tirait le bleu, qui ne dit rien ici. */}
-                                                    <div className="bg-surface-container deux:col-start-2 deux:row-span-2 deux:row-start-1 h-2 overflow-hidden rounded-xs">
+                                                    <div
+                                                        className={cn(
+                                                            'bg-surface-container deux:col-start-2 deux:row-span-2 deux:row-start-1 overflow-hidden',
+                                                            JAUGE_RANGEE,
+                                                        )}
+                                                    >
                                                         <div
                                                             className={cn(
                                                                 'mvt-jauge duration-medium2 ease-emphasized transition-[width]',

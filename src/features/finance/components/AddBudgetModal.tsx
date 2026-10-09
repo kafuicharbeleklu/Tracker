@@ -38,6 +38,8 @@ interface BudgetLine {
      * (`getFinanceTypeFromCategory`). Deux sources pour un même fait, dont une morte.
      */
     capitalization?: 'CAPEX' | 'OPEX';
+    /** Ce que le poste regroupe dans le fichier lu — montré sous le poste, jamais enregistré. */
+    detail?: string;
 }
 
 type AddBudgetMode = 'import' | 'manual';
@@ -67,7 +69,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
     const [importedFile, setImportedFile] = useState<File | null>(null);
     const [importMeta, setImportMeta] = useState<Pick<
         ExtractedBudgetDraft,
-        'confidence' | 'warnings' | 'source'
+        'confidence' | 'warnings' | 'source' | 'summary'
     > | null>(null);
     const [isLowConfidenceReviewed, setIsLowConfidenceReviewed] = useState(false);
 
@@ -151,6 +153,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
                 confidence: extracted.confidence,
                 warnings: extracted.warnings,
                 source: extracted.source,
+                summary: extracted.summary,
             });
 
             setYear(extracted.year);
@@ -160,6 +163,8 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
                         id: `${Date.now()}_${index}`,
                         category: line.category,
                         amount: line.amount,
+                        capitalization: line.capitalization,
+                        detail: line.detail,
                     })),
                 );
             } else {
@@ -341,10 +346,17 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
                                     <span className="text-on-surface text-ts-body leading-ts-body block truncate font-medium">
                                         {importedFile.name}
                                     </span>
+                                    {/* Ce que la lecture a compris (09/10) : les lignes du
+                                        fichier, les postes qui les regroupent, le total et sa
+                                        preuve. À défaut, le simple compte. */}
                                     <span className="text-on-surface-variant text-ts-sub leading-ts-sub block">
-                                        {budgetLines.length} ligne
-                                        {budgetLines.length > 1 ? 's' : ''} lue
-                                        {budgetLines.length > 1 ? 's' : ''} · à relire
+                                        {importMeta?.summary ?? (
+                                            <>
+                                                {budgetLines.length} ligne
+                                                {budgetLines.length > 1 ? 's' : ''} lue
+                                                {budgetLines.length > 1 ? 's' : ''} · à relire
+                                            </>
+                                        )}
                                     </span>
                                 </span>
                                 <Button
@@ -433,6 +445,13 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
                                             className="text-on-surface-variant hover:text-error shrink-0"
                                         />
                                     </div>
+                                    {/* Ce que le poste regroupe dans le fichier : le montant est
+                                        une somme, on dit de quoi. */}
+                                    {line.detail && (
+                                        <p className="text-on-surface-variant text-ts-sub leading-ts-sub -mt-1">
+                                            {line.detail}
+                                        </p>
+                                    )}
                                     <div className="grid grid-cols-2 gap-3">
                                         <InputField
                                             label="Montant"

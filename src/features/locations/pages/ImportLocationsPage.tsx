@@ -4,7 +4,9 @@ import { Warning } from '@phosphor-icons/react';
 import ReferentialImportTemplate, {
     type ImportCandidate,
     type ImportColumn,
+    type TableauImporte,
 } from '../../../components/layout/ReferentialImportTemplate';
+import { normaliserNom } from '../../../lib/tableur';
 import Icon from '../../../components/ui/Icon';
 import { GLOSSARY } from '../../../constants/glossary';
 import { useData } from '../../../context/DataContext';
@@ -38,6 +40,7 @@ const COLUMNS: ImportColumn[] = [
         description: 'Le nom du pays, du site ou du local',
         requirement: 'requis',
         required: true,
+        alias: ['Nom', 'Libellé'],
     },
     {
         key: 'Type',
@@ -51,13 +54,26 @@ const COLUMNS: ImportColumn[] = [
         ),
         requirement: 'requis',
         required: true,
+        alias: ['Niveau', 'Nature'],
     },
     {
         key: 'ParentName',
         description: 'Le nom exact du niveau au-dessus — vide pour un pays',
         requirement: 'selon le type',
+        alias: ['Parent', 'Rattachement', 'Rattaché à'],
     },
 ];
+
+/** Le type écrit en français : « pays », « site », « local », « service ». */
+const TYPE_EN_FRANCAIS: Record<string, LocationKind> = {
+    pays: 'country',
+    site: 'site',
+    local: 'local',
+    salle: 'local',
+    service: 'service',
+};
+
+const _FIN_DES_COLONNES = [];
 
 const SAMPLE = {
     fileName: 'emplacements-exemple.csv',
@@ -87,11 +103,7 @@ const ImportLocationsPage: React.FC<ImportLocationsPageProps> = ({ onCancel, onS
     const { locationData, addLocation } = useData();
     const { showToast } = useToast();
 
-    const parse = (text: string): ImportCandidate<LocationDraft>[] => {
-        const lines = text.split(/\r?\n/).filter((line) => line.trim());
-        if (lines.length < 2) return [];
-
-        const separator = lines[0].includes(';') ? ';' : ',';
+    const parse = (tableau: TableauImporte): ImportCandidate<LocationDraft>[] => {
         /* Le référentiel grandit au fil du fichier : un pays créé à la ligne 3 rend
            valide le site de la ligne 4. C'est ce qui permet de dire « il suffit souvent
            de remonter la ligne du pays au-dessus de ses sites » plutôt que « Type
@@ -105,27 +117,29 @@ const ImportLocationsPage: React.FC<ImportLocationsPageProps> = ({ onCancel, onS
                 .map((site) => site.toLowerCase()),
         );
 
-        return lines.slice(1).map((line, index) => {
-            const values = line
-                .split(separator)
-                .map((value) => value.replace(/^["']|["']$/g, '').trim());
-            const [name = '', rawKind = '', parent = ''] = values;
-            const kind = rawKind.toLowerCase() as LocationKind;
+        return tableau.lignes.map((ligne) => {
+            const name = ligne.get('Name');
+            const rawKind = ligne.get('Type');
+            const parent = ligne.get('ParentName');
+            const kind = (TYPE_EN_FRANCAIS[normaliserNom(rawKind)] ??
+                rawKind.toLowerCase()) as LocationKind;
             const nameKey = name.toLowerCase();
             const parentKey = parent.toLowerCase();
 
             let error: string | undefined;
+            /* Déjà au référentiel : laissée de côté, rien à corriger (09/10). */
+            let ecartee: string | undefined;
             if (!name) {
                 error = 'Nom absent';
             } else if (!LOCATION_KINDS.includes(kind)) {
                 error = `Type « ${rawKind || '—'} » invalide — attendu : country, site, local ou service`;
             } else if (kind === 'country') {
-                if (knownCountries.has(nameKey)) error = `« ${name} » existe déjà`;
+                if (knownCountries.has(nameKey)) ecartee = 'Existe déjà';
             } else if (kind === 'site') {
                 if (!parent) error = 'Parent absent — un site doit dire à quel pays il appartient';
                 else if (!knownCountries.has(parentKey)) {
                     error = `Parent « ${parent} » introuvable — le pays doit être créé avant ses sites`;
-                } else if (knownSites.has(nameKey)) error = `« ${name} » existe déjà`;
+                } else if (knownSites.has(nameKey)) ecartee = 'Existe déjà';
             } else if (!parent) {
                 error = `Parent absent — un ${kind === 'local' ? 'local' : 'service'} doit dire à quel site il appartient`;
             } else if (!knownSites.has(parentKey)) {
@@ -138,10 +152,11 @@ const ImportLocationsPage: React.FC<ImportLocationsPageProps> = ({ onCancel, onS
             }
 
             return {
-                line: index + 2,
+                line: ligne.line,
                 label: name || '(sans nom)',
                 error,
-                value: error ? undefined : { kind, name, parent: parent || undefined },
+                ecartee,
+                value: error || ecartee ? undefined : { kind, name, parent: parent || undefined },
             };
         });
     };

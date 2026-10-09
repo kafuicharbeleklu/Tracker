@@ -43,9 +43,13 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
        et ce qui se charge. Dans une page, la version claire, aux teintes du produit. */
     const COTE = { sm: 24, md: 40, lg: 56, xl: 72 } as const;
 
+    /* **Sans fondu** (08/10). Le bleu-noir montait depuis la transparence par-dessus une page
+       claire : trois cents millisecondes de gris, à l'ouverture puis à la connexion — et à
+       chaque phase du chargement, puisque chacune monte son écran. Il s'affiche d'emblée ;
+       l'animation, elle, reprend où elle en était (`LiveLoader`). */
     if (fullScreen) {
         return (
-            <div className="animate-in fade-in fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 bg-[var(--tk-color-inverse-surface)] duration-300">
+            <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 bg-[var(--tk-color-inverse-surface)]">
                 <LiveLoader tone="sombre" size={72} label={text || 'Chargement'} />
                 <div className="flex flex-col items-center gap-1.5">
                     <span className="font-brand text-inverse-on-surface text-ts-sheet leading-ts-sheet font-semibold tracking-[-0.015em]">

@@ -10,13 +10,16 @@ import { useData } from '../context/DataContext';
  * fiche d'un objet ou d'une personne, les rapports et le parcours d'une demande remontent plus
  * loin ; ils appellent ce crochet, qui lit le journal entier une fois (il entre alors dans le
  * cache). Rend `true` quand le journal est entier.
+ *
+ * `actif` à `false` le laisse en attente : la feuille d'une tâche, au téléphone, ne le
+ * demande qu'une fois ouverte sur une tâche qui en a besoin (08/10).
  */
-export const useJournalComplet = (): boolean => {
+export const useJournalComplet = (actif = true): boolean => {
     const { journalComplet, demanderJournalComplet, isHydrating } = useData();
 
     useEffect(() => {
-        if (!journalComplet && !isHydrating) demanderJournalComplet();
-    }, [journalComplet, isHydrating, demanderJournalComplet]);
+        if (actif && !journalComplet && !isHydrating) demanderJournalComplet();
+    }, [actif, journalComplet, isHydrating, demanderJournalComplet]);
 
     return journalComplet;
 };

@@ -4,12 +4,14 @@ import {
     getDoc,
     getDocs,
     limit,
+    onSnapshot,
     orderBy,
     query,
     serverTimestamp,
     setDoc,
     Timestamp,
     where,
+    writeBatch,
     type DocumentData,
     type Firestore,
     type SnapshotMetadata,
@@ -138,6 +140,12 @@ interface EntreeDeCache {
     docs: Array<[string, DocumentData]>;
 }
 
+/**
+ * **Le dernier `_maj` lu, par collection** (08/10) — l'écoute en temps réel
+ * (`ecouterCollection`) part de là : elle ne reçoit que ce qui a été écrit depuis la lecture.
+ */
+const reperesLus = new Map<string, Repere | null>();
+
 /* Le projet et le serveur dans la clé : l'émulateur et la base réelle ne se mélangent pas. */
 const cleDeCache = (db: Firestore, nom: string) =>
     `${db.app.options.projectId ?? '?'}|${FIRESTORE_EMULATEUR ?? 'serveur'}|${nom}`;
@@ -161,6 +169,7 @@ const lireEnEntier = async <T extends object>(
         repere = plusRecent(repere, maj);
         if (!estSupprime(donnees)) docs.push([document.id, donnees]);
     }
+    reperesLus.set(nom, repere);
     const entree: EntreeDeCache = {
         generation: generationActuelle,
         completLe: Date.now(),
@@ -200,6 +209,7 @@ const lireDepuisCache = async <T extends object>(
         await getDocs(query(collection(db, nom), where(CHAMP_MAJ, '>', depuis))),
     );
     if (changes.empty) {
+        reperesLus.set(nom, cache.repere);
         await ecrireCache(cleDeCache(db, nom), {
             ...cache,
             luLe: Date.now(),
@@ -216,6 +226,7 @@ const lireDepuisCache = async <T extends object>(
         repere = plusRecent(repere, maj);
     }
     const docs = [...parId].sort(parIdentifiant);
+    reperesLus.set(nom, repere);
     await ecrireCache(cleDeCache(db, nom), {
         ...cache,
         repere,
@@ -324,11 +335,93 @@ const lireLeJournal = async <T extends object>(
         ).then(duServeur),
     ]);
     const parId = new Map<string, DocumentData>();
+    let repere: Repere | null = null;
     for (const document of [...derniers.docs, ...campagnes.docs]) {
-        const { donnees } = retirerMaj(document.data());
+        const { donnees, maj } = retirerMaj(document.data());
+        repere = plusRecent(repere, maj);
         if (!estSupprime(donnees)) parId.set(document.id, donnees);
     }
+    reperesLus.set('events', repere);
     return { docs: enDocuments<T>([...parId].sort(parIdentifiant)), complet: false };
+};
+
+/** Ce que l'écoute d'une collection apporte : les documents écrits ailleurs, et les retraits. */
+export interface ChangementsDistants<T> {
+    docs: Array<T & { id: string }>;
+    retraits: string[];
+}
+
+/** Sans repère lu, l'écoute remonte de ce délai — l'écart d'horloge d'un téléphone compris. */
+const MARGE_SANS_REPERE_MS = 10 * 60 * 1000;
+
+/**
+ * **Ce qu'un autre appareil écrit, à l'écran sans recharger** (08/10).
+ *
+ * L'application lisait la base à l'ouverture, puis plus rien : une remise faite sur le
+ * téléphone de l'informatique n'arrivait sur celui du destinataire qu'au rechargement. Chaque
+ * écriture porte l'heure du serveur (`_maj`) ; l'écoute ne demande que les documents écrits
+ * après la dernière lecture. Elle coûte une lecture à son ouverture, puis une par document
+ * changé — pas une relecture de la collection.
+ *
+ * Les écritures de cet appareil ne remontent pas (`hasPendingWrites`) : l'état les porte déjà.
+ * Le cache local suit, pour que l'ouverture suivante ne les relise pas.
+ */
+export function ecouterCollection<T extends object>(
+    db: Firestore,
+    nom: string,
+    rappel: (changements: ChangementsDistants<T>) => void,
+): () => void {
+    const lu = reperesLus.get(nom);
+    const depuis = lu
+        ? new Timestamp(lu.s, lu.ns)
+        : Timestamp.fromMillis(Date.now() - MARGE_SANS_REPERE_MS);
+    return onSnapshot(
+        query(collection(db, nom), where(CHAMP_MAJ, '>', depuis)),
+        (instantane) => {
+            const docs: Array<[string, DocumentData]> = [];
+            const retraits: string[] = [];
+            let repere: Repere | null = reperesLus.get(nom) ?? null;
+            for (const changement of instantane.docChanges()) {
+                /* « removed » : un document qui sort du filtre le temps qu'une écriture
+                   d'ici attende l'heure du serveur — pas une suppression, qui s'écrit en
+                   pierre tombale (`CHAMP_SUPPRIME`). */
+                if (changement.type === 'removed' || changement.doc.metadata.hasPendingWrites) {
+                    continue;
+                }
+                const { donnees, maj } = retirerMaj(changement.doc.data());
+                repere = plusRecent(repere, maj);
+                if (estSupprime(donnees)) retraits.push(changement.doc.id);
+                else docs.push([changement.doc.id, donnees]);
+            }
+            if (docs.length === 0 && retraits.length === 0) return;
+            reperesLus.set(nom, repere);
+            rappel({ docs: enDocuments<T>(docs), retraits });
+            void suivreLeCache(db, nom, docs, retraits, repere);
+        },
+        (erreur) => console.warn(`[firestore] écoute de « ${nom} » interrompue.`, erreur),
+    );
+}
+
+/** Le cache de la collection reçoit ce que l'écoute a apporté. */
+const suivreLeCache = async (
+    db: Firestore,
+    nom: string,
+    docs: Array<[string, DocumentData]>,
+    retraits: string[],
+    repere: Repere | null,
+) => {
+    const cle = cleDeCache(db, nom);
+    const cache = await lireCache<EntreeDeCache>(cle);
+    if (!cache) return;
+    const parId = new Map(cache.docs);
+    for (const [id, donnees] of docs) parId.set(id, donnees);
+    for (const id of retraits) parId.delete(id);
+    await ecrireCache(cle, {
+        ...cache,
+        repere: plusRecent(cache.repere, repere),
+        docs: [...parId].sort(parIdentifiant),
+        luLe: Date.now(),
+    } satisfies EntreeDeCache);
 };
 
 /** Le journal entier, au serveur ; il entre alors dans le cache. */
@@ -404,6 +497,11 @@ export async function supprimerDocuments(
     );
 }
 
+/** Au-delà de ce nombre de documents d'un coup, l'écriture part en lots. */
+const SEUIL_DE_LOT = 10;
+/** Firestore accepte 500 écritures par lot ; les fiches portent des instantanés, on reste en deçà. */
+const TAILLE_DE_LOT = 200;
+
 export async function saveCollectionDocs<T extends object>(
     db: Firestore,
     collectionName: string,
@@ -433,16 +531,56 @@ export async function saveCollectionDocs<T extends object>(
      * en base : au rechargement, la réparation close revenait. L'état de l'application porte
      * le document complet — lu tel quel, normalisé sans rien retirer —, il s'écrit tel quel.
      */
-    await Promise.all(
-        nommables.map(({ id, item }) =>
-            suivreEcriture(`${collectionName}/${id}`, () =>
-                setDoc(doc(db, collectionName, id), {
-                    ...(stripUndefined(item) as Record<string, unknown>),
-                    [CHAMP_MAJ]: serverTimestamp(),
-                }),
+    const contenu = (item: T) => ({
+        ...(stripUndefined(item) as Record<string, unknown>),
+        [CHAMP_MAJ]: serverTimestamp(),
+    });
+
+    /*
+     * **Un import part en lots** (09/10). Chaque `setDoc` est un aller-retour, et le SDK les
+     * enchaîne un par un : les 89 fiches d'un inventaire, et autant de lignes de journal,
+     * mettaient plusieurs minutes à partir — un onglet fermé entre-temps les laissait en
+     * attente jusqu'à la prochaine ouverture. Au-delà de `SEUIL_DE_LOT`, les documents partent
+     * par tranches en une seule écriture. En deçà — un geste, quelques documents —, rien ne
+     * change : un document refusé n'entraîne pas ses voisins.
+     */
+    const unParUn = (documents: typeof nommables) =>
+        Promise.all(
+            documents.map(({ id, item }) =>
+                suivreEcriture(`${collectionName}/${id}`, () =>
+                    setDoc(doc(db, collectionName, id), contenu(item)),
+                ),
             ),
-        ),
-    );
+        );
+
+    if (nommables.length <= SEUIL_DE_LOT) {
+        await unParUn(nommables);
+        return;
+    }
+
+    for (let debut = 0; debut < nommables.length; debut += TAILLE_DE_LOT) {
+        const tranche = nommables.slice(debut, debut + TAILLE_DE_LOT);
+        /* Un lot est refusé d'un bloc : un seul document que la base n'accepte pas — une
+           ligne de journal déjà écrite, par exemple — emporterait ses voisins. Refusé, il
+           repart donc document par document, et seul le fautif est compté. */
+        let refuse = false;
+        await suivreEcriture(`${collectionName} (${tranche.length} documents)`, async () => {
+            const lot = writeBatch(db);
+            for (const { id, item } of tranche) {
+                lot.set(doc(db, collectionName, id), contenu(item));
+            }
+            try {
+                await lot.commit();
+            } catch (erreur) {
+                refuse = true;
+                console.warn(
+                    `[firestore] lot refusé, repris un par un : ${collectionName}`,
+                    erreur,
+                );
+            }
+        });
+        if (refuse) await unParUn(tranche);
+    }
 }
 
 /**

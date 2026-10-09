@@ -1,7 +1,7 @@
 /**
  * TÂCHES — la refonte du bureau (26/09) : une file partagée (badge = onglet = accueil), le
  * panneau de décision, l'enchaînement, « Annuler » pendant cinq secondes, le clavier, la
- * validation en lot, la remise depuis le panneau ; et le téléphone, qui garde son parcours.
+ * validation en lot, la remise depuis le panneau ; et le téléphone, qui ouvre ses tâches en feuille.
  */
 import { aller, capturer, ouvrirSession } from './outils.mjs';
 
@@ -177,9 +177,12 @@ export default async function taches(navigateur, baseUrl, ok) {
             fileDessous: document.querySelectorAll('main [data-rangee]').length,
         }));
         verifier(
-            'A sur une remise : la feuille s’ouvre, unité et demande connues',
+            /* L'unité se choisit dans la feuille, plus dans le panneau (08/10). */
+            'A sur une remise : la feuille s’ouvre, demande et personne connues',
             /wizards\/assignment/.test(r.adresse) &&
-                /equipmentId=/.test(r.adresse) &&
+                /approvalId=/.test(r.adresse) &&
+                /userId=/.test(r.adresse) &&
+                !/equipmentId=/.test(r.adresse) &&
                 /ouvert=/.test(r.adresse),
             r.adresse,
         );
@@ -192,6 +195,18 @@ export default async function taches(navigateur, baseUrl, ok) {
             { adresse: e.adresse, ouverte: e.ouverte },
         );
         await aller(page, '/');
+        /* L'accueil peut mettre plus que l'attente fixe à se rendre : on attend son nombre
+           (08/10 — deux échecs sur trois, la valeur absente, pas fausse). */
+        await page
+            .waitForFunction(
+                () =>
+                    /(\d+) (demandes en attente|choses? vous attend)/.test(
+                        document.querySelector('main')?.innerText ?? '',
+                    ),
+                undefined,
+                { timeout: 20_000 },
+            )
+            .catch(() => {});
         const accueil = await page.evaluate(
             () =>
                 document
@@ -211,6 +226,17 @@ export default async function taches(navigateur, baseUrl, ok) {
     // — Admin et utilisateur : les comptes concordent —
     for (const role of ['Admin', 'Utilisateur']) {
         const { contexte, page, erreurs } = await ouvrirSession(navigateur, baseUrl, { role });
+        // L'onglet peut se rendre après l'ouverture de session : on l'attend.
+        await page
+            .waitForFunction(
+                () =>
+                    [...document.querySelectorAll('main button[aria-pressed]')].some((x) =>
+                        x.textContent.trim().startsWith('À faire'),
+                    ),
+                undefined,
+                { timeout: 20_000 },
+            )
+            .catch(() => {});
         const e = await etat(page);
         const badge = (e.badge ?? 'Tâches0').replace('Tâches', '');
         const onglet = (e.aFaire ?? 'À faire0').replace('À faire', '');
@@ -222,7 +248,7 @@ export default async function taches(navigateur, baseUrl, ok) {
         await contexte.close();
     }
 
-    // — Téléphone : la file groupée, une demande ouvre son écran —
+    // — Téléphone : la file groupée, une tâche s'ouvre en feuille —
     {
         const { contexte, page, erreurs } = await ouvrirSession(navigateur, baseUrl, {
             role: 'Manager',
@@ -230,6 +256,13 @@ export default async function taches(navigateur, baseUrl, ok) {
             hauteur: 852,
             tactile: true,
         });
+        /* L'accueil a déjà son `main` : on attend la file elle-même, pas un délai fixe
+           (09/10 — sur une machine chargée, le test lisait encore l'accueil). */
+        await page
+            .locator('main [data-rangee]')
+            .first()
+            .waitFor({ timeout: 30_000 })
+            .catch(() => {});
         const m = await page.evaluate(() => ({
             groupes: [...document.querySelectorAll('main h3')].map((h) => h.textContent.trim()),
             panneaux: document.querySelectorAll('main aside').length,
@@ -240,13 +273,22 @@ export default async function taches(navigateur, baseUrl, ok) {
             m.groupes.length >= 1 && m.rangees > 0 && m.panneaux === 0,
             m,
         );
+        /* **Une seule porte au téléphone : la feuille** (08/10). La tâche s'y lit avec le
+           détail du panneau du bureau ; l'écran de la demande est retiré. */
         await page.locator('main [data-rangee]').first().click();
         await page.waitForTimeout(1200);
-        const adresse = await page.evaluate(() => location.hash);
+        const f = await page.evaluate(() => {
+            const feuille = [...document.querySelectorAll('[role=dialog]')].pop();
+            return {
+                adresse: location.hash,
+                titre: feuille?.querySelector('h2')?.textContent.trim() ?? null,
+                parcours: /Le parcours/.test(feuille?.textContent ?? ''),
+            };
+        });
         verifier(
-            'téléphone : une demande ouvre son écran (06.5)',
-            /tasks\/request\//.test(adresse),
-            adresse,
+            'téléphone : une tâche s’ouvre en feuille, la file dessous',
+            Boolean(f.titre) && f.parcours && /^#\/tasks/.test(f.adresse),
+            f,
         );
         verifier('téléphone : aucune erreur', erreurs.length === 0, erreurs.slice(0, 2));
         await contexte.close();

@@ -12,10 +12,12 @@ import process from 'node:process';
 import { chromium } from 'playwright';
 import { creerBilan } from './outils.mjs';
 import clavier from './clavier.mjs';
+import imports from './imports.mjs';
+import scan from './scan.mjs';
 import selection from './selection.mjs';
 import taches from './taches.mjs';
 
-const SUITES = { taches, selection, clavier };
+const SUITES = { taches, selection, clavier, imports, scan };
 const HOTE = '127.0.0.1';
 const PORT = Number(process.env.E2E_PORT ?? 4176);
 const BASE = `http://${HOTE}:${PORT}`;
@@ -62,6 +64,19 @@ let plantage = null;
 try {
     await attendreLeServeur(BASE);
     navigateur = await chromium.launch();
+    /* **Chauffer le serveur avant la première suite** (09/10). Le premier chargement compile
+       l'application à la demande ; sur une machine lente il dépassait les 180 s de la suite
+       passée en tête, qui échouait pour une raison étrangère à ce qu'elle vérifie — une fois
+       « tâches », une fois « sélection », jamais la même. */
+    const chauffe = await navigateur.newPage();
+    await chauffe.goto(`${BASE}/#/login`, { timeout: 600_000 }).catch(() => {});
+    await chauffe
+        /* `:visible` — la liste des comptes existe deux fois dans la page, une masquée. */
+        .locator('[aria-label^="Connexion démo"]:visible')
+        .first()
+        .waitFor({ timeout: 300_000 })
+        .catch(() => {});
+    await chauffe.close();
     for (const nom of aLancer) {
         process.stdout.write(`\n— ${nom} —\n`);
         try {

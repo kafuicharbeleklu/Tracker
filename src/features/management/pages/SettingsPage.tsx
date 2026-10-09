@@ -25,6 +25,7 @@ import Button from '../../../components/ui/Button';
 import InputField from '../../../components/ui/InputField';
 import Toggle from '../../../components/ui/Toggle';
 import BottomSheet from '../../../components/ui/BottomSheet';
+import { useDerniereValeur } from '../../../hooks/useDerniereValeur';
 import RuleGroup from '../../../components/ui/RuleGroup';
 import DetailHero from '../../../components/ui/DetailHero';
 import ActionCard from '../../../components/ui/ActionCard';
@@ -143,11 +144,7 @@ type SettingsView =
     | 'account'
     | 'currency'
     | 'depreciation'
-    | 'inventory'
-    | 'files'
     | 'sources'
-    /** Le seuil de validation d'un devis de réparation (24/09). */
-    | 'repair'
     /** Le recadrage d'une signature importée — 07.1, lot 28 D2. */
     | 'signature';
 
@@ -157,10 +154,31 @@ const VIEW_TITLE: Record<SettingsView, string> = {
     account: 'Mon compte',
     currency: 'Devise et année fiscale',
     depreciation: 'Amortissement',
-    inventory: "Périodicité de l'inventaire",
-    files: "Taille maximale d'un fichier",
     sources: 'Sources de collecte',
-    repair: 'Validation des devis',
+};
+
+/**
+ * **Trois réglages à une seule question, en feuille** (09/10, revue de navigation). La
+ * périodicité de l'inventaire, le seuil des devis et la taille d'un fichier avaient chacun
+ * leur sous-écran : un titre, une liste de trois ou quatre choix, un retour. On y entrait pour
+ * toucher une rangée et revenir. Ils s'ouvrent sur le sommaire, et se referment sur le choix —
+ * la rangée du sommaire dit aussitôt la valeur retenue.
+ */
+type ReglageEnFeuille = 'inventory' | 'files' | 'repair';
+
+const REGLAGE: Record<ReglageEnFeuille, { titre: string; sens: string }> = {
+    inventory: {
+        titre: "Périodicité de l'inventaire",
+        sens: 'Au-delà, un lieu que personne n’a recompté est dit en retard.',
+    },
+    repair: {
+        titre: 'Validation des devis',
+        sens: 'Au-delà du seuil, la Finance tranche avant le prestataire.',
+    },
+    files: {
+        titre: "Taille maximale d'un fichier",
+        sens: 'Au-delà, un fichier est refusé — import, facture ou photo.',
+    },
 };
 
 /** Les seuils proposés pour un devis de réparation ; 0 : tout devis va à la Finance. */
@@ -526,6 +544,14 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
 
     /** Un réglage s'applique **au geste** : il n'attend pas un bouton (14.1). */
     const apply = (patch: Partial<AppSettings>) => updateSettings({ ...settings, ...patch });
+    /** Le réglage ouvert en feuille sur le sommaire ; la feuille garde son contenu en se refermant. */
+    const [reglage, setReglage] = useState<ReglageEnFeuille | null>(null);
+    const reglageMontre = useDerniereValeur(reglage);
+    /** Poser un choix, et refermer : il n'y a rien d'autre à faire dans la feuille. */
+    const retenir = (patch: Partial<AppSettings>) => {
+        apply(patch);
+        setReglage(null);
+    };
 
     const fiscalMonth = useMemo(
         () =>
@@ -776,11 +802,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                     className={cn(
                         'flex flex-col gap-4 pb-16',
                         (view === 'currency' || view === 'sources') && COLONNES_FORMULAIRE,
-                        (view === 'inventory' ||
-                            view === 'files' ||
-                            view === 'repair' ||
-                            view === 'signature') &&
-                            'deux:mx-auto deux:max-w-[560px]',
+                        view === 'signature' && 'deux:mx-auto deux:max-w-[560px]',
                     )}
                 >
                     {view === 'index' && (
@@ -850,7 +872,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                                     title="Périodicité de l'inventaire"
                                     subtitle={`Donne son sens à « en retard » sur ${sitesInventories} site${sitesInventories > 1 ? 's' : ''}`}
                                     value={`${settings.inventoryPeriodMonths} mois`}
-                                    onOpen={() => setView('inventory')}
+                                    onOpen={() => setReglage('inventory')}
                                 />
                                 <RuleGroup.Row
                                     title="Validation des devis"
@@ -860,13 +882,13 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                                             ? 'toujours'
                                             : `${seuilDevis(settings).toLocaleString('fr-FR')} ${settings.currency}`
                                     }
-                                    onOpen={() => setView('repair')}
+                                    onOpen={() => setReglage('repair')}
                                 />
                                 <RuleGroup.Row
                                     title="Taille maximale d'un fichier"
                                     subtitle={`Vaut pour les ${importSurfaces} imports`}
                                     value={`${settings.maxImportFileMb} Mo`}
-                                    onOpen={() => setView('files')}
+                                    onOpen={() => setReglage('files')}
                                 />
                             </RuleGroup>
 
@@ -1302,146 +1324,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                         </div>
                     )}
 
-                    {view === 'repair' && (
-                        <>
-                            <RuleGroup
-                                form="grp"
-                                header="Un devis de réparation va à la Finance"
-                                note="Sous le seuil, l'informatique qui prend en charge valide seule et l'objet part chez le prestataire. Au-delà, la Finance tranche d'abord ; la réparation attend."
-                            >
-                                {SEUILS_DEVIS.map((seuil) => {
-                                    const retenu = seuilDevis(settings) === seuil;
-                                    return (
-                                        <RuleGroup.Row
-                                            key={seuil}
-                                            title={
-                                                seuil === 0
-                                                    ? 'Toujours'
-                                                    : `Au-delà de ${seuil.toLocaleString('fr-FR')} ${settings.currency}`
-                                            }
-                                            subtitle={
-                                                seuil === 0
-                                                    ? 'chaque devis, quel que soit son montant'
-                                                    : undefined
-                                            }
-                                            status={
-                                                retenu
-                                                    ? { icon: CheckCircle, tone: 'positive' }
-                                                    : undefined
-                                            }
-                                            value={retenu ? 'Retenu' : undefined}
-                                            valueTone={retenu ? 'positive' : undefined}
-                                            onOpen={() => apply({ repairQuoteThreshold: seuil })}
-                                            choice
-                                        />
-                                    );
-                                })}
-                            </RuleGroup>
-
-                            <p className="text-text-muted text-ts-sub leading-ts-sub">
-                                Aucun bouton d'enregistrement : chaque réglage s'applique quand on
-                                le pose.
-                            </p>
-                        </>
-                    )}
-
-                    {view === 'inventory' && (
-                        <>
-                            <RuleGroup
-                                form="grp"
-                                header="Recompter un lieu"
-                                note={
-                                    <>
-                                        Au-delà de cette durée, un lieu que personne n'a recompté
-                                        est dit{' '}
-                                        <strong className="text-text-secondary font-medium">
-                                            en retard
-                                        </strong>{' '}
-                                        dans l'inventaire physique. Le réglage ne lance rien : il
-                                        dit à partir de quand le silence devient un manque.
-                                        {sitesInventories > 0 && (
-                                            <>
-                                                {' '}
-                                                Il donne son sens à « en retard » sur{' '}
-                                                <strong className="text-text-secondary font-medium">
-                                                    {sitesInventories} site
-                                                    {sitesInventories > 1 ? 's' : ''}
-                                                </strong>
-                                                .
-                                            </>
-                                        )}
-                                    </>
-                                }
-                            >
-                                {INVENTORY_PERIODS.map((mois) => (
-                                    <RuleGroup.Row
-                                        key={mois}
-                                        title={`${mois} mois`}
-                                        subtitle={PERIOD_SUBTITLES[mois]}
-                                        status={
-                                            settings.inventoryPeriodMonths === mois
-                                                ? { icon: CheckCircle, tone: 'positive' }
-                                                : undefined
-                                        }
-                                        value={
-                                            settings.inventoryPeriodMonths === mois
-                                                ? 'Retenue'
-                                                : undefined
-                                        }
-                                        valueTone={
-                                            settings.inventoryPeriodMonths === mois
-                                                ? 'positive'
-                                                : undefined
-                                        }
-                                        onOpen={() => apply({ inventoryPeriodMonths: mois })}
-                                        choice
-                                    />
-                                ))}
-                            </RuleGroup>
-
-                            <p className="text-text-muted text-ts-sub leading-ts-sub">
-                                Aucun bouton d'enregistrement : chaque réglage s'applique quand on
-                                le pose.
-                            </p>
-                        </>
-                    )}
-
-                    {view === 'files' && (
-                        <>
-                            <RuleGroup
-                                form="grp"
-                                header="Ce qu'un dépôt accepte"
-                                note="Au-delà de la borne, un fichier est refusé — import, facture ou photo."
-                            >
-                                {FILE_LIMITS.map((mo) => (
-                                    <RuleGroup.Row
-                                        key={mo}
-                                        title={`${mo} Mo`}
-                                        subtitle={FILE_LIMIT_SUBTITLES[mo]}
-                                        status={
-                                            settings.maxImportFileMb === mo
-                                                ? { icon: CheckCircle, tone: 'positive' }
-                                                : undefined
-                                        }
-                                        value={
-                                            settings.maxImportFileMb === mo ? 'Retenue' : undefined
-                                        }
-                                        valueTone={
-                                            settings.maxImportFileMb === mo ? 'positive' : undefined
-                                        }
-                                        onOpen={() => apply({ maxImportFileMb: mo })}
-                                        choice
-                                    />
-                                ))}
-                            </RuleGroup>
-
-                            <p className="text-text-muted text-ts-sub leading-ts-sub">
-                                Aucun bouton d'enregistrement : chaque réglage s'applique quand on
-                                le pose.
-                            </p>
-                        </>
-                    )}
-
                     {view === 'sources' && (
                         <>
                             <RuleGroup
@@ -1513,6 +1395,95 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                     )}
                 </Reading>
             </div>
+
+            {/* **Les trois réglages à une question** — la feuille du sommaire (09/10). */}
+            <BottomSheet
+                id="settings-reglage-sheet"
+                open={reglage !== null}
+                onClose={() => setReglage(null)}
+                title={reglageMontre ? REGLAGE[reglageMontre].titre : ''}
+                subtitle={reglageMontre ? REGLAGE[reglageMontre].sens : undefined}
+            >
+                <div className="-mx-1 pb-2">
+                    {reglageMontre === 'repair' && (
+                        <RuleGroup form="grp">
+                            {SEUILS_DEVIS.map((seuil) => {
+                                const retenu = seuilDevis(settings) === seuil;
+                                return (
+                                    <RuleGroup.Row
+                                        key={seuil}
+                                        title={
+                                            seuil === 0
+                                                ? 'Toujours'
+                                                : `Au-delà de ${seuil.toLocaleString('fr-FR')} ${settings.currency}`
+                                        }
+                                        subtitle={
+                                            seuil === 0
+                                                ? 'chaque devis, quel que soit son montant'
+                                                : undefined
+                                        }
+                                        status={
+                                            retenu
+                                                ? { icon: CheckCircle, tone: 'positive' }
+                                                : undefined
+                                        }
+                                        value={retenu ? 'Retenu' : undefined}
+                                        valueTone={retenu ? 'positive' : undefined}
+                                        onOpen={() => retenir({ repairQuoteThreshold: seuil })}
+                                        choice
+                                    />
+                                );
+                            })}
+                        </RuleGroup>
+                    )}
+                    {reglageMontre === 'inventory' && (
+                        <RuleGroup form="grp">
+                            {INVENTORY_PERIODS.map((mois) => {
+                                const retenue = settings.inventoryPeriodMonths === mois;
+                                return (
+                                    <RuleGroup.Row
+                                        key={mois}
+                                        title={`${mois} mois`}
+                                        subtitle={PERIOD_SUBTITLES[mois]}
+                                        status={
+                                            retenue
+                                                ? { icon: CheckCircle, tone: 'positive' }
+                                                : undefined
+                                        }
+                                        value={retenue ? 'Retenue' : undefined}
+                                        valueTone={retenue ? 'positive' : undefined}
+                                        onOpen={() => retenir({ inventoryPeriodMonths: mois })}
+                                        choice
+                                    />
+                                );
+                            })}
+                        </RuleGroup>
+                    )}
+                    {reglageMontre === 'files' && (
+                        <RuleGroup form="grp">
+                            {FILE_LIMITS.map((mo) => {
+                                const retenue = settings.maxImportFileMb === mo;
+                                return (
+                                    <RuleGroup.Row
+                                        key={mo}
+                                        title={`${mo} Mo`}
+                                        subtitle={FILE_LIMIT_SUBTITLES[mo]}
+                                        status={
+                                            retenue
+                                                ? { icon: CheckCircle, tone: 'positive' }
+                                                : undefined
+                                        }
+                                        value={retenue ? 'Retenue' : undefined}
+                                        valueTone={retenue ? 'positive' : undefined}
+                                        onOpen={() => retenir({ maxImportFileMb: mo })}
+                                        choice
+                                    />
+                                );
+                            })}
+                        </RuleGroup>
+                    )}
+                </div>
+            </BottomSheet>
 
             {/* ── La feuille d'une source : la seule exception au geste ─────────────
                 Une clé d'API et une URL **valent ensemble ou pas du tout** — à moitié
@@ -2573,7 +2544,7 @@ const SignatureCrop: React.FC<{
             </div>
 
             {/* `.pfoot` — deux gestes, le second enregistre, détachés par un filet. */}
-            <div className="border-outline-variant -mx-5 duo-de-pied gap-3 border-t px-5 pt-4 pb-1">
+            <div className="border-outline-variant duo-de-pied -mx-5 gap-3 border-t px-5 pt-4 pb-1">
                 <Button
                     variant="tonal"
                     className="bg-surface-container text-on-surface hover:bg-surface-container-high justify-center"
@@ -2822,7 +2793,7 @@ const PinSheet: React.FC<{
 
                 {/* `.sfoot` — le pied de la feuille du mot de passe, à l'identique. Bloquée,
                     la feuille n'a plus qu'un geste. */}
-                <div className="border-outline-variant -mx-5 duo-de-pied gap-3 border-t px-5 pt-4 pb-1">
+                <div className="border-outline-variant duo-de-pied -mx-5 gap-3 border-t px-5 pt-4 pb-1">
                     {bloque ? (
                         /* `.btn-ghost` — le creux, pas l'encre pleine : fermer n'est pas
                            l'acte principal d'une feuille, c'est en sortir. */
@@ -2974,7 +2945,7 @@ const PasswordSheet: React.FC<{ open: boolean; onClose: () => void; userId?: str
                 </p>
 
                 {/* `.sfoot` — deux boutons de **même largeur**, le filet au-dessus. */}
-                <div className="border-outline-variant -mx-5 duo-de-pied gap-3 border-t px-5 pt-4 pb-1">
+                <div className="border-outline-variant duo-de-pied -mx-5 gap-3 border-t px-5 pt-4 pb-1">
                     <Button variant="text" onClick={onClose}>
                         Annuler
                     </Button>

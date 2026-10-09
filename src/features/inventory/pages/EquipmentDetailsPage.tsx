@@ -65,6 +65,7 @@ import {
     formatNumber,
     getBudgetCategoryByExpenseType,
 } from '../../../lib/financial';
+import { codeDeLaPreuve } from '../../../lib/attestation';
 import { DEMO_RESEED_NOTICE, isDemoSeedEquipment } from '../../../lib/demoSeed';
 import { cn } from '../../../lib/utils';
 import { GLOSSARY } from '../../../constants/glossary';
@@ -557,7 +558,9 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
               dossier.deposit
                   ? {
                         title: 'Déposé à l’informatique',
-                        detail: `${formatDate(dossier.deposit.at)} · attesté`,
+                        /* « · attesté » ne disait pas par quoi : le badge de l'étape le dit. */
+                        detail: formatDate(dossier.deposit.at),
+                        attestation: dossier.deposit.method,
                         state: 'done',
                     }
                   : {
@@ -659,10 +662,12 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                               month: 'long',
                           })
                         : undefined,
-                    item.handoverProof,
+                    /* La preuve en badge quand c'est une signature ou un code ; en mots sinon. */
+                    codeDeLaPreuve(item.handoverProof) ? undefined : item.handoverProof,
                 ]
                     .filter(Boolean)
                     .join(' · '),
+                attestation: codeDeLaPreuve(item.handoverProof),
             },
             {
                 /* Ambre passé trois jours : l'attente cesse d'être normale et le dit

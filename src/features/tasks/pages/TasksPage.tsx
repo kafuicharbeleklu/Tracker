@@ -9,7 +9,6 @@ import {
     Pause,
     Prohibit,
     SortAscending,
-    X,
 } from '@phosphor-icons/react';
 
 import ListTemplate from '../../../components/layout/ListTemplate';
@@ -22,7 +21,6 @@ import { useSelection } from '../../../hooks/useSelection';
 import { buildCsvLine } from '../../../lib/csv';
 import Icon from '../../../components/ui/Icon';
 import BottomSheet from '../../../components/ui/BottomSheet';
-import CloseButton from '../../../components/ui/CloseButton';
 import ActSheet from '../../../components/ui/ActSheet';
 import { DECISION_A_L_ECRAN } from '../../../lib/attestation';
 import Modal from '../../../components/ui/Modal';
@@ -62,7 +60,6 @@ import {
     type TaskOrder,
     type TaskScope,
 } from '../lib/file';
-import { unitesARemettre } from '../lib/unites';
 
 /**
  * **La couleur de la vignette dit la nature** — `.vig.val`, `.rem`, `.rec`, `.ret` de la
@@ -159,7 +156,6 @@ const TOUCHES: [string[], string][] = [
     [['J', 'K'], 'Tâche suivante, tâche précédente'],
     [['A'], 'L’acte principal — valider, remettre, confirmer'],
     [['R'], 'Refuser, avec son motif'],
-    [['Entrée'], 'Le détail de la demande'],
     [['X'], 'Sélectionner la tâche'],
     [['Z'], 'Annuler la dernière décision, pendant cinq secondes'],
     [['Échap'], 'Refermer le motif, puis la tâche'],
@@ -170,6 +166,8 @@ const TOUCHES: [string[], string][] = [
 interface TasksPageProps {
     onNavigate: (view: ViewType) => void;
     onItemClick: (view: ViewType, id: string) => void;
+    /** Revenir d'où l'on vient — la flèche de l'en-tête (08/10 : partout sauf à l'accueil). */
+    onBack?: () => void;
 }
 
 /**
@@ -198,19 +196,15 @@ interface TasksPageProps {
  * La tâche ouverte vit dans l'adresse (`?ouvert=`) : un rechargement la retrouve, et la
  * feuille de remise ouverte depuis le panneau laisse la file dessous.
  */
-const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
+const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick, onBack }) => {
     const {
-        approvals,
-        equipment,
-        users,
-        detectedDevices,
         updateApproval,
         confirmEquipmentReception,
         remindApproval,
         promoteDetectedDeviceToInventory,
         markDetectedDeviceAsIgnored,
     } = useData();
-    const { user: currentUser } = useAccessControl();
+    const { user: currentUser, permissions } = useAccessControl();
     const { showToast } = useToast();
 
     const [nature, setNature] = useState<TaskNature | 'toutes'>('toutes');
@@ -220,7 +214,6 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
     const [order, setOrder] = useState<TaskOrder>('urgence');
     const [presse, setPresse] = useState<Presse>('toutes');
     const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
-    const [reviewDeviceId, setReviewDeviceId] = useState<string | null>(null);
     // Feuille de motif du refus (téléphone) : la tâche visée, et le texte que le demandeur lira.
     const [refusing, setRefusing] = useState<Task | null>(null);
     /* Les feuilles gardent leur tâche le temps de redescendre (26/09). */
@@ -240,7 +233,6 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
     const [feuille, setFeuille] = useState<Task | null>(null);
     const [aideOuverte, setAideOuverte] = useState(false);
     const [refus, setRefus] = useState<EtatDuRefus>({ ouvert: false, motif: '' });
-    const [unite, setUnite] = useState<string | null>(null);
 
     /**
      * **La file et la tâche choisie côte à côte, dès 840** — 03.3, colonne bureau : *« une
@@ -258,6 +250,11 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
     const masques = useMemo(() => new Set(enSuspens?.tachesIds ?? []), [enSuspens]);
 
     const tasks = useFileDeTaches();
+    /* La feuille du téléphone suit la file — un changement venu d'ailleurs s'y lit — et
+       garde sa tâche le temps de redescendre. */
+    const feuilleAffichee = useDerniereValeur(
+        feuille ? (tasks.find((tache) => tache.id === feuille.id) ?? feuille) : null,
+    );
 
     /* Une décision qui attend son écriture a déjà quitté la file : les comptes le disent. */
     const presentes = useMemo(
@@ -367,7 +364,13 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
     }, [scope, nature, presse, query, order]);
     useEffect(() => {
         if (!enPanneau) {
-            if (ouverteId) fermerId();
+            /* Au téléphone, l'adresse ouvre la feuille de la tâche — un avis qu'on touche —,
+               puis s'efface : la feuille ne vit pas dans l'adresse. */
+            if (ouverteId) {
+                const visee = tasks.find((task) => task.id === ouverteId);
+                if (visee) setFeuille(visee);
+                fermerId();
+            }
             return;
         }
         if (selection.isActive) return;
@@ -383,23 +386,12 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
         if (suivante) {
             if (suivante.id !== ouverteId) ouvrirId(suivante.id);
         } else if (ouverteId) fermerId();
-    }, [enPanneau, fermerId, filteredTasks, ouverteId, ouvrirId, selection.isActive]);
+    }, [enPanneau, fermerId, filteredTasks, ouverteId, ouvrirId, selection.isActive, tasks]);
 
-    /* Une autre tâche : le motif en cours et l'unité choisie ne la suivent pas. */
+    /* Une autre tâche : le motif en cours ne la suit pas. */
     useEffect(() => {
         setRefus({ ouvert: false, motif: '' });
-        setUnite(null);
     }, [openedTask?.id]);
-
-    /** L'unité que la remise emportera : celle qu'on a choisie, sinon la mieux placée. */
-    const uniteRetenue = useMemo(() => {
-        if (!openedTask?.assign) return null;
-        if (unite) return unite;
-        const demande = approvals.find((item) => item.id === openedTask.approvalId);
-        if (!demande) return null;
-        const site = users.find((person) => person.id === demande.beneficiaryId)?.site;
-        return unitesARemettre(equipment, demande, site)[0]?.id ?? null;
-    }, [approvals, equipment, openedTask, unite, users]);
 
     const ouvrir = useCallback(
         (task: Task) => {
@@ -434,7 +426,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
     /** Ce que la tâche ouvre quand elle n'a aucune décision à faire prendre. */
     const navigateToTask = (task: Task) => {
         if (task.deviceId) {
-            setReviewDeviceId(task.deviceId);
+            setFeuille(task);
         } else if (task.assign) {
             window.location.hash = `/wizards/assignment?approvalId=${encodeURIComponent(task.assign.approvalId)}`;
         } else if (task.target && task.targetId) {
@@ -579,8 +571,9 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
     };
 
     /**
-     * **Remettre depuis le panneau** : la feuille de remise (17.4) s'ouvre avec la demande,
-     * la personne **et l'unité choisie** — il ne reste qu'à attester. `ouvert=` suit
+     * **Remettre depuis le panneau** : la feuille de remise (17.4) s'ouvre avec la demande et
+     * la personne ; **l'unité s'y choisit** (08/10 — le panneau en proposait trois, ce qui
+     * surchargeait le détail et doublait la feuille). `ouvert=` suit
      * l'adresse de la feuille : la file reste dessous, et y revient en la refermant.
      */
     const remettre = (task: Task) => {
@@ -590,17 +583,25 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
             userId: task.assign.beneficiaryId,
             category: task.assign.category,
         });
-        if (uniteRetenue) parametres.set('equipmentId', uniteRetenue);
         window.location.hash = avecObjetOuvert(`/wizards/assignment?${parametres.toString()}`);
     };
 
     /** L'acte principal de la tâche ouverte — le bouton appuyé du pied, et la touche A. */
     const faireLePrincipal = (task: Task) => {
-        if (task.deviceId) setReviewDeviceId(task.deviceId);
-        else if (task.nature === 'reception' && !task.force && (task.transition || task.reception))
+        if (task.deviceId) {
+            /* Le panneau — ou la feuille — montre déjà l'examen : l'acte principal importe. */
+            importerLaMachine(task.deviceId);
+        } else if (
+            task.nature === 'reception' &&
+            !task.force &&
+            (task.transition || task.reception)
+        )
             setActe(task);
-        else if (task.transition) validerDiffere(task);
-        else if (task.assign) remettre(task);
+        else if (task.transition) {
+            /* Au bureau, la décision se reprend cinq secondes ; au téléphone, elle se signe. */
+            if (enPanneau) validerDiffere(task);
+            else setActe(task);
+        } else if (task.assign) remettre(task);
         else if (
             (task.target === 'assignment_wizard' || task.target === 'return_wizard') &&
             task.targetId
@@ -611,10 +612,6 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                 `/wizards/${assistant}?equipmentId=${encodeURIComponent(task.targetId)}`,
             );
         } else navigateToTask(task);
-    };
-
-    const ouvrirLaDemande = (task: Task) => {
-        if (task.approvalId) onItemClick('approval_details', task.approvalId);
     };
 
     /*
@@ -658,8 +655,6 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
         if (touche === 'a') return agir(() => faireLePrincipal(openedTask));
         if (touche === 'r' && openedTask.refusal)
             return agir(() => setRefus({ ouvert: true, motif: '' }));
-        if (touche === 'Enter' && openedTask.approvalId)
-            return agir(() => ouvrirLaDemande(openedTask));
     };
     useEffect(() => {
         if (!enPanneau) return;
@@ -685,136 +680,17 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
      * l'en-tête, le contexte, deux décisions de même largeur. Au bureau, c'est le panneau
      * de décision (`PanneauDeTache`).
      */
-    const contenuDeLaTache = (tache: Task) => (
-        <div className="-mx-1 -my-2">
-            {/* `.sttl` — la vignette reprend la teinte de la nature, comme
-                dans la rangée : on retrouve la tâche qu'on vient de taper. */}
-            <div className="flex items-start gap-3 pb-3">
-                <span
-                    className={cn(
-                        'rounded-vignette text-ts-control flex h-10 w-10 shrink-0 items-center justify-center font-semibold',
-                        VIG_TINT[tache.nature],
-                    )}
-                >
-                    {tache.initials ?? <Icon glyph={tache.icon ?? ClipboardText} size={20} />}
-                </span>
-                <div className="min-w-0 flex-1">
-                    <p className="text-on-surface text-ts-head leading-ts-head font-medium">
-                        {tache.title}
-                    </p>
-                    <p className="text-text-secondary text-ts-sub leading-ts-sub mt-0.5">
-                        {tache.askedBy ?? tache.context}
-                        {tache.since ? ` · il y a ${ageLabel(tache.since)}` : ''}
-                    </p>
-                </div>
-                <CloseButton onClick={() => setFeuille(null)} />
-            </div>
-
-            {(tache.reason || tache.detail) && (
-                <div className="bg-surface-container flex flex-col gap-2 rounded-md p-4">
-                    {tache.reason && (
-                        <p className="text-on-surface text-ts-body leading-ts-body italic">
-                            «&nbsp;{tache.reason}&nbsp;»
-                        </p>
-                    )}
-                    {tache.detail && (
-                        <p className="text-text-secondary text-ts-sub leading-ts-sub">
-                            {tache.who ? `${tache.who} ` : ''}
-                            {tache.detail}
-                        </p>
-                    )}
-                </div>
-            )}
-
-            {/* `.sfoot` — deux décisions de même largeur. Le non est sombre,
-                le oui porte le seul jaune de la feuille. */}
-            <div className="border-outline-variant duo-de-pied mt-4 gap-3 border-t pt-4">
-                {tache.refusal ? (
-                    <Button
-                        variant="filled"
-                        icon={<Icon glyph={X} size={20} />}
-                        className="bg-inverse-surface text-inverse-on-surface hover:bg-inverse-surface/90"
-                        onClick={() => {
-                            setRefusalReason('');
-                            setRefusing(tache);
-                            setFeuille(null);
-                        }}
-                    >
-                        {tache.refusal.nextStatus === 'Rejected' ? 'Refuser' : 'Renvoyer'}
-                    </Button>
-                ) : tache.cancel ? (
-                    <Button
-                        variant="filled"
-                        icon={<Icon glyph={X} size={20} />}
-                        className="bg-inverse-surface text-inverse-on-surface hover:bg-inverse-surface/90"
-                        onClick={() => {
-                            setRefusalReason('');
-                            setCancelling(tache);
-                            setFeuille(null);
-                        }}
-                    >
-                        Annuler
-                    </Button>
-                ) : (
-                    <Button variant="outlined" onClick={() => setFeuille(null)}>
-                        Fermer
-                    </Button>
-                )}
-
-                {tache.transition || tache.reception ? (
-                    /* Le verbe ouvre la feuille d'acte (17.4) ; il ne déclenche plus rien
-                       tout seul. */
-                    <Button
-                        variant="filled"
-                        icon={<Icon glyph={Check} size={20} />}
-                        onClick={() => {
-                            const task = tache;
-                            setFeuille(null);
-                            setActe(task);
-                        }}
-                    >
-                        {tache.action}
-                    </Button>
-                ) : tache.assign || tache.target ? (
-                    <Button
-                        variant="filled"
-                        icon={<Icon glyph={Check} size={20} />}
-                        onClick={() => {
-                            const task = tache;
-                            setFeuille(null);
-                            navigateToTask(task);
-                        }}
-                    >
-                        {tache.action ?? 'Ouvrir'}
-                    </Button>
-                ) : null}
-            </div>
-
-            {/* `.pinl` — le oui ne signe pas ici : il ouvre l'attestation. */}
-            {(tache.transition || tache.reception) && (
-                <p className="text-text-secondary text-ts-sub leading-ts-sub mt-3 text-center">
-                    {tache.action} ouvre l'attestation — signature ou code personnel, au choix.
-                </p>
-            )}
-        </div>
-    );
-
     const openTask = (task: Task) => {
-        if (task.deviceId) {
-            setReviewDeviceId(task.deviceId);
-            return;
-        }
         /* Au bureau, la rangée sélectionne — elle ne quitte pas la page. */
         if (enPanneau) {
             ouvrir(task);
             return;
         }
-        /* **06.5 — au téléphone, une rangée de demande ouvre son détail** : le parcours et
-           ce que la personne détient y sont, et un non se prend devant eux. */
-        if (task.approvalId) {
-            onItemClick?.('approval_details', task.approvalId);
-            return;
-        }
+        /* **Au téléphone, une seule porte : la feuille** (08/10). Une demande ouvrait son
+           écran (06.5), une collecte sa feuille d'examen, le reste une feuille réduite : trois
+           façons de lire une tâche. Toutes s'ouvrent maintenant par-dessus la file, avec le
+           détail du panneau du bureau ; l'écran de la demande reste à un geste. */
+        setRefus({ ouvert: false, motif: '' });
         setFeuille(task);
     };
 
@@ -882,10 +758,16 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
         return true;
     };
 
-    const reviewDevice = useMemo(
-        () => detectedDevices.find((device) => device.id === reviewDeviceId) ?? null,
-        [detectedDevices, reviewDeviceId],
-    );
+    /** Importer une machine remontée, ou l'ignorer — de la feuille comme du panneau. */
+    const importerLaMachine = (id: string): boolean => {
+        const result = promoteDetectedDeviceToInventory(id);
+        showToast(result.message, result.ok ? 'success' : 'error');
+        return result.ok;
+    };
+    const ignorerLaMachine = (id: string) => {
+        const ok = markDetectedDeviceAsIgnored(id);
+        showToast(ok ? 'Machine ignorée.' : 'Action refusée.', ok ? 'success' : 'warning');
+    };
 
     const clearFilters = () => {
         setNature('toutes');
@@ -898,13 +780,10 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
         <PanneauDeTache
             tache={openedTask}
             touches={souris}
-            unite={uniteRetenue}
-            onUnite={setUnite}
             refus={refus}
             onRefus={setRefus}
             onPrincipal={() => faireLePrincipal(openedTask)}
             onRefuser={() => refuserDiffere(openedTask, refus.motif)}
-            onDetail={openedTask.approvalId ? () => ouvrirLaDemande(openedTask) : undefined}
             onAnnulerDemande={
                 openedTask.cancel
                     ? () => {
@@ -914,6 +793,12 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                     : undefined
             }
             onRelancer={openedTask.remind ? () => remindTask(openedTask) : undefined}
+            onIgnorer={
+                openedTask.deviceId
+                    ? () => ignorerLaMachine(openedTask.deviceId as string)
+                    : undefined
+            }
+            onOuvrirActif={(id) => onItemClick('equipment_details', id)}
         />
     ) : visibleTasks.length > 0 ? (
         /* **Le panneau vide tient la colonne** (23/09) : il n'arrive plus qu'après Échap. */
@@ -934,6 +819,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
 
     return (
         <ListTemplate
+            onBack={onBack}
             /* 03.3 est une **file** : ses rangées font 56 et portent une marque ronde. */
             skeleton="file"
             title="Tâches"
@@ -1063,6 +949,18 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                 ),
             }}
             hasRows={visibleTasks.length > 0}
+            /* **Demander un équipement, depuis la file** (09/10) : le geste n'existait que sur
+               l'accueil de qui ne gère pas le parc. C'est ici qu'on suit sa demande ; c'est
+               donc aussi ici qu'on en fait une. La feuille s'ouvre sur cette page (06.4). */
+            pageAction={
+                permissions.canManageInventory
+                    ? undefined
+                    : {
+                          label: 'Demander',
+                          description: 'Demander un équipement',
+                          onClick: () => onNavigate('new_request'),
+                      }
+            }
             empty={
                 /* **Une recherche sans résultat n'est pas « à jour »** (25/09). */
                 query.trim() || nature !== 'toutes' || presse !== 'toutes' ? (
@@ -1216,13 +1114,12 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                     >
                                         {task.title}
                                     </span>
-                                    {/* La nature écrite, au bureau : la couleur seule ne se
-                                        lit pas d'une rangée à l'autre (26/09). */}
-                                    {enPanneau && (
-                                        <span className="bg-surface-container text-text-secondary shrink-0 rounded-[4px] px-1.5 py-px text-[0.75rem] leading-4 font-medium">
-                                            {NATURE_MOT[task.nature]}
-                                        </span>
-                                    )}
+                                    {/* La nature écrite : la couleur seule ne se lit pas
+                                        d'une rangée à l'autre (26/09) — au téléphone aussi
+                                        (08/10). */}
+                                    <span className="bg-surface-container text-text-secondary shrink-0 rounded-[4px] px-1.5 py-px text-[0.75rem] leading-4 font-medium">
+                                        {NATURE_MOT[task.nature]}
+                                    </span>
                                 </span>
                                 {enPanneau ? (
                                     /* La sous-ligne de la maquette, sur une ligne : qui et
@@ -1257,15 +1154,21 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                                         )}
                                     </p>
                                 ) : (
-                                    /* La sous-ligne : qui, puis l'état en un mot. Deux lignes
-                                       au plus — au-delà, une rangée n'est plus une rangée. */
+                                    /* **La sous-ligne du bureau** (08/10) : qui et pourquoi ;
+                                       dans « À suivre », qui a la main et depuis quand. Le
+                                       badge dit déjà la nature — « Elom Akakpo · validation »
+                                       la répétait. Deux lignes au plus. */
                                     <p className="text-on-surface-variant text-ts-sub leading-ts-sub mt-0.5 line-clamp-2">
-                                        {task.who ? (
+                                        {task.scope === 'following' && task.aLaMain ? (
+                                            `chez ${task.aLaMain}${jours !== null ? ` depuis ${jours} j` : ''}`
+                                        ) : task.who ? (
                                             <>
                                                 <b className="text-on-surface font-medium">
                                                     {task.who}
-                                                </b>{' '}
-                                                · {task.context}
+                                                </b>
+                                                {task.deposePar
+                                                    ? `, par ${task.deposePar}`
+                                                    : ` · ${task.approvalId && task.reason ? task.reason : task.context}`}
                                             </>
                                         ) : (
                                             task.context
@@ -1401,81 +1304,6 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
                 </dl>
             </Modal>
 
-            {/* La machine remontée s'examine où elle attend (14.1). */}
-            <BottomSheet
-                open={reviewDevice !== null}
-                onClose={() => setReviewDeviceId(null)}
-                title={reviewDevice?.machineName || 'Machine détectée'}
-            >
-                {reviewDevice && (
-                    <div className="flex flex-col gap-4">
-                        <dl className="flex flex-col">
-                            {[
-                                ['Nom réseau', reviewDevice.hostname],
-                                ['Identifiant', reviewDevice.assetId],
-                                ['Numéro de série', reviewDevice.serialNumber],
-                                ['Système', reviewDevice.os],
-                                [
-                                    'Emplacement',
-                                    [reviewDevice.country, reviewDevice.site, reviewDevice.service]
-                                        .filter(Boolean)
-                                        .join(' · '),
-                                ],
-                                ['Vue pour la dernière fois', ageLabel(reviewDevice.lastSeenAt)],
-                            ]
-                                .filter(([, value]) => Boolean(value))
-                                .map(([label, value]) => (
-                                    <div
-                                        key={String(label)}
-                                        className="border-outline-variant text-ts-body leading-ts-body flex min-h-12 items-center justify-between gap-4 border-t py-2 first:border-t-0"
-                                    >
-                                        <dt className="text-text-secondary shrink-0">{label}</dt>
-                                        <dd className="text-on-surface min-w-0 text-right font-medium break-words">
-                                            {value}
-                                        </dd>
-                                    </div>
-                                ))}
-                        </dl>
-
-                        {reviewDevice.status === 'ambiguous_match' && (
-                            <p className="bg-surface-container text-text-secondary rounded-md px-4 py-2 text-[0.75rem] leading-4">
-                                Plusieurs actifs du parc lui ressemblent. L'importer en créerait un
-                                de plus — vérifiez d'abord lequel elle est.
-                            </p>
-                        )}
-
-                        <div className="border-outline-variant flex items-center gap-3 border-t pt-4">
-                            <Button
-                                variant="text"
-                                onClick={() => {
-                                    const ok = markDetectedDeviceAsIgnored(reviewDevice.id);
-                                    showToast(
-                                        ok ? 'Machine ignorée.' : 'Action refusée.',
-                                        ok ? 'success' : 'warning',
-                                    );
-                                    setReviewDeviceId(null);
-                                }}
-                            >
-                                Ignorer
-                            </Button>
-                            <Button
-                                variant="filled"
-                                className="flex-1"
-                                onClick={() => {
-                                    const result = promoteDetectedDeviceToInventory(
-                                        reviewDevice.id,
-                                    );
-                                    showToast(result.message, result.ok ? 'success' : 'error');
-                                    if (result.ok) setReviewDeviceId(null);
-                                }}
-                            >
-                                Importer au parc
-                            </Button>
-                        </div>
-                    </div>
-                )}
-            </BottomSheet>
-
             <BottomSheet
                 open={isFilterSheetOpen}
                 onClose={() => setIsFilterSheetOpen(false)}
@@ -1582,8 +1410,52 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick }) => {
               feuille d'une demande ». Le oui ne décide pas seul : il **conduit à
               l'attestation** (06.2).
             */}
+            {/* La feuille du téléphone : le panneau du bureau, posé par-dessus la file (08/10). */}
             <BottomSheet open={!enPanneau && !!feuille} onClose={() => setFeuille(null)}>
-                {feuille && contenuDeLaTache(feuille)}
+                {feuilleAffichee && (
+                    <PanneauDeTache
+                        surface="feuille"
+                        tache={feuilleAffichee}
+                        touches={false}
+                        refus={refus}
+                        onRefus={setRefus}
+                        onFermer={() => setFeuille(null)}
+                        onPrincipal={() => {
+                            setFeuille(null);
+                            faireLePrincipal(feuilleAffichee);
+                        }}
+                        onRefuser={() => refuserDiffere(feuilleAffichee, refus.motif)}
+                        onDemanderRefus={() => {
+                            setRefusalReason('');
+                            setRefusing(feuilleAffichee);
+                            setFeuille(null);
+                        }}
+                        onAnnulerDemande={
+                            feuilleAffichee.cancel
+                                ? () => {
+                                      setRefusalReason('');
+                                      setCancelling(feuilleAffichee);
+                                      setFeuille(null);
+                                  }
+                                : undefined
+                        }
+                        onRelancer={
+                            feuilleAffichee.remind ? () => remindTask(feuilleAffichee) : undefined
+                        }
+                        onIgnorer={
+                            feuilleAffichee.deviceId
+                                ? () => {
+                                      ignorerLaMachine(feuilleAffichee.deviceId as string);
+                                      setFeuille(null);
+                                  }
+                                : undefined
+                        }
+                        onOuvrirActif={(id) => {
+                            setFeuille(null);
+                            onItemClick('equipment_details', id);
+                        }}
+                    />
+                )}
             </BottomSheet>
 
             {/*

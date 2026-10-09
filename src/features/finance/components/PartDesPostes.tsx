@@ -4,6 +4,7 @@ import Icon from '../../../components/ui/Icon';
 import { cn } from '../../../lib/utils';
 import type { FinanceBudgetItem } from '../../../types';
 import { getPosteGlyph } from '../lib/expensePresentation';
+import { JAUGE_RANGEE } from '../../../lib/jauge';
 
 const pourcent = (part: number, tout: number): number =>
     tout > 0 ? Math.round((part / tout) * 100) : 0;
@@ -58,10 +59,15 @@ const PartDesPostes: React.FC<PartDesPostesProps> = ({ postes, max, className })
                             className="text-text-secondary shrink-0"
                         />
                         <span className="min-w-0 flex-1 truncate">{poste.category}</span>
-                        <span className="bg-surface-muted-strong block h-1 w-16 shrink-0 overflow-hidden rounded-full">
+                        <span
+                            className={cn(
+                                'bg-surface-muted-strong block w-16 shrink-0 overflow-hidden',
+                                JAUGE_RANGEE,
+                            )}
+                        >
                             <span
                                 className={cn(
-                                    'mvt-jauge duration-medium2 ease-emphasized block h-full rounded-full transition-[width]',
+                                    'mvt-jauge duration-medium2 ease-emphasized block h-full transition-[width]',
                                     depasse
                                         ? 'bg-[var(--tk-color-st-orange)]'
                                         : 'bg-[var(--tk-color-st-vert)]',

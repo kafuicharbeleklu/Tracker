@@ -1,6 +1,7 @@
 import React from 'react';
 
 import { cn } from '../../lib/utils';
+import { JAUGE } from '../../lib/jauge';
 
 /**
  * Proportion — planche **04.2** : *une rangée, jamais un anneau*.
@@ -85,7 +86,7 @@ const ProportionRow: React.FC<ProportionRowProps> = ({
             <div
                 role="img"
                 aria-label={`${clamped} %`}
-                className="bg-surface-container mt-4 h-2 overflow-hidden rounded-xs"
+                className={cn('bg-surface-container mt-4 overflow-hidden', JAUGE)}
             >
                 <span
                     className={cn(

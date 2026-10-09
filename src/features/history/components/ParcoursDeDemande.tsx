@@ -38,6 +38,7 @@ export const FilDeLaDemande: React.FC<{ parcours: Parcours }> = ({ parcours }) =
         steps={parcours.etapes.map((preuve) => ({
             title: preuve.titre,
             detail: preuve.detail,
+            attestation: preuve.attestation,
             state: etatDe(preuve),
         }))}
     />
@@ -58,20 +59,35 @@ export const etapesSignees = (etapes: readonly Preuve[]): Preuve[] =>
             /signature/.test(lire(preuve.evenement, 'method') ?? ''),
     );
 
+/**
+ * **Les signatures qui se relisent** — et rien d'autre (09/10). Une image n'existe que sur
+ * l'appareil où la signature a été enregistrée : ailleurs, la section entière s'efface, titre
+ * compris (`has-[img]`), au lieu d'expliquer pourquoi elle est vide. Le badge de l'étape dit
+ * déjà par quoi elle a été attestée.
+ */
 export const SignaturesDeLaDemande: React.FC<{
     etapes: readonly Preuve[];
     registres: Registres;
-}> = ({ etapes, registres }) => (
-    <div className="flex flex-col gap-2">
-        {etapesSignees(etapes).map((preuve) => (
-            <SignatureDeLEtape
-                key={preuve.evenement.id}
-                evenement={preuve.evenement}
-                signataire={signataireDe(preuve.evenement, registres)}
-            />
-        ))}
-    </div>
-);
+    /** L'intitulé de la section, s'il y en a un : il ne paraît qu'avec une image. */
+    titre?: React.ReactNode;
+}> = ({ etapes, registres, titre }) => {
+    const signees = etapesSignees(etapes);
+    if (signees.length === 0) return null;
+    return (
+        <div className="hidden has-[img]:block">
+            {titre}
+            <div className="flex flex-col gap-2">
+                {signees.map((preuve) => (
+                    <SignatureDeLEtape
+                        key={preuve.evenement.id}
+                        evenement={preuve.evenement}
+                        signataire={signataireDe(preuve.evenement, registres)}
+                    />
+                ))}
+            </div>
+        </div>
+    );
+};
 
 const capitale = (texte: string) => texte.charAt(0).toUpperCase() + texte.slice(1);
 
@@ -116,12 +132,11 @@ const ParcoursDeDemande: React.FC<{
             <p className={INTITULE}>Le parcours de la demande</p>
             <FilDeLaDemande parcours={parcours} />
         </div>
-        {etapesSignees(parcours.etapes).length > 0 && (
-            <div>
-                <p className={INTITULE}>Les signatures</p>
-                <SignaturesDeLaDemande etapes={parcours.etapes} registres={registres} />
-            </div>
-        )}
+        <SignaturesDeLaDemande
+            etapes={parcours.etapes}
+            registres={registres}
+            titre={<p className={INTITULE}>Les signatures</p>}
+        />
         {parcours.parties.length > 0 && (
             <div>
                 <p className={INTITULE}>Les parties prenantes</p>

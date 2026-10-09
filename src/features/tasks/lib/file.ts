@@ -498,9 +498,16 @@ export const construireLaFile = ({
         });
     });
 
+    /* Les objets dont **une demande en cours** attend la réception : sa tâche le porte déjà
+       (« Réception », avec « à sa place » pour l'informatique). Le filtre comptait toutes
+       les demandes, closes comprises (08/10) : l'informatique trouvait en plus « Remettre »
+       un objet déjà remis et attesté, et un objet revenu de réparation ne redonnait plus
+       de réception à son porteur s'il était un jour venu par une demande. */
     const approvalEquipmentIds = new Set(
         approvals.flatMap((approval) =>
-            approval.assignedEquipmentId ? [approval.assignedEquipmentId] : [],
+            approval.assignedEquipmentId && approval.status === 'PENDING_DELIVERY'
+                ? [approval.assignedEquipmentId]
+                : [],
         ),
     );
 
@@ -516,7 +523,7 @@ export const construireLaFile = ({
            l'utilisateur » — un manager y trouvait des remises qu'il ne pouvait pas faire,
            et jamais la réception de son propre objet. */
         if (item.assignmentStatus === 'PENDING_DELIVERY') {
-            if (gere) {
+            if (gere && !approvalEquipmentIds.has(item.id)) {
                 out.push({
                     id: `handover-${item.id}`,
                     nature: 'remise',
@@ -536,7 +543,8 @@ export const construireLaFile = ({
                     nature: 'reception',
                     scope: 'todo',
                     title,
-                    context: 'réception',
+                    /* « Réception · réception » ne disait rien : le modèle se reconnaît. */
+                    context: item.model ? `${item.model} · à confirmer` : 'à confirmer',
                     since: item.assignedAt ?? null,
                     action: 'Confirmer',
                     target: 'equipment_details',
@@ -614,12 +622,26 @@ export const construireLaFile = ({
             } else if (dossier.stage === 'at_repairer' && gere) {
                 const attendu = dossier.takenCharge?.expectedReturn;
                 const enRetard = attendu ? new Date(attendu).getTime() < Date.now() : false;
+                /* La date promise, et le délai compté **depuis elle** quand elle est passée
+                   (08/10) : « retour en retard · 36 j » comptait depuis l'envoi, si bien
+                   qu'on ne savait ni de combien, ni depuis quand. */
+                const promis = attendu
+                    ? new Date(attendu).toLocaleDateString('fr-FR', {
+                          day: 'numeric',
+                          month: 'short',
+                      })
+                    : null;
                 out.push({
                     ...base,
                     id: `rep-retour-${item.id}`,
                     scope: enRetard ? 'todo' : 'following',
-                    context: `chez ${dossier.takenCharge?.repairer ?? 'le prestataire'}${enRetard ? ' · retour en retard' : ''}`,
-                    since: dossier.sentAt ?? null,
+                    context: [
+                        `chez ${dossier.takenCharge?.repairer ?? 'le prestataire'}`,
+                        promis ? `${enRetard ? 'attendu le' : 'retour le'} ${promis}` : null,
+                    ]
+                        .filter(Boolean)
+                        .join(' · '),
+                    since: (enRetard ? attendu : dossier.sentAt) ?? null,
                     action: enRetard ? 'Récupérer' : undefined,
                 });
             }

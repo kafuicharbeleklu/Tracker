@@ -124,13 +124,6 @@ interface ListTemplateProps {
     /** Le second fait de l'en-tête — « 14 au parc ». Jamais une redite du titre. */
     subtitle?: string;
     onBack?: () => void;
-    /**
-     * **La flèche de retour au bureau aussi** (25/09). Une liste de destination (Actifs,
-     * Catalogue…) n'en a pas au bureau : la barre latérale y mène. Une **sous-page** en
-     * liste — Groupes (sous Accès), Dépenses (sous Finances) — n'est pas dans la barre
-     * latérale et n'avait aucun chemin de retour.
-     */
-    retourAuBureau?: boolean;
     /** Le libellé de la flèche, quand « Retour » ne dit pas où l'on va. */
     backLabel?: string;
     /** Gestes de l'en-tête : scanner, filtrer, ajouter. Deux au plus au téléphone. */
@@ -363,7 +356,6 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
     outilsBureau,
     subtitle,
     onBack,
-    retourAuBureau = false,
     backLabel = 'Retour',
     actions,
     search,
@@ -810,7 +802,9 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                         <div className="px-page flex flex-col gap-2 pt-5">
                             <div className="flex min-h-[52px] items-center gap-4">
                                 <div className="flex shrink-0 items-center gap-2">
-                                    {retourAuBureau && onBack && (
+                                    {/* La flèche au bureau aussi, partout sauf à l'accueil (08/10) :
+                                        une destination de la barre latérale n'en avait pas. */}
+                                    {onBack && (
                                         <Button
                                             variant="text"
                                             iconOnly

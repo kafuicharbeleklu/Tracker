@@ -19,6 +19,26 @@ export const LIBELLE_ATTESTATION: Record<AttestationMethod, string> = {
  */
 export const DECISION_A_L_ECRAN = 'ecran';
 
+/**
+ * **Le code qu'un badge sait dire** (09/10) — signature, code PIN, ou les deux. Une décision
+ * prise à l'écran, une preuve écrite en toutes lettres n'en sont pas : elles gardent leurs mots.
+ */
+export const codeDAttestation = (methode?: string): AttestationMethod | undefined =>
+    methode && methode in LIBELLE_ATTESTATION ? (methode as AttestationMethod) : undefined;
+
+/**
+ * Le code d'une preuve **écrite en toutes lettres** : une remise l'écrit ainsi sur l'objet
+ * (`handoverProof`) et dans le journal (`proof`) — « code PIN, signature apposée »,
+ * « signature sur l'appareil de Clara Admin ».
+ */
+export const codeDeLaPreuve = (preuve?: string): AttestationMethod | undefined => {
+    if (!preuve) return undefined;
+    const exact = (Object.keys(LIBELLE_ATTESTATION) as AttestationMethod[]).find(
+        (code) => LIBELLE_ATTESTATION[code] === preuve,
+    );
+    return exact ?? (/^signature\b/i.test(preuve) ? 'signature' : undefined);
+};
+
 /** Le libellé d'une méthode relue d'un enregistrement — inconnue, elle ne dit rien. */
 export const libelleAttestation = (methode?: string): string | undefined =>
     methode === DECISION_A_L_ECRAN

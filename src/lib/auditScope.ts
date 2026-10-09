@@ -35,3 +35,45 @@ export const rememberAuditScope = (scope: AuditScopePreference): void => {
         // Ignore storage failures.
     }
 };
+
+const AUDIT_SORTIE_KEY = 'audit_sortie_de_campagne';
+/** Au-delà, on ne « revient » plus de la campagne : on arrive à l'inventaire. */
+const RETOUR_IMMEDIAT_MS = 10_000;
+
+/** La page de campagne note l'instant où on la quitte. */
+export const noterSortieDeCampagne = (): void => {
+    try {
+        sessionStorage.setItem(AUDIT_SORTIE_KEY, String(Date.now()));
+    } catch {
+        // Ignore storage failures.
+    }
+};
+
+/**
+ * Demander à la vue globale d'ouvrir le choix sur les locaux d'un site — l'accueil, quand le
+ * local où l'on comptait est fini : reprendre, c'est alors choisir le suivant.
+ */
+export const ouvrirLeChoixSur = (scope: AuditScopePreference): void => {
+    rememberAuditScope(scope);
+    noterSortieDeCampagne();
+};
+
+/**
+ * **Le site qu'on vient de quitter** (09/10) — quand on arrive de la page de campagne à
+ * l'instant, et que la campagne portait sur un local. La vue globale s'en sert pour rouvrir
+ * le choix sur les locaux de ce site : compter un site, c'est enchaîner ses locaux, et
+ * repasser par le pays puis le site à chaque local coûtait trois gestes. Lecture seule :
+ * elle peut être appelée deux fois (mode strict) sans rien changer.
+ */
+export const siteQuitteALInstant = (): { country: string; site: string } | null => {
+    try {
+        const sortie = Number(sessionStorage.getItem(AUDIT_SORTIE_KEY));
+        if (!sortie || Date.now() - sortie > RETOUR_IMMEDIAT_MS) return null;
+        const brut = sessionStorage.getItem(AUDIT_SCOPE_PREF_KEY);
+        const scope = brut ? (JSON.parse(brut) as AuditScopePreference) : null;
+        if (!scope?.country || !scope.site || (!scope.local && !scope.horsLocal)) return null;
+        return { country: scope.country, site: scope.site };
+    } catch {
+        return null;
+    }
+};

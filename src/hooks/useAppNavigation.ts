@@ -14,21 +14,18 @@ const VIEW_TITLES: Record<ViewType, string> = {
     import_equipment: 'Importer équipements',
     users: DESTINATIONS.users.label,
     user_details: 'Détails utilisateur',
-    add_user: 'Ajouter un utilisateur',
     edit_user: 'Modifier utilisateur',
     import_users: 'Importer utilisateurs',
     new_request: 'Nouvelle demande',
-    approval_details: 'Demande',
     tasks: 'Tâches',
     management: DESTINATIONS.management.label,
     rbac: DESTINATIONS.rbac.label,
-    add_category: 'Ajouter une catégorie',
-    add_model: 'Ajouter un modèle',
     import_models: 'Importer modèles',
     category_details: 'Détails catégorie',
     model_details: 'Détails modèle',
     locations: DESTINATIONS.locations.label,
     site_details: 'Détail site',
+    site_locals: 'Locaux',
     import_locations: 'Importer localisations',
     audit: DESTINATIONS.audit.label,
     audit_details: 'Détails audit',
@@ -39,7 +36,6 @@ const VIEW_TITLES: Record<ViewType, string> = {
     finance: DESTINATIONS.finance.label,
     finance_expenses: 'Journal des dépenses',
     finance_lines: 'Lignes du budget',
-    finance_exercises: 'Exercices',
     settings: DESTINATIONS.settings.label,
     not_found: 'Page introuvable',
 };
@@ -74,7 +70,9 @@ export const useAppNavigation = () => {
                 id = action;
             } else computedView = 'equipment';
         } else if (section === 'users') {
-            if (action === 'add') computedView = 'add_user';
+            /* `/users/add` n'ouvre plus rien (09/10) : aucun geste n'y menait — inviter est
+               une feuille de la liste. L'adresse rend la liste, pas une fiche « add ». */
+            if (action === 'add') computedView = 'users';
             else if (action === 'edit') {
                 computedView = 'edit_user';
                 id = param;
@@ -87,28 +85,22 @@ export const useAppNavigation = () => {
             // « Nouvelle demande » est un geste de la file, et son adresse le dit : elle
             // vivait sous /approvals/new, la section qui n'existe plus.
             if (action === 'new') computedView = 'new_request';
-            /* 06.5 — le détail d'une demande est un écran, pas une feuille : c'est
-               devant lui qu'on refuse, qu'on renvoie ou qu'on abandonne. */
-            else if (action === 'request' && param) {
-                computedView = 'approval_details';
-                id = param;
-            } else computedView = 'tasks';
+            /* L'écran d'une demande (06.5) est retiré (08/10) : une demande se lit dans le
+               panneau ou la feuille de la file. Son ancienne adresse y mène encore. */ else
+                computedView = 'tasks';
         } else if (section === 'management') {
-            if (action === 'categories') {
-                if (param === 'add') computedView = 'add_category';
-                else if (param) {
-                    computedView = 'category_details';
-                    id = param;
-                }
-            } else if (action === 'models') {
-                if (param === 'add') computedView = 'add_model';
-                else if (param === 'import') computedView = 'import_models';
-                else if (param) {
-                    computedView = 'model_details';
-                    id = param;
-                }
-            } else {
-                computedView = 'management';
+            /* **Le repli est le catalogue** (09/10). `#/management/models` sans identifiant
+               gardait la valeur de départ et rendait l'accueil sous l'adresse du catalogue ;
+               les deux adresses d'ajout, que plus aucun geste n'écrit, y mènent aussi. */
+            computedView = 'management';
+            if (action === 'categories' && param && param !== 'add') {
+                computedView = 'category_details';
+                id = param;
+            } else if (action === 'models' && param === 'import') {
+                computedView = 'import_models';
+            } else if (action === 'models' && param && param !== 'add') {
+                computedView = 'model_details';
+                id = param;
             }
         } else if (section === 'rbac') {
             computedView = 'rbac';
@@ -118,7 +110,8 @@ export const useAppNavigation = () => {
             // un écran qui les listerait ferait payer une frappe pour rien (10.1) — ni le
             // local, qui se tient sur la fiche de son site.
             else if (action === 'site' && param) {
-                computedView = 'site_details';
+                /* Les locaux d'un site ont leur page (08/10) : la fiche en montre une part. */
+                computedView = routeSegments[3] === 'locaux' ? 'site_locals' : 'site_details';
                 id = decodeURIComponent(param);
             } else computedView = 'locations';
         } else if (section === 'audit') {
@@ -136,8 +129,9 @@ export const useAppNavigation = () => {
             if (action === 'expenses') computedView = 'finance_expenses';
             // 15.2 — les lignes d'un exercice : `/finance/lines/<année>`.
             else if (action === 'lines') computedView = 'finance_lines';
-            // 15.1, colonne 3 — passer d'un exercice à l'autre.
-            else if (action === 'exercices') computedView = 'finance_exercises';
+            /* 15.1, colonne 3 — passer d'un exercice à l'autre : c'est une feuille de
+               Finances depuis le 09/10 ; l'adresse `/finance/exercices` rend la page, qui
+               l'ouvre. */
             else computedView = 'finance';
         } else if (section === 'settings') {
             computedView = 'settings';
@@ -168,18 +162,16 @@ export const useAppNavigation = () => {
                 add_equipment: '/inventory/add',
                 import_equipment: '/inventory/import',
                 users: '/users',
-                add_user: '/users/add',
                 import_users: '/users/import',
                 tasks: '/tasks',
                 new_request: '/tasks/new',
                 management: '/management',
                 rbac: '/rbac/roles',
-                add_category: '/management/categories/add',
-                add_model: '/management/models/add',
                 import_models: '/management/models/import',
                 locations: '/locations',
                 import_locations: '/locations/import',
                 site_details: '/locations',
+                site_locals: '/locations',
                 audit: '/audit/overview',
                 audit_details: '/audit/details',
                 /* 18.1 — l'adresse se lisait (`#/history` ouvrait la page) mais ne
@@ -190,7 +182,6 @@ export const useAppNavigation = () => {
                 finance: '/finance',
                 finance_expenses: '/finance/expenses',
                 finance_lines: '/finance/lines',
-                finance_exercises: '/finance/exercices',
                 settings: '/settings',
                 assignment_wizard: '/wizards/assignment',
                 return_wizard: '/wizards/return',
@@ -214,7 +205,7 @@ export const useAppNavigation = () => {
                 model_details: (id) => `/management/models/${id}`,
                 audit_details: () => `/audit/details`,
                 site_details: (id) => `/locations/site/${encodeURIComponent(id)}`,
-                approval_details: (id) => `/tasks/request/${encodeURIComponent(id)}`,
+                site_locals: (id) => `/locations/site/${encodeURIComponent(id)}/locaux`,
                 // Les rangées « Remettre » / « Réceptionner » / « Restituer » de la file (TasksPage)
                 // arrivent ici avec l'identifiant de l'équipement ; les deux assistants lisent
                 // `equipmentId` dans le hash. Sans ces deux clés, le tap ne faisait rien.

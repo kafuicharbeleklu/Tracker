@@ -23,13 +23,17 @@ import ScreenState from '../../../components/ui/ScreenState';
 import CardEmptyState from '../../../components/ui/CardEmptyState';
 import AddModelPage from './AddModelPage';
 import { buildCsvLine } from '../../../lib/csv';
+import { JAUGE } from '../../../lib/jauge';
+import { cn } from '../../../lib/utils';
 
 interface ModelDetailsPageProps {
     modelId: string;
     onBack: () => void;
+    /** Les renvois porteurs d'un périmètre — « Voir les N unités », filtrées sur ce modèle. */
+    onNavigate?: (path: string) => void;
 }
 
-const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ modelId, onBack }) => {
+const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ modelId, onBack, onNavigate }) => {
     const { equipment, models, categories, deleteModel } = useData();
     const { navigateToItem, navigateToView } = useAppNavigation();
     const { showToast } = useToast();
@@ -278,7 +282,7 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ modelId, onBack }) 
                         }
                         meter={
                             totalUnits > 0 ? (
-                                <span className="flex h-2 gap-0.5 overflow-hidden rounded-[4px]">
+                                <span className={cn('flex gap-0.5 overflow-hidden', JAUGE)}>
                                     {availablePercent > 0 && (
                                         <i
                                             className="mvt-jauge duration-medium2 ease-emphasized block h-full bg-[var(--tk-color-st-vert)] transition-[width]"
@@ -425,7 +429,15 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ modelId, onBack }) 
                     {totalUnits > firstThreeUnits.length && (
                         <button
                             type="button"
-                            onClick={() => navigateToView('equipment')}
+                            /* Les unités **de ce modèle** (09/10) : le renvoi ouvrait la liste
+                               entière. */
+                            onClick={() =>
+                                onNavigate
+                                    ? onNavigate(
+                                          `/inventory/model/${encodeURIComponent(model.name)}`,
+                                      )
+                                    : navigateToView('equipment')
+                            }
                             className="border-outline-variant text-on-surface hover:bg-surface-container text-ts-control leading-ts-control flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 border-t font-medium transition-colors"
                         >
                             Voir les {totalUnits} unités

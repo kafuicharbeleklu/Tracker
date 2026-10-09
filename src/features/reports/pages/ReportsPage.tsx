@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from 'react';
 import {
-    ArrowLeft,
     ClockCountdown,
     DownloadSimple,
     Laptop,
@@ -16,6 +15,7 @@ import { useData } from '../../../context/DataContext';
 import { useAccessControl } from '../../../hooks/useAccessControl';
 import { useJournalComplet } from '../../../hooks/useJournalComplet';
 import Button from '../../../components/ui/Button';
+import FlecheDeRetour from '../../../components/ui/FlecheDeRetour';
 import Icon from '../../../components/ui/Icon';
 import { MEDIA } from '../../../constants/breakpoints';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
@@ -352,23 +352,25 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ onBack }) => {
                         'sticky top-0 z-20 mb-4 flex flex-col',
                         isCompact
                             ? 'border-outline-variant bg-surface -mx-page-sm -mt-page-sm border-b px-4 pt-2 pb-3'
-                            : 'bg-background -mt-page pt-[calc(var(--tk-space-page)-0.25rem)]',
+                            : 'bg-background -mt-page pt-5',
                     )}
                 >
                     {/* Le titre suit la colonne centrée des rapports (23/09). */}
-                    <div className="large:mx-auto large:w-full large:max-w-[63rem] flex min-h-12 items-center gap-1">
+                    <div
+                        className={cn(
+                            'large:mx-auto large:w-full large:max-w-[63rem] flex items-center gap-1',
+                            isCompact ? 'min-h-12' : 'min-h-[52px]',
+                        )}
+                    >
                         {/* Au bureau, pas de flèche : le titre s'y pose au bord, et la
                             barre latérale mène déjà partout. */}
-                        {onBack && isCompact && (
-                            <Button
-                                variant="text"
-                                iconOnly
-                                aria-label="Retour"
-                                onClick={onBack}
-                                className="text-on-surface hover:bg-surface-container -ml-3 shrink-0 rounded-md"
-                            >
-                                <Icon glyph={ArrowLeft} size={24} />
-                            </Button>
+                        {onBack && (
+                            <FlecheDeRetour
+                                onBack={onBack}
+                                compact={isCompact}
+                                /* 8 jusqu'au titre, comme les listes : la rangée n'en met que 4. */
+                                className={isCompact ? undefined : 'mr-1'}
+                            />
                         )}
                         <h1 className="font-brand text-on-surface text-ts-page leading-ts-page min-w-0 shrink font-semibold tracking-[-0.02em]">
                             {GLOSSARY.REPORTS}

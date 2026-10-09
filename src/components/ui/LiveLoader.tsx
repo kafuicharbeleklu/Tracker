@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 import { cn } from '../../lib/utils';
 
@@ -9,8 +9,9 @@ import { cn } from '../../lib/utils';
  * moulin** en bas à droite (bleu), **cercles concentriques** en bas à gauche (orange).
  *
  * Ils s'animent **à tour de rôle, dans le sens des aiguilles d'une montre**, chacun selon
- * sa nature : les angles se tracent du plus petit au plus grand, le losange pivote d'un
- * quart de tour pendant que son cœur bat, le moulin tourne, les cercles émettent une onde.
+ * sa nature : les angles s'effacent et se retracent du plus petit au plus grand, le losange
+ * pivote d'un quart de tour pendant que son cœur bat, le moulin fait un tour, les cercles
+ * émettent une onde.
  * Le signe qui parle est plein ; les trois autres attendent en retrait. Cycle de 2,4 s.
  * Sans mouvement (`prefers-reduced-motion`), ils s'allument seulement, tour à tour.
  *
@@ -44,6 +45,17 @@ const TEINTES = {
     },
 } as const;
 
+/** Le cycle, en ms — le même que `--live-cycle` dans `index.css`. */
+const CYCLE_MS = 2400;
+
+/**
+ * **La phase de l'horloge de la page** (08/10). Le chargement monte un écran par phase —
+ * les comptes, les données, le code de l'application — et chacun repartait du début du
+ * cycle : l'animation sautait à chaque relais. Un retard négatif cale chaque montage sur la
+ * même horloge : le suivant reprend où le précédent s'arrêtait.
+ */
+const phaseCommune = () => `-${Math.round(performance.now() % CYCLE_MS)}ms`;
+
 /** Le quart de cycle de chaque signe — l'ordre des aiguilles d'une montre. */
 const retard = (quart: number) => ({ '--live-retard': `${quart * 0.6}s` }) as React.CSSProperties;
 
@@ -54,11 +66,13 @@ const LiveLoader: React.FC<LiveLoaderProps> = ({
     className,
 }) => {
     const t = TEINTES[tone];
+    const [depart] = useState(phaseCommune);
     return (
         <span
             role="status"
             aria-label={label}
             className={cn('live-loader inline-block', className)}
+            style={{ '--live-depart': depart } as React.CSSProperties}
         >
             <svg width={size} height={size} viewBox="0 0 100 100" aria-hidden="true">
                 {/* Angles emboîtés — trois équerres qui se tracent de la plus petite à la

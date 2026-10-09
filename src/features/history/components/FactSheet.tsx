@@ -1,11 +1,9 @@
 import React, { useMemo } from 'react';
-import { ClipboardText, Laptop } from '@phosphor-icons/react';
+import { Laptop } from '@phosphor-icons/react';
 
 import BottomSheet from '../../../components/ui/BottomSheet';
 import HandoverTrail from '../../../components/ui/HandoverTrail';
 import Icon from '../../../components/ui/Icon';
-import { getStatusLabel } from '../../../lib/businessRules';
-import { getCategoryLabel } from '../../../constants/glossary';
 import type { Equipment, HistoryEvent, User } from '../../../types';
 import {
     autrePartie,
@@ -18,7 +16,7 @@ import {
     quandDe,
     type Registres,
 } from '../lib/journal';
-import ParcoursDeDemande, { SignaturesDeLaDemande, etapesSignees } from './ParcoursDeDemande';
+import ParcoursDeDemande, { SignaturesDeLaDemande } from './ParcoursDeDemande';
 import Renvoi, { initiales } from './Renvoi';
 
 /** « Vendredi 4 septembre à 19:32 » — le sous-titre commence une ligne. */
@@ -42,7 +40,6 @@ interface FactSheetProps {
      * gardait son propre historique des demandes tranchées ; il n'y en a plus qu'un, celui-ci,
      * et c'est d'ici qu'on rouvre la demande, son parcours et son motif.
      */
-    onOpenApproval?: (id: string) => void;
     /**
      * **Le fait ouvert à côté du journal** (P2a, 25/09) — dès 840, en cartes : le même
      * contenu, dans une carte du panneau et non dans une feuille. Rien ne voile le journal.
@@ -67,7 +64,6 @@ const FactSheet: React.FC<FactSheetProps> = ({
     onOpenEquipment,
     canOpenUser,
     onOpenUser,
-    onOpenApproval,
     enPanneau = false,
 }) => {
     const fil = useMemo(
@@ -107,11 +103,6 @@ const FactSheet: React.FC<FactSheetProps> = ({
                 )
               : undefined;
 
-    const demande =
-        fait.targetType === 'APPROVAL' && onOpenApproval
-            ? registres.approvals.get(fait.targetId)
-            : undefined;
-
     /* La personne du fait : l'autre partie quand il en a une, son auteur sinon. */
     const autre = autrePartie(fait, registres);
     const personneId =
@@ -149,35 +140,19 @@ const FactSheet: React.FC<FactSheetProps> = ({
                                 pourquoi
                                     ? `${preuve.detail} · « ${pourquoi} »`
                                     : preuve.detail,
+                            attestation: preuve.attestation,
                             state: preuve.attente ? 'wait' : 'done',
                         }))}
                     />
-                    {etapesSignees(fil).length > 0 && (
-                        <SignaturesDeLaDemande etapes={fil} registres={registres} />
-                    )}
+                    <SignaturesDeLaDemande etapes={fil} registres={registres} />
                 </>
             )}
 
-            {(demande || objet || (personne && !parcours)) && (
+            {(objet || (personne && !parcours)) && (
                 <div>
-                    {demande && onOpenApproval && (
-                        <Renvoi
-                            premier
-                            vignette={<Icon glyph={ClipboardText} size={20} />}
-                            teinte="bg-tint-bleu text-on-tint-bleu"
-                            titre={`Demande · ${demande.equipmentName || getCategoryLabel(demande.equipmentCategory || '') || 'équipement'}`}
-                            sousTitre={[
-                                demande.beneficiaryName ? `pour ${demande.beneficiaryName}` : null,
-                                getStatusLabel(demande.status).toLowerCase(),
-                            ]
-                                .filter(Boolean)
-                                .join(' · ')}
-                            onOpen={() => ouvrir(() => onOpenApproval(demande.id))}
-                        />
-                    )}
                     {objet && onOpenEquipment && (
                         <Renvoi
-                            premier={!demande}
+                            premier
                             vignette={<Icon glyph={Laptop} size={20} />}
                             titre={objet.assetId || objet.name}
                             code
@@ -190,7 +165,7 @@ const FactSheet: React.FC<FactSheetProps> = ({
                     {/* Sur une demande, les personnes sont dans « Les parties prenantes ». */}
                     {!parcours && personne && onOpenUser && canOpenUser(personne.id) && (
                         <Renvoi
-                            premier={!demande && !(objet && onOpenEquipment)}
+                            premier={!(objet && onOpenEquipment)}
                             vignette={initiales(personne.name)}
                             teinte="bg-tint-bleu text-on-tint-bleu"
                             titre={personne.name}

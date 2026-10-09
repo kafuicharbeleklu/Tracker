@@ -1,10 +1,14 @@
 import { ExtractionConfidence } from '../types';
 import { extractDocumentText } from './documentTextExtraction';
-type XlsxModule = typeof import('xlsx');
+import { lireClasseur, lireMontant } from './tableur';
 
 export interface ExtractedBudgetLine {
     category: string;
     amount: string;
+    /** CAPEX ou OPEX, quand toutes les lignes que le poste regroupe le disent d'une seule voix. */
+    capitalization?: 'CAPEX' | 'OPEX';
+    /** Ce que le poste regroupe — « 11 lignes du fichier : Casques, Tablette… ». */
+    detail?: string;
 }
 
 export interface ExtractedBudgetDraft {
@@ -13,6 +17,8 @@ export interface ExtractedBudgetDraft {
     confidence: ExtractionConfidence;
     warnings: string[];
     source: 'csv' | 'text' | 'filename' | 'manual';
+    /** Ce que la lecture a compris, en une ligne : lignes lues, postes, total, et sa preuve. */
+    summary?: string;
 }
 
 const IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp', 'tif', 'tiff']);
@@ -53,8 +59,12 @@ const detectDelimiter = (line: string): string => {
     return ',';
 };
 
+/* Les guillemets qui entourent une cellule, pas celui d'un « Écran 24" ». */
 const normalizeCell = (value: string): string => {
-    return value.replace(/^"|"$/g, '').trim();
+    const texte = value.trim();
+    return texte.length >= 2 && texte.startsWith('"') && texte.endsWith('"')
+        ? texte.slice(1, -1).trim()
+        : texte;
 };
 
 const normalizeHeaderCell = (value: string): string => {
@@ -67,10 +77,6 @@ const normalizeHeaderCell = (value: string): string => {
 const extractYearFromText = (value: string): string => {
     const yearMatch = value.match(/\b(20\d{2})\b/);
     return yearMatch?.[1] || new Date().getFullYear().toString();
-};
-
-const loadXlsx = async (): Promise<XlsxModule> => {
-    return import('xlsx');
 };
 
 const findBestHeaderRow = (matrix: string[][]): number => {
@@ -143,36 +149,101 @@ const findBestAmountColumn = (
     return bestIndex;
 };
 
+/** Une ligne du fichier, telle qu'elle est écrite — avant tout regroupement. */
+interface LigneDeBudgetLue {
+    category: string;
+    designation: string;
+    nature?: 'CAPEX' | 'OPEX';
+    amount: number;
+}
+
+/**
+ * **Lire un tableau de budget** — la colonne du poste, celle du montant, et la ligne de total.
+ *
+ * **Le total d'abord** (09/10). Le montant se prenait dans la première colonne dont le nom
+ * contenait « prix », « total », « montant »… Sur le budget de Neemba — Prix unitaire,
+ * Quantité, Total —, c'était le **prix unitaire** : 21,9 millions lus pour un budget de 42,7,
+ * avec une confiance « élevée ». L'ordre est désormais : la colonne du total ; à défaut,
+ * prix × quantité ; à défaut, le prix seul ; à défaut, la colonne la plus chiffrée.
+ *
+ * La ligne de total du fichier — sans poste, ou nommée « Total » — n'entre pas : elle sert
+ * de preuve, et l'appelant la compare à la somme des lignes lues.
+ */
 const extractBudgetFromMatrix = (
     matrix: string[][],
     fallbackYearText: string,
-): { lines: ExtractedBudgetLine[]; year: string; parsed: boolean } => {
+): {
+    lines: ExtractedBudgetLine[];
+    lues: LigneDeBudgetLue[];
+    total?: number;
+    year: string;
+    parsed: boolean;
+} => {
     if (!matrix.length) {
-        return { lines: [], year: extractYearFromText(fallbackYearText), parsed: false };
+        return { lines: [], lues: [], year: extractYearFromText(fallbackYearText), parsed: false };
     }
 
     const headerRowIndex = findBestHeaderRow(matrix);
     const header = (matrix[headerRowIndex] || []).map(normalizeHeaderCell);
+    const colonne = (nom: RegExp, sauf?: RegExp) =>
+        header.findIndex((cell) => nom.test(cell) && !sauf?.test(cell));
 
-    const categoryIndex = header.findIndex((cell) =>
-        /categorie|category|poste|rubrique|designation/.test(cell),
-    );
-    const hintedAmountIndex = header.findIndex((cell) =>
-        /total|montant|amount|budget|allocated|alloue|valeur|cout|prix/.test(cell),
-    );
-    const yearIndex = header.findIndex((cell) => /annee|year|exercice/.test(cell));
+    const posteIndex = colonne(/categorie|category|poste|rubrique/);
+    const designationIndex = colonne(/designation|libelle|description|intitule|equipement|objet/);
+    const totalIndex = colonne(/total|montant|amount|budget|allocated|alloue/, /unitaire|unit\b/);
+    const prixIndex = colonne(/prix|unitaire|unit price|cout|valeur|tarif/);
+    const quantiteIndex = colonne(/quantite|qte|qty|quantity|nombre/);
+    const natureIndex = colonne(/opex|capex|nature|capitalisation/);
+    const yearIndex = colonne(/annee|year|exercice/);
 
+    const categoryIndex = posteIndex >= 0 ? posteIndex : designationIndex;
+    /* Aucun nom de colonne reconnu : pas d'en-tête, la première ligne est déjà une ligne. */
+    const sansEntete = categoryIndex < 0 && totalIndex < 0 && prixIndex < 0;
     const catIndex = categoryIndex >= 0 ? categoryIndex : 0;
-    const startRow = headerRowIndex + 1;
-    const amtIndex = findBestAmountColumn(matrix, startRow, catIndex, hintedAmountIndex);
+    const startRow = sansEntete ? 0 : headerRowIndex + 1;
+    const devineIndex =
+        totalIndex < 0 && prixIndex < 0 ? findBestAmountColumn(matrix, startRow, catIndex, -1) : -1;
 
-    const lines: ExtractedBudgetLine[] = [];
+    const nombre = (row: string[] | undefined, index: number): number => {
+        if (index < 0) return 0;
+        const valeur = lireMontant(row?.[index] || '');
+        return Number.isFinite(valeur) && valeur > 0 ? valeur : 0;
+    };
+
+    const lues: LigneDeBudgetLue[] = [];
+    let total: number | undefined;
     for (let i = startRow; i < matrix.length; i += 1) {
         const row = matrix[i];
         const category = normalizeCell(row?.[catIndex] || '');
-        const amount = parseNumericAmount(row?.[amtIndex] || '');
-        if (!category || !amount) continue;
-        lines.push({ category, amount });
+        let amount = nombre(row, totalIndex);
+        if (!amount) {
+            const prix = nombre(row, prixIndex);
+            const quantite = nombre(row, quantiteIndex);
+            amount = prix && quantite ? prix * quantite : prix;
+        }
+        if (!amount) amount = nombre(row, devineIndex);
+        if (!amount) continue;
+
+        if (!category || /^(grand[- ]?)?total\b/i.test(category)) {
+            total = Math.max(total ?? 0, amount);
+            continue;
+        }
+        if (/^sous[- ]?total/i.test(category)) continue;
+
+        const nature = natureIndex >= 0 ? normalizeHeaderCell(row?.[natureIndex] || '') : '';
+        lues.push({
+            category,
+            designation:
+                designationIndex >= 0 && designationIndex !== catIndex
+                    ? normalizeCell(row?.[designationIndex] || '')
+                    : '',
+            nature: /capex|invest/.test(nature)
+                ? 'CAPEX'
+                : /opex|fonction/.test(nature)
+                  ? 'OPEX'
+                  : undefined,
+            amount,
+        });
     }
 
     let detectedYear = extractYearFromText(fallbackYearText);
@@ -184,10 +255,95 @@ const extractBudgetFromMatrix = (
     }
 
     return {
-        lines,
+        lines: lues.map((ligne) => ({ category: ligne.category, amount: String(ligne.amount) })),
+        lues,
+        total,
         year: detectedYear,
-        parsed: lines.length > 0,
+        parsed: lues.length > 0,
     };
+};
+
+/** Les postes d'un budget, dans l'ordre où l'écran les propose. */
+const POSTES = [
+    'Matériel IT',
+    'Licences Logiciel',
+    'Cloud Infrastructure',
+    'Maintenance & Services',
+    'Consulting',
+    'Formation',
+    'Autre',
+] as const;
+
+/**
+ * **Le poste de l'application qu'une ligne du fichier désigne** (09/10).
+ *
+ * Une dépense s'impute à un poste par sa nature (`getBudgetCategoryByExpenseType`) : achat →
+ * « Matériel IT », licence → « Licences Logiciel », cloud → « Cloud Infrastructure », le reste →
+ * « Maintenance & Services ». Un budget importé avec les catégories du fichier —
+ * « Périphériques », « PC », « Réseau » — ne recevait donc jamais aucune dépense : quinze
+ * lignes à zéro, et chaque dépense hors poste. La ligne est rattachée au poste qui comptera ses
+ * dépenses, par sa catégorie **et** sa désignation : dans « Réseau », un point d'accès est du
+ * matériel, le lien Internet un service.
+ */
+const posteDe = (categorie: string, designation: string): string => {
+    const c = normalizeHeaderCell(categorie);
+    const exact = POSTES.find((poste) => normalizeHeaderCell(poste) === c);
+    if (exact) return exact;
+    const texte = `${c} ${normalizeHeaderCell(designation)}`;
+    if (/formation|training/.test(texte)) return 'Formation';
+    if (/\baudit|conseil|consult|\betudes?\b/.test(texte)) return 'Consulting';
+    if (/cloud|hebergement|hosting|saas|\baws\b|azure/.test(texte)) return 'Cloud Infrastructure';
+    if (/logiciel|licen[cs]e|software/.test(c)) return 'Licences Logiciel';
+    if (
+        /maintenance|contrat|entretien|forfait|lien internet|liaison|interconnexion|communication|support|prestation|infogerance|\bservices?\b/.test(
+            texte,
+        )
+    )
+        return 'Maintenance & Services';
+    if (/logiciel|licen[cs]e|software|abonnement|\berp\b|antivirus|antispam/.test(texte))
+        return 'Licences Logiciel';
+    if (
+        /\bpc\b|ordinateur|portable|peripherique|ecran|imprim|impression|tablette|telephon|mobile|serveur|reseau|infrastructure|materiel|accessoire|stockage|onduleur|switch|point d.?acces|borne|consommable|casque|souris|clavier/.test(
+            texte,
+        )
+    )
+        return 'Matériel IT';
+    return 'Autre';
+};
+
+const enChiffres = (montant: number) =>
+    Math.round(montant)
+        .toLocaleString('fr-FR')
+        .replace(/[\u202f\u00a0]/g, ' ');
+
+/**
+ * Une ligne par poste : la somme de ce que le fichier y range, et ce qu'elle regroupe. Un
+ * budget tient une ligne par poste — six lignes « Périphériques » n'en faisaient pas une.
+ */
+const regrouperParPoste = (lues: readonly LigneDeBudgetLue[]): ExtractedBudgetLine[] => {
+    const parPoste = new Map<string, LigneDeBudgetLue[]>();
+    for (const ligne of lues) {
+        const poste = posteDe(ligne.category, ligne.designation);
+        parPoste.set(poste, [...(parPoste.get(poste) ?? []), ligne]);
+    }
+    return POSTES.filter((poste) => parPoste.has(poste)).map((poste) => {
+        const lignes = parPoste.get(poste) ?? [];
+        const natures = new Set(lignes.map((ligne) => ligne.nature));
+        const noms = [...new Set(lignes.map((ligne) => ligne.designation || ligne.category))];
+        const seule =
+            lignes.length === 1 && normalizeHeaderCell(noms[0]) === normalizeHeaderCell(poste);
+        const [nature] = natures;
+        return {
+            category: poste,
+            amount: String(
+                Math.round(lignes.reduce((somme, l) => somme + l.amount, 0) * 100) / 100,
+            ),
+            capitalization: natures.size === 1 ? nature : undefined,
+            detail: seule
+                ? undefined
+                : `${lignes.length} ligne${lignes.length > 1 ? 's' : ''} du fichier : ${noms.slice(0, 4).join(', ')}${noms.length > 4 ? '…' : ''}`,
+        };
+    });
 };
 
 const extractBudgetFromCsvLike = (
@@ -206,32 +362,6 @@ const extractBudgetFromCsvLike = (
     const delimiter = detectDelimiter(rows[0]);
     const matrix = rows.map((row) => row.split(delimiter).map(normalizeCell));
     return extractBudgetFromMatrix(matrix, fallbackYearText);
-};
-
-const extractBudgetFromWorkbook = (
-    buffer: ArrayBuffer,
-    xlsx: XlsxModule,
-    fallbackYearText: string,
-): { lines: ExtractedBudgetLine[]; year: string; parsed: boolean } => {
-    const workbook = xlsx.read(buffer, { type: 'array' });
-    const sheetName = workbook.SheetNames[0];
-    if (!sheetName) {
-        return { lines: [], year: new Date().getFullYear().toString(), parsed: false };
-    }
-
-    const sheet = workbook.Sheets[sheetName];
-    const rows = xlsx.utils.sheet_to_json<Array<string | number>>(sheet, {
-        header: 1,
-        raw: false,
-        defval: '',
-    });
-
-    if (!rows.length) {
-        return { lines: [], year: new Date().getFullYear().toString(), parsed: false };
-    }
-
-    const normalizedRows = rows.map((row) => row.map((cell) => String(cell || '').trim()));
-    return extractBudgetFromMatrix(normalizedRows, fallbackYearText);
 };
 
 const isPdfBinaryNoise = (value: string): boolean => {
@@ -358,54 +488,51 @@ export const extractBudgetDraftFromFile = async (file: File): Promise<ExtractedB
     const warnings: string[] = [];
     const defaultYear = extractYearFromText(file.name);
 
-    if (extension === 'csv' || extension === 'txt') {
-        const rawText = await file.text();
-        const parsed = extractBudgetFromCsvLike(rawText, defaultYear);
-        if (!parsed.parsed) {
-            warnings.push('Aucune ligne exploitable détectée dans le fichier.');
-            return {
-                year: parsed.year || defaultYear,
-                lines: [],
-                confidence: 'low',
-                warnings,
-                source: 'text',
-            };
-        }
-
-        return {
-            year: parsed.year || defaultYear,
-            lines: parsed.lines,
-            confidence: parsed.lines.length >= 3 ? 'high' : 'medium',
-            warnings,
-            source: 'csv',
-        };
-    }
-
-    if (extension === 'xls' || extension === 'xlsx') {
+    /* CSV et Excel, lus comme les autres imports (`lib/tableur`) : encodage et séparateur
+       déduits, toutes les feuilles regardées. */
+    if (['csv', 'txt', 'xls', 'xlsx', 'xlsm', 'ods'].includes(extension)) {
+        const tableur = extension === 'csv' || extension === 'txt' ? 'csv' : 'text';
         try {
-            const xlsx = await loadXlsx();
-            const buffer = await file.arrayBuffer();
-            const parsed = extractBudgetFromWorkbook(buffer, xlsx, defaultYear);
-            if (!parsed.parsed) {
-                warnings.push('Aucune ligne exploitable détectée dans ce fichier Excel.');
+            const classeur = await lireClasseur(file);
+            /* La feuille qui porte le plus de lignes de budget — pas la première venue : un
+               classeur garde souvent une feuille de références à côté. */
+            let lue: ReturnType<typeof extractBudgetFromMatrix> | null = null;
+            for (const feuille of classeur.feuilles) {
+                const essai = extractBudgetFromMatrix(feuille.lignes, defaultYear);
+                if (!lue || essai.lues.length > lue.lues.length) lue = essai;
+            }
+
+            if (!lue || lue.lues.length === 0) {
+                warnings.push('Aucune ligne exploitable détectée dans le fichier.');
                 return {
-                    year: parsed.year || defaultYear,
+                    year: lue?.year || defaultYear,
                     lines: [],
                     confidence: 'low',
                     warnings,
-                    source: 'manual',
+                    source: tableur === 'csv' ? 'text' : 'manual',
                 };
             }
 
+            const lines = regrouperParPoste(lue.lues);
+            const somme = lue.lues.reduce((total, ligne) => total + ligne.amount, 0);
+            /* **La preuve par le total** : le fichier porte sa propre somme, on la compare. */
+            const ecart = lue.total !== undefined && Math.abs(lue.total - somme) > 0.5;
+            if (ecart && lue.total !== undefined) {
+                warnings.push(
+                    `Le total du fichier (${enChiffres(lue.total)}) diffère de la somme des lignes lues (${enChiffres(somme)}) : vérifiez les montants.`,
+                );
+            }
+            const n = lue.lues.length;
             return {
-                year: parsed.year || defaultYear,
-                lines: parsed.lines,
-                confidence: parsed.lines.length >= 3 ? 'high' : 'medium',
+                year: lue.year || defaultYear,
+                lines,
+                confidence: ecart ? 'medium' : n >= 3 ? 'high' : 'medium',
                 warnings,
-                source: 'text',
+                source: tableur,
+                summary: `${n} ligne${n > 1 ? 's' : ''} du fichier en ${lines.length} poste${lines.length > 1 ? 's' : ''} · total ${enChiffres(somme)}${lue.total !== undefined && !ecart ? ', égal à celui du fichier' : ''}`,
             };
         } catch {
-            warnings.push('Impossible de lire ce fichier Excel.');
+            warnings.push('Impossible de lire ce fichier.');
             return {
                 year: defaultYear,
                 lines: [],

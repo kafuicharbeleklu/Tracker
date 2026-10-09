@@ -157,7 +157,6 @@ interface HistoryPageProps {
      * Le renvoi du fait d'une demande vers la demande (08/10) — **le seul historique des
      * demandes** : la file des Tâches n'en garde plus.
      */
-    onOpenApproval?: (id: string) => void;
 }
 
 const HistoryPage: React.FC<HistoryPageProps> = ({
@@ -165,7 +164,6 @@ const HistoryPage: React.FC<HistoryPageProps> = ({
     scopeUserId,
     onOpenEquipment,
     onOpenUser,
-    onOpenApproval,
 }) => {
     const { events, equipment, approvals, users, settings } = useData();
     useJournalComplet();
@@ -419,16 +417,6 @@ const HistoryPage: React.FC<HistoryPageProps> = ({
         const actes: MenuItem[] = [
             { id: 'fait', label: 'Ouvrir le fait', onSelect: () => setOuvert(fait) },
         ];
-        if (
-            fait.targetType === 'APPROVAL' &&
-            onOpenApproval &&
-            registres.approvals.has(fait.targetId)
-        )
-            actes.push({
-                id: 'demande',
-                label: 'Ouvrir la demande',
-                onSelect: () => onOpenApproval(fait.targetId),
-            });
         const objet = fait.targetType === 'EQUIPMENT' && registres.equipment.get(fait.targetId);
         if (objet && onOpenEquipment)
             actes.push({
@@ -970,7 +958,6 @@ const HistoryPage: React.FC<HistoryPageProps> = ({
                                     onOpenEquipment={onOpenEquipment}
                                     canOpenUser={peutOuvrirLaPersonne}
                                     onOpenUser={onOpenUser}
-                                    onOpenApproval={onOpenApproval}
                                 />
                             ) : null}
                         </PanneauDeFiche>
@@ -1102,7 +1089,6 @@ const HistoryPage: React.FC<HistoryPageProps> = ({
                 onOpenEquipment={onOpenEquipment}
                 canOpenUser={peutOuvrirLaPersonne}
                 onOpenUser={onOpenUser}
-                onOpenApproval={onOpenApproval}
             />
         </>
     );

@@ -366,26 +366,46 @@ const DetailHero: React.FC<DetailHeroProps> = ({
                         actionsInline && 'col-end-3',
                     )}
                 >
-                    {metrics.map((metric, index) => (
-                        <div
-                            key={index}
-                            className={cn(
-                                /* `.hero .hk{padding:12px 14px}`, mais **`.hrow.three .hk`
+                    {metrics.map((metric, index) => {
+                        const forme = cn(
+                            /* `.hero .hk{padding:12px 14px}`, mais **`.hrow.three .hk`
                                retombe à `12px 10px`** : à trois de front sur 393 px,
                                14 d'intérieur laissent « réparation » se couper. */
-                                CASE_SOUPLE,
-                                'rounded-[4px] bg-white/[0.08] py-3',
-                                metrics.length >= 3 ? 'etroit:px-1.5 px-2.5' : 'px-3.5',
-                            )}
-                        >
-                            <span className="font-brand text-ts-sheet leading-ts-sheet block font-semibold tracking-[-0.015em] tabular-nums">
-                                {metric.value}
-                            </span>
-                            <span className="text-on-nav-surface-variant mt-0.5 block text-[0.75rem] leading-4">
-                                {metric.label}
-                            </span>
-                        </div>
-                    ))}
+                            CASE_SOUPLE,
+                            'rounded-[4px] bg-white/[0.08] py-3',
+                            metrics.length >= 3 ? 'etroit:px-1.5 px-2.5' : 'px-3.5',
+                        );
+                        const contenu = (
+                            <>
+                                <span className="font-brand text-ts-sheet leading-ts-sheet block font-semibold tracking-[-0.015em] tabular-nums">
+                                    {metric.value}
+                                </span>
+                                <span className="text-on-nav-surface-variant mt-0.5 block text-[0.75rem] leading-4">
+                                    {metric.label}
+                                </span>
+                            </>
+                        );
+                        /* **Une case qui porte un geste est un bouton** (09/10) : ce style
+                           ignorait `onClick`, que les deux autres honorent — « 72 actifs au
+                           parc » d'un type annonçait un renvoi et ne faisait rien. */
+                        return metric.onClick ? (
+                            <button
+                                key={index}
+                                type="button"
+                                onClick={metric.onClick}
+                                className={cn(
+                                    forme,
+                                    'cursor-pointer text-left hover:bg-white/[0.14]',
+                                )}
+                            >
+                                {contenu}
+                            </button>
+                        ) : (
+                            <div key={index} className={forme}>
+                                {contenu}
+                            </div>
+                        );
+                    })}
                 </div>
             )}
 

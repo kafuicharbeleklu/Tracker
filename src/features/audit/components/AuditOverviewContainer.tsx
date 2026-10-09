@@ -1,22 +1,20 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ViewType } from '../../../types';
 import { useToast } from '../../../context/ToastContext';
 import { useAppNavigation } from '../../../hooks/useAppNavigation';
 import { useData } from '../../../context/DataContext';
 import { useDebounce } from '../../../hooks/useDebounce';
-import { useMediaQuery } from '../../../hooks/useMediaQuery';
-import { MEDIA } from '../../../constants/breakpoints';
 import {
     ALL_VALUE,
-    buildRowKey,
     compareByProgress,
+    CountryAuditRow,
     placeLabel,
     PlaceAuditRow,
     STATUS_LABELS,
 } from '../placeAudit';
-import { rememberAuditScope } from '../../../lib/auditScope';
+import { rememberAuditScope, siteQuitteALInstant } from '../../../lib/auditScope';
 import { lireLaCampagne } from '../campagne';
-import { AuditOverview } from './AuditOverview';
+import { AuditOverview, type ChoixDuLieu } from './AuditOverview';
 
 interface AuditOverviewContainerProps {
     onViewChange?: (view: ViewType) => void;
@@ -69,19 +67,15 @@ const readString = (value: unknown): string => (typeof value === 'string' ? valu
 /**
  * **Le calcul de la vue globale de l'inventaire — il ne dessine plus rien.**
  *
- * Deux niveaux, un par écran (16.1) : les **sites** tant qu'aucun n'est ouvert, puis
- * les **locaux** du site ouvert. Le troisième niveau — les équipements et le scan — est
- * un autre écran (16.2), et la rangée y mène.
+ * Trois niveaux de lieux, **un seul écran** (09/10) : les **pays**, puis les **sites** du
+ * pays choisi, puis les **locaux** du site ouvert — les deux derniers dans une feuille au
+ * téléphone, dans le panneau au bureau. Le quatrième, les équipements et le scan, est un
+ * autre écran (16.2), et la rangée d'un local y mène.
  *
- * Le périmètre a **deux axes**, pas quatre : *« Pays, puis le statut : la liste est déjà
- * celle des sites. »* Le site ne se filtre plus, il s'ouvre ; et le service a été retiré
- * le 06/09 — il n'est pas un lieu et ne bornait rien qu'on puisse aller compter.
- *
- * **Au bureau (≥ 1280), les deux niveaux tiennent côte à côte** (16.1, colonne bureau) :
- * les sites restent à gauche pendant qu'on lit le site choisi à droite. Le calcul en tire
- * deux conséquences — la liste des sites est filtrée **en permanence**, et non plus
- * seulement quand aucun site n'est ouvert ; et les chiffres du parc (la bande) se
- * calculent à part de ceux du site choisi.
+ * Avant, le premier niveau était la liste des sites, le pays un filtre, et au téléphone les
+ * locaux remplaçaient la liste. Le périmètre n'a plus qu'**un axe à filtrer**, le statut :
+ * le pays se choisit, il ne se filtre plus ; et le service a été retiré le 06/09 — il n'est
+ * pas un lieu et ne bornait rien qu'on puisse aller compter.
  */
 export const AuditOverviewContainer: React.FC<AuditOverviewContainerProps> = ({
     onViewChange,
@@ -92,27 +86,26 @@ export const AuditOverviewContainer: React.FC<AuditOverviewContainerProps> = ({
     const { locationData, equipment, events, settings } = useData();
 
     const [searchQuery, setSearchQuery] = useState('');
-    const [selectedCountry, setSelectedCountry] = useState<string>(ALL_VALUE);
     const [selectedStatus, setSelectedStatus] = useState<string>(ALL_VALUE);
-    const [selectedRowKey, setSelectedRowKey] = useState<string | null>(null);
     /**
-     * **Le site ouvert** — le second niveau de 16.1. *« Trois niveaux, un par écran :
-     * le site, puis ses locaux, puis les équipements et le scan (16.2). Pas d'onglets :
-     * chaque niveau est une liste, le suivant s'ouvre depuis la rangée. »*
+     * **Le choix du lieu** (09/10) — un pays, puis un site, puis un local. Le pays n'est
+     * plus un filtre : c'est le premier niveau. Le choix se fait dans une feuille au
+     * téléphone, dans le panneau au bureau ; la liste reste derrière.
      */
-    const [openedSite, setOpenedSite] = useState<{ country: string; site: string } | null>(null);
+    const [chosenCountry, setChosenCountry] = useState<string | null>(
+        /* Au retour d'une campagne, le choix se rouvre sur le site qu'on vient de compter :
+           le local suivant est à un geste. */
+        () => siteQuitteALInstant()?.country ?? null,
+    );
+    /**
+     * **Le site ouvert** dans le choix — *« on choisit le site, la feuille s'actualise vers
+     * les locaux »*.
+     */
+    const [openedSite, setOpenedSite] = useState<{ country: string; site: string } | null>(
+        siteQuitteALInstant,
+    );
 
     const debouncedSearch = useDebounce(searchQuery, 250);
-    /* Les deux niveaux côte à côte : cela change ce qu'on calcule, pas seulement ce
-       qu'on dessine. */
-    const enDeuxNiveaux = useMediaQuery(MEDIA.twoColumn);
-
-    useEffect(() => {
-        if (selectedCountry === ALL_VALUE) return;
-        if (!locationData.countries.includes(selectedCountry)) {
-            setSelectedCountry(ALL_VALUE);
-        }
-    }, [locationData.countries, selectedCountry]);
 
     /**
      * **Les lieux à compter viennent des objets, pas du seul référentiel.** *« Tout
@@ -140,14 +133,6 @@ export const AuditOverviewContainer: React.FC<AuditOverviewContainerProps> = ({
             sites: Array.from(sites).sort((a, b) => a.localeCompare(b, 'fr')),
         }));
     }, [equipment, locationData.countries, locationData.sites]);
-
-    const countryOptions = useMemo(
-        () => [
-            { value: ALL_VALUE, label: 'Tous' },
-            ...paysEtSites.map(({ country }) => ({ value: country, label: country })),
-        ],
-        [paysEtSites],
-    );
 
     const auditEvents = useMemo(() => {
         return events
@@ -382,27 +367,13 @@ export const AuditOverviewContainer: React.FC<AuditOverviewContainerProps> = ({
         }));
     }, [morceauxDuSite, openedSite]);
 
-    const allRows = openedSite ? localRows : siteRows;
-
-    /** Le périmètre ne s'applique qu'au premier niveau : le second **est** un site. */
-    const sitesDuPerimetre = useMemo(
-        () =>
-            siteRows.filter(
-                (row) => selectedCountry === ALL_VALUE || row.country === selectedCountry,
-            ),
-        [selectedCountry, siteRows],
-    );
-
-    const scopedRows = openedSite ? localRows : sitesDuPerimetre;
-
     /**
-     * Les sites retenus — périmètre, statut, recherche —, **calculés en permanence**.
-     * Au téléphone ils ne servent qu'au premier niveau ; au bureau ils restent à gauche
-     * pendant qu'on lit le site choisi à droite.
+     * Les sites retenus — statut, recherche —, **calculés en permanence** : ils font les
+     * pays du premier niveau, les sites du pays choisi, et la liste à plat d'une recherche.
      */
     const sitesAffiches = useMemo(() => {
         const query = debouncedSearch.trim().toLowerCase();
-        const retenues = sitesDuPerimetre.filter((row) => {
+        const retenues = siteRows.filter((row) => {
             const matchesStatus = selectedStatus === ALL_VALUE || row.status === selectedStatus;
             const matchesSearch =
                 query.length === 0 ||
@@ -414,48 +385,61 @@ export const AuditOverviewContainer: React.FC<AuditOverviewContainerProps> = ({
             return matchesStatus && matchesSearch;
         });
         return [...retenues].sort(compareByProgress);
-    }, [debouncedSearch, locauxDuSite, selectedStatus, sitesDuPerimetre]);
-
-    const displayedRows = useMemo(
-        () => (openedSite ? [...localRows].sort(compareByProgress) : sitesAffiches),
-        [localRows, openedSite, sitesAffiches],
-    );
-
-    useEffect(() => {
-        if (!selectedRowKey) return;
-        if (!displayedRows.some((row) => buildRowKey(row) === selectedRowKey)) {
-            setSelectedRowKey(null);
-        }
-    }, [displayedRows, selectedRowKey]);
+    }, [debouncedSearch, locauxDuSite, selectedStatus, siteRows]);
 
     /**
-     * Le héro compte **la portée**, pas la liste filtrée : au premier niveau tout le
-     * parc retenu par le pays, au second le site ouvert dans son entier — locaux
-     * compris, et y compris ce qui n'est dans aucun.
+     * **Ce que liste le premier niveau.** Les pays — sauf dans deux cas où ils ne feraient
+     * que coûter un geste : **un seul pays** au référentiel (la liste n'aurait qu'une
+     * ligne), et **une recherche** (qui tape « Lomé » veut Lomé, pas Togo puis Lomé). La
+     * liste est alors celle des sites, à plat.
      */
-    const totals = useMemo(
-        () => totauxDe(openedSite ? localRows : scopedRows),
-        [localRows, openedSite, scopedRows],
-    );
+    const niveau: 'pays' | 'sites' =
+        paysEtSites.length <= 1 || debouncedSearch.trim().length > 0 ? 'sites' : 'pays';
+
+    /** Premier niveau : une rangée par pays, ses sites agrégés. */
+    const countryRows = useMemo<CountryAuditRow[]>(() => {
+        const parPays = new Map<string, PlaceAuditRow[]>();
+        sitesAffiches.forEach((row) =>
+            parPays.set(row.country, [...(parPays.get(row.country) ?? []), row]),
+        );
+        const commeLieu = (row: CountryAuditRow): PlaceAuditRow => ({ ...row, site: row.country });
+        return [...parPays.entries()]
+            .map(([country, sites]) => ({
+                country,
+                siteCount: sites.length,
+                localCount: sites.reduce((somme, row) => somme + (row.localCount ?? 0), 0),
+                ...agreger(sites),
+            }))
+            .sort((a, b) => compareByProgress(commeLieu(a), commeLieu(b)));
+    }, [agreger, sitesAffiches]);
 
     /**
-     * Les chiffres du **parc retenu** — la bande du bureau. Ils ne bougent pas quand on
-     * choisit un site : la bande dit où l'on en est, le panneau dit ce qu'on regarde.
+     * **Le choix en cours**, tel que la feuille ou le panneau le montre : les sites du pays
+     * choisi, puis les locaux du site ouvert, avec leurs chiffres.
      */
-    const totalsParc = useMemo(() => totauxDe(sitesDuPerimetre), [sitesDuPerimetre]);
+    const choix = useMemo<ChoixDuLieu | null>(() => {
+        if (!chosenCountry) return null;
+        const sites = sitesAffiches.filter((row) => row.country === chosenCountry);
+        const ouvert = openedSite && openedSite.country === chosenCountry ? openedSite.site : null;
+        const locaux = ouvert ? [...localRows].sort(compareByProgress) : [];
+        return {
+            pays: chosenCountry,
+            site: ouvert,
+            sites,
+            locaux,
+            totaux: totauxDe(ouvert ? localRows : sites),
+            /* La rangée « hors local » n'est pas un local. */
+            locauxComptes: ouvert
+                ? localRows.filter((row) => Boolean(row.local)).length
+                : sites.reduce((somme, row) => somme + (row.localCount ?? 0), 0),
+            /* Un pays à un seul site n'a pas de niveau « sites » où revenir ; une liste à
+               plat non plus. */
+            retourAuxSites: niveau === 'pays' && sites.length > 1,
+        };
+    }, [chosenCountry, localRows, niveau, openedSite, sitesAffiches]);
 
-    /**
-     * Combien de locaux la portée compte — la tuile du héro. Au premier niveau c'est la
-     * somme des locaux des sites retenus ; au second, les locaux du site ouvert, sans
-     * compter la rangée « hors local », qui n'en est pas un.
-     */
-    const scopedLocalCount = useMemo(
-        () =>
-            openedSite
-                ? scopedRows.filter((row) => Boolean(row.local)).length
-                : scopedRows.reduce((sum, row) => sum + (row.localCount ?? 0), 0),
-        [openedSite, scopedRows],
-    );
+    /** Le héro et la bande comptent **le parc**, quel que soit le choix en cours. */
+    const totals = useMemo(() => totauxDe(siteRows), [siteRows]);
 
     /**
      * Les actifs qu'aucun **site** ne situe : ils n'entrent dans aucune campagne, et la
@@ -472,25 +456,18 @@ export const AuditOverviewContainer: React.FC<AuditOverviewContainerProps> = ({
      * qui ne dit pas combien il reste après lui se choisit à l'aveugle »*. Le pays
      * compte sur tout le référentiel, le statut sur la portée que le pays laisse.
      */
-    const scopeOptions = useMemo(() => {
-        const withCount = (
-            base: PlaceAuditRow[],
-            options: { value: string; label: string }[],
-            match: (row: PlaceAuditRow, value: string) => boolean,
-        ) =>
-            options.map((option) => ({
+    const scopeOptions = useMemo(
+        () => ({
+            status: STATUS_OPTIONS.map((option) => ({
                 ...option,
                 count:
                     option.value === ALL_VALUE
-                        ? base.length
-                        : base.filter((row) => match(row, option.value)).length,
-            }));
-
-        return {
-            country: withCount(siteRows, countryOptions, (row, value) => row.country === value),
-            status: withCount(scopedRows, STATUS_OPTIONS, (row, value) => row.status === value),
-        };
-    }, [countryOptions, scopedRows, siteRows]);
+                        ? siteRows.length
+                        : siteRows.filter((row) => row.status === option.value).length,
+            })),
+        }),
+        [siteRows],
+    );
 
     const persistScopePreference = (row: PlaceAuditRow) =>
         rememberAuditScope({
@@ -510,26 +487,42 @@ export const AuditOverviewContainer: React.FC<AuditOverviewContainerProps> = ({
     };
 
     /**
+     * **Un pays s'ouvre sur ses sites** — et **jamais sur un choix à une seule réponse** :
+     * un pays qui n'a qu'un site ouvre directement ses locaux, et si ce site n'a pas de
+     * local, le comptage. Quatre des cinq pays du jeu d'essai n'ont qu'un site : leur
+     * faire choisir « Cotonou » parmi « Cotonou » serait un geste pour rien.
+     */
+    const chooseCountry = (country: string) => {
+        const sites = sitesAffiches.filter((row) => row.country === country);
+        if (sites.length === 1) {
+            const seul = sites[0];
+            if ((seul.localCount ?? 0) > 0) {
+                setChosenCountry(country);
+                setOpenedSite({ country, site: seul.site });
+            } else openAuditDetails(seul);
+            return;
+        }
+        setChosenCountry(country);
+        setOpenedSite(null);
+    };
+
+    /**
      * **La rangée ouvre le niveau suivant** (16.1). Un site qui a des locaux ouvre ses
      * locaux ; un site qui n'en a pas — comme un local, comme le reste d'un site — ouvre
-     * le comptage. C'est le seul endroit où les deux niveaux se distinguent.
+     * le comptage.
      */
     const handleOpenPlace = (row: PlaceAuditRow) => {
         if (!row.local && !row.horsLocal && (row.localCount ?? 0) > 0) {
+            setChosenCountry(row.country);
             setOpenedSite({ country: row.country, site: row.site });
-            /* Au téléphone, ouvrir un site remplace la liste : la recherche qui avait
-               servi à le trouver ne veut plus rien dire au niveau des locaux. Au bureau
-               les deux niveaux coexistent — l'effacer viderait la liste de gauche de son
-               filtre au moment même où l'on désigne une rangée. */
-            if (!enDeuxNiveaux) setSearchQuery('');
             return;
         }
         openAuditDetails(row);
     };
 
-    const closeSite = () => {
+    const closeChoix = () => {
+        setChosenCountry(null);
         setOpenedSite(null);
-        if (!enDeuxNiveaux) setSearchQuery('');
     };
 
     /**
@@ -538,7 +531,6 @@ export const AuditOverviewContainer: React.FC<AuditOverviewContainerProps> = ({
      * manquer et il n'y a pas de garde « sélectionnez d'abord » à écrire.
      */
     const startAuditForRow = (row: PlaceAuditRow) => {
-        setSelectedRowKey(buildRowKey(row));
         showToast(
             `Campagne lancée sur ${row.local ? `${row.local} (${row.site})` : placeLabel(row)}.`,
             'success',
@@ -546,13 +538,7 @@ export const AuditOverviewContainer: React.FC<AuditOverviewContainerProps> = ({
         openAuditDetails(row);
     };
 
-    const setFilterValue = (key: 'country' | 'status', value: string) => {
-        if (key === 'country') setSelectedCountry(value);
-        else setSelectedStatus(value);
-    };
-
     const resetFilters = () => {
-        setSelectedCountry(ALL_VALUE);
         setSelectedStatus(ALL_VALUE);
         setSearchQuery('');
     };
@@ -560,24 +546,24 @@ export const AuditOverviewContainer: React.FC<AuditOverviewContainerProps> = ({
     return (
         <AuditOverview
             onLeave={onLeave}
-            rows={displayedRows}
+            niveau={niveau}
+            countries={countryRows}
             sites={sitesAffiches}
-            totalsParc={totalsParc}
-            scopedPlaceCount={scopedRows.length}
-            scopedLocalCount={scopedLocalCount}
+            choix={choix}
             totals={totals}
-            openedSite={openedSite}
-            onCloseSite={closeSite}
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
-            filters={{ country: selectedCountry, status: selectedStatus }}
+            filters={{ status: selectedStatus }}
             filterOptions={scopeOptions}
-            onFilterChange={setFilterValue}
+            onFilterChange={(_key, value) => setSelectedStatus(value)}
             onResetFilters={resetFilters}
+            onChooseCountry={chooseCountry}
             onOpenPlace={handleOpenPlace}
             onStartPlace={startAuditForRow}
+            onBackToSites={() => setOpenedSite(null)}
+            onCloseChoix={closeChoix}
             unscopedAssets={unscopedAssets}
-            totalRowCount={allRows.length}
+            totalSiteCount={siteRows.length}
         />
     );
 };

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 
 import ScanView, { type ScanHit } from '../../../components/ui/ScanView';
+import { codeDeLaLecture, codeProche, trouverParCode } from '../../../lib/lectureDeCode';
 import type { Equipment } from '../../../types';
 
 /**
@@ -8,8 +9,8 @@ import type { Equipment } from '../../../types';
  * *« Recherche et scan sur une ligne. »* On cherche par le nom quand on a la liste sous
  * les yeux, on scanne quand on a l'objet dans les mains.
  *
- * La vue **ne décode rien** (17.3) : elle recueille un code, saisi à la main tant qu'il
- * n'y a pas de caméra, et l'appelant dit ce que ce code désigne. Un objet qui n'est pas
+ * La vue recueille un code — lu par la caméra, ou saisi à la main (09/10) — et l'appelant
+ * dit ce que ce code désigne. Un objet qui n'est pas
  * dans la liste des éligibles est **une lecture, pas un choix** : le viseur le nomme et
  * dit pourquoi il ne peut pas être pris, au lieu d'ouvrir un acte impossible.
  */
@@ -31,14 +32,18 @@ const ActScanOverlay: React.FC<ActScanOverlayProps> = ({
 }) => {
     const [hit, setHit] = useState<ScanHit | null>(null);
 
-    const trouver = (code: string): Equipment | undefined => {
-        const cle = code.trim().toLowerCase();
-        return eligibles.find(
-            (item) =>
-                item.assetId.toLowerCase() === cle ||
-                item.serialNumber?.toLowerCase() === cle ||
-                item.name.toLowerCase() === cle,
-        );
+    const trouver = (code: string): Equipment | undefined => trouverParCode(eligibles, code);
+
+    const lire = (code: string) => {
+        const trouve = trouver(code);
+        setHit({
+            id: `scan_${Date.now()}`,
+            code: codeDeLaLecture(code),
+            detail: trouve
+                ? `${trouve.name} · ${trouve.model}`
+                : 'Aucun équipement de cette liste ne porte ce code',
+            kind: trouve ? 'expected' : 'exception',
+        });
     };
 
     return (
@@ -56,17 +61,9 @@ const ActScanOverlay: React.FC<ActScanOverlayProps> = ({
                     if (trouve) onPick(trouve.id);
                 }}
                 onRetry={() => setHit(null)}
-                onManualSubmit={(code) => {
-                    const trouve = trouver(code);
-                    setHit({
-                        id: `scan_${Date.now()}`,
-                        code,
-                        detail: trouve
-                            ? `${trouve.name} · ${trouve.model}`
-                            : 'Aucun équipement de cette liste ne porte ce code',
-                        kind: trouve ? 'expected' : 'exception',
-                    });
-                }}
+                onLecture={lire}
+                reconnaitre={(code) => codeProche(eligibles, code)}
+                onManualSubmit={lire}
             />
         </div>
     );

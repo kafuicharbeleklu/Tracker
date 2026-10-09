@@ -34,6 +34,7 @@ import { AddExpenseModal } from '../components/AddExpenseModal';
 import ExpenseDetailSheet from '../components/ExpenseDetailSheet';
 import ExpenseEditModal from '../components/ExpenseEditModal';
 import ListeDesDepenses, { type MoisDuJournal } from '../components/ListeDesDepenses';
+import FeuilleDesExercices from '../components/FeuilleDesExercices';
 import PanneauDeDepense from '../components/PanneauDeDepense';
 import { useBudgetExercise } from '../hooks/useBudgetExercise';
 import { useExpenseActions } from '../hooks/useExpenseActions';
@@ -360,6 +361,8 @@ const ExpenseJournalPage: React.FC<ExpenseJournalPageProps> = ({ onBack }) => {
         else setSelectedExpenseId(exp.id);
     };
 
+    /** « Tous les exercices » — la feuille de Finances, ouverte ici (09/10). */
+    const [exercicesOuverts, setExercicesOuverts] = useState(false);
     const changerDExercice = (annee: number) => {
         setExerciseYear(annee);
         fermeeExpres.current = false;
@@ -572,7 +575,6 @@ const ExpenseJournalPage: React.FC<ExpenseJournalPageProps> = ({ onBack }) => {
                 title="Dépenses"
                 onBack={onBack}
                 /* Le journal est une sous-page de Finances : sa flèche vaut aussi au bureau. */
-                retourAuBureau
                 backLabel="Retour aux finances"
                 search={{
                     value: recherche,
@@ -601,9 +603,7 @@ const ExpenseJournalPage: React.FC<ExpenseJournalPageProps> = ({ onBack }) => {
                                     id: 'exercices',
                                     label: 'Tous les exercices',
                                     dividerBefore: true,
-                                    onSelect: () => {
-                                        window.location.hash = '/finance/exercices';
-                                    },
+                                    onSelect: () => setExercicesOuverts(true),
                                 },
                             ]}
                             trigger={
@@ -959,7 +959,7 @@ const ExpenseJournalPage: React.FC<ExpenseJournalPageProps> = ({ onBack }) => {
 
                     <div
                         data-pied
-                        className="border-outline-variant -mx-5 mt-4 duo-de-pied gap-3 border-t px-5 pt-4 pb-1"
+                        className="border-outline-variant duo-de-pied -mx-5 mt-4 gap-3 border-t px-5 pt-4 pb-1"
                     >
                         <Button
                             variant="tonal"
@@ -981,6 +981,13 @@ const ExpenseJournalPage: React.FC<ExpenseJournalPageProps> = ({ onBack }) => {
                     </div>
                 </div>
             </BottomSheet>
+
+            <FeuilleDesExercices
+                open={exercicesOuverts}
+                onClose={() => setExercicesOuverts(false)}
+                anneeAffichee={exerciseYear}
+                onChoisir={changerDExercice}
+            />
         </>
     );
 };

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Check, Hourglass, User, X, type Icon as PhosphorGlyph } from '@phosphor-icons/react';
 
+import BadgeDAttestation from './BadgeDAttestation';
 import Icon from './Icon';
 import { cn } from '../../lib/utils';
 
@@ -28,8 +29,14 @@ export type TrailState = 'done' | 'wait' | 'late' | 'fail';
 export interface TrailStep {
     /** Ce que la partie atteste — « Clara Admin atteste avoir remis ». */
     title: React.ReactNode;
-    /** Quand, et par quelle méthode : « lundi 09:42 · code PIN ». */
+    /** Quand, et ce qui s'y ajoute : « lundi 09:42 ». */
     detail?: React.ReactNode;
+    /**
+     * **Par quoi l'étape a été attestée** (09/10) — le code de la méthode (`pin`,
+     * `signature`, `pin+signature`) : un badge à icône le dit à côté de l'heure, à la place
+     * des mots « code PIN, signature apposée » et de la note qui suivait le parcours.
+     */
+    attestation?: string;
     state: TrailState;
     /**
      * Le glyphe de l'étape, quand l'état ne suffit pas à le dire : le parcours d'une
@@ -83,9 +90,10 @@ const HandoverTrail: React.FC<{ steps: TrailStep[]; className?: string }> = ({
                     >
                         {step.title}
                     </span>
-                    {step.detail && (
-                        <span className="text-on-surface-variant text-ts-sub leading-ts-sub block">
-                            {step.detail}
+                    {(step.detail || step.attestation) && (
+                        <span className="text-on-surface-variant text-ts-sub leading-ts-sub flex flex-wrap items-center gap-x-2 gap-y-1">
+                            {step.detail && <span>{step.detail}</span>}
+                            <BadgeDAttestation methode={step.attestation} />
                         </span>
                     )}
                 </span>

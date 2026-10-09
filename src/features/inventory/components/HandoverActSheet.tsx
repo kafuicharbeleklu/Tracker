@@ -163,8 +163,20 @@ const HandoverActSheet: React.FC<HandoverActSheetProps> = ({
         [equipment],
     );
 
-    /** Ce qui peut être remis, l'objet réclamé par une demande en tête. */
+    /**
+     * Ce qui peut être remis, l'objet réclamé par une demande en tête. **Le choix se fait ici**
+     * (08/10) — le panneau de la file proposait trois unités, retirées du détail : la feuille
+     * reprend son ordre. La catégorie demandée, puis le site de qui reçoit (à défaut, celui de
+     * qui remet), le modèle demandé, et la plus récente.
+     */
     const objetsDisponibles = useMemo<ActChoice[]>(() => {
+        const site = destinataire?.site || adminUser?.site;
+        const achat = (item: Equipment) => {
+            const t = item.financial?.purchaseDate
+                ? new Date(item.financial.purchaseDate).getTime()
+                : Number.NaN;
+            return Number.isNaN(t) ? 0 : t;
+        };
         const reclames = new Map<string, string>();
         for (const approval of approvals) {
             if (approval.assignedEquipmentId && approval.beneficiaryName) {
@@ -175,7 +187,12 @@ const HandoverActSheet: React.FC<HandoverActSheetProps> = ({
         return eligibles
             .map((item) => {
                 const reclamePar = reclames.get(item.id);
-                const memeSite = Boolean(adminUser?.site) && item.site === adminUser?.site;
+                const rang = [
+                    Boolean(reclamePar),
+                    Boolean(categorieSuggeree) && item.type === categorieSuggeree,
+                    Boolean(site) && item.site === site,
+                    Boolean(demande?.equipmentModel) && item.model === demande?.equipmentModel,
+                ].map(Number);
                 return {
                     id: item.id,
                     vignette: <Icon glyph={Laptop} size={20} />,
@@ -194,12 +211,25 @@ const HandoverActSheet: React.FC<HandoverActSheetProps> = ({
                         .filter(Boolean)
                         .join(' · '),
                     searchText: `${item.assetId} ${item.name} ${item.model} ${item.type}`,
-                    memeSite,
+                    rang,
+                    achat: achat(item),
                 };
             })
-            .sort((a, b) => Number(b.memeSite) - Number(a.memeSite))
-            .map(({ memeSite: _memeSite, ...choix }) => choix);
-    }, [eligibles, approvals, adminUser?.site, categorieSuggeree]);
+            .sort((a, b) => {
+                for (let i = 0; i < a.rang.length; i += 1) {
+                    if (a.rang[i] !== b.rang[i]) return b.rang[i] - a.rang[i];
+                }
+                return b.achat - a.achat;
+            })
+            .map(({ rang: _rang, achat: _achat, ...choix }) => choix);
+    }, [
+        eligibles,
+        approvals,
+        adminUser?.site,
+        destinataire?.site,
+        categorieSuggeree,
+        demande?.equipmentModel,
+    ]);
 
     /** Qui peut recevoir : un compte en service, jamais un compte suspendu ni en attente. */
     const beneficiairesPossibles = useMemo<ActChoice[]>(

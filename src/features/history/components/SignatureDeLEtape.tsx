@@ -15,9 +15,12 @@ import { lire } from '../lib/journal';
  * nouvelle sous un fait plus ancien ferait attester à quelqu'un un trait qu'il n'a pas
  * apposé. Une signature tracée à la main n'est pas gardée.
  *
- * **Ce qui ne se montre pas se dit** (08/10) : la case restait vide, et on ne savait pas
- * si une signature avait été donnée. Elle nomme maintenant la preuve, et pourquoi l'image
- * manque.
+ * **Ce qui ne se montre pas ne se commente plus** (09/10). Depuis le 08/10, la case sans
+ * image portait deux phrases — *« Signature tracée par… ; l'image n'est pas conservée »*,
+ * *« L'image ne se relit que sur l'appareil où elle a été enregistrée »*. Le commanditaire
+ * les a fait retirer : elles surchargeaient chaque parcours. La preuve se dit d'un badge sur
+ * l'étape (`BadgeDAttestation`, dans le fil) ; ici il ne reste que l'image, quand elle se
+ * relit.
  */
 const SignatureDeLEtape: React.FC<{ evenement: HistoryEvent; signataire: string }> = ({
     evenement,
@@ -49,35 +52,19 @@ const SignatureDeLEtape: React.FC<{ evenement: HistoryEvent; signataire: string 
         };
     }, [evenement, methode]);
 
-    if (methode !== 'pin+signature' && methode !== 'signature') return null;
-
-    if (image)
-        return (
-            <div className="bg-tint-vert text-on-tint-vert text-ts-sub leading-ts-sub relative flex h-[120px] flex-col items-center justify-center rounded-[4px]">
-                <span className="absolute top-3 right-3 text-[0.75rem] leading-4">
-                    apposée · code PIN
-                </span>
-                <img
-                    src={image}
-                    alt={`Signature de ${signataire}`}
-                    className="absolute top-[26px] left-1/2 h-14 w-[150px] -translate-x-1/2 object-contain"
-                />
-                <span className="absolute bottom-2.5">{signataire}</span>
-            </div>
-        );
+    if (!image) return null;
 
     return (
-        <div className="bg-surface-container text-on-surface-variant text-ts-sub leading-ts-sub flex flex-col gap-0.5 rounded-[4px] px-4 py-3">
-            <span className="text-on-surface font-medium">
-                {methode === 'signature'
-                    ? `Signature tracée par ${signataire}`
-                    : `Signature enregistrée de ${signataire}, apposée par son code`}
+        <div className="bg-tint-vert text-on-tint-vert text-ts-sub leading-ts-sub relative flex h-[120px] flex-col items-center justify-center rounded-[4px]">
+            <span className="absolute top-3 right-3 text-[0.75rem] leading-4">
+                apposée · code PIN
             </span>
-            <span>
-                {methode === 'signature'
-                    ? 'Tracée sur l’appareil au moment de l’acte ; l’image n’est pas conservée.'
-                    : 'L’image ne se relit que sur l’appareil où elle a été enregistrée.'}
-            </span>
+            <img
+                src={image}
+                alt={`Signature de ${signataire}`}
+                className="absolute top-[26px] left-1/2 h-14 w-[150px] -translate-x-1/2 object-contain"
+            />
+            <span className="absolute bottom-2.5">{signataire}</span>
         </div>
     );
 };

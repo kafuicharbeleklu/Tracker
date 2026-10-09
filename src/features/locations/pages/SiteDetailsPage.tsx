@@ -17,7 +17,6 @@ import {
 import DetailTemplate from '../../../components/layout/DetailTemplate';
 import BottomSheet from '../../../components/ui/BottomSheet';
 import FactRow from '../../../components/ui/FactRow';
-import ListeBornee from '../../../components/ui/ListeBornee';
 import { Consequences, FormNote } from '../../../components/ui/FormParts';
 import Button from '../../../components/ui/Button';
 import Icon from '../../../components/ui/Icon';
@@ -34,6 +33,16 @@ import { remplacerAdresseCourante } from '../../../lib/cheminParcouru';
 import Menu from '../../../components/ui/Menu';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { MEDIA } from '../../../constants/breakpoints';
+import {
+    FeuilleAjoutLocal,
+    LOCAUX_SUR_LA_FICHE,
+    PiedDesLocaux,
+    RangeesDeLocaux,
+    TUILES_SUR_LA_FICHE,
+    TuilesDeLocaux,
+    useLocauxDuSite,
+} from '../components/LocauxDuSite';
+import { adresseDuLocal } from '../../../lib/perimetreDuParc';
 
 interface SiteDetailsPageProps {
     siteName: string;
@@ -97,15 +106,13 @@ const SiteDetailsPage: React.FC<SiteDetailsPageProps> = ({
 }) => {
     /* Les locaux en tuiles quand la fiche a ses deux colonnes (≥ 1280). */
     const enGrille = useMediaQuery(MEDIA.twoColumn);
-    const { locationData, equipment, users, addLocation, renameLocation, deleteLocation } =
-        useData();
+    const { locationData, equipment, users, renameLocation, deleteLocation } = useData();
     const { showToast } = useToast();
     const { requestConfirmation } = useConfirmation();
 
     const [isRenameOpen, setIsRenameOpen] = useState(false);
     const [renameValue, setRenameValue] = useState(siteName);
     const [isAddLocalOpen, setIsAddLocalOpen] = useState(false);
-    const [localName, setLocalName] = useState('');
 
     const country = useMemo(
         () =>
@@ -127,6 +134,10 @@ const SiteDetailsPage: React.FC<SiteDetailsPageProps> = ({
         () => (locationData.locals[siteName] || []) as string[],
         [locationData.locals, siteName],
     );
+    /* Les locaux, leurs rangées et leurs gestes — partagés avec leur page (08/10). */
+    const { rangees, supprimerLocal } = useLocauxDuSite(siteName);
+    const versLesLocaux = () =>
+        onNavigate(`/locations/site/${encodeURIComponent(siteName)}/locaux`);
 
     /* Le code que porte l'étiquette du héro et la rangée « Code pays » : celui du
        **pays**, relevé sur les identifiants d'actifs. La planche d'août le lisait
@@ -175,18 +186,6 @@ const SiteDetailsPage: React.FC<SiteDetailsPageProps> = ({
         /* La fiche suit le nouveau nom : l'adresse portait l'ancien. */
         remplacerAdresseCourante(`/locations/site/${encodeURIComponent(next)}`);
         onNavigate(`/locations/site/${encodeURIComponent(next)}`);
-    };
-
-    const submitLocal = () => {
-        const next = localName.trim();
-        if (!next) return;
-        if (!addLocation('local', next, siteName)) {
-            showToast(`« ${next} » existe déjà dans ce site.`, 'error');
-            return;
-        }
-        showToast(`Local « ${next} » ajouté.`, 'success');
-        setLocalName('');
-        setIsAddLocalOpen(false);
     };
 
     /**
@@ -292,7 +291,13 @@ const SiteDetailsPage: React.FC<SiteDetailsPageProps> = ({
                    que 71 à 393 — le chevron était rogné, puis le mot coupé. Trois cases
                    prennent 10 d'intérieur (`.hrow.three .hk`), 6 et une gouttière de 8 sur
                    un téléphone étroit ; à 320 la troisième passe dessous. */
-                <div className={cn(RANGEE_SOUPLE, 'mt-5 gap-3', relays.length >= 3 && 'etroit:gap-2')}>
+                <div
+                    className={cn(
+                        RANGEE_SOUPLE,
+                        'mt-5 gap-3',
+                        relays.length >= 3 && 'etroit:gap-2',
+                    )}
+                >
                     {relays.map((relay) => (
                         /* La case passe par la primitive `Button`, jamais par un contrôle
                            natif : `check-ds-compliance` les refuse hors de
@@ -352,19 +357,6 @@ const SiteDetailsPage: React.FC<SiteDetailsPageProps> = ({
 
     /** `.ch` — le titre d'une carte, 17/24 en graisse moyenne, et son décompte. */
     /** Supprimer un local — confirmé, ses actifs restent localisés sur le site. */
-    const supprimerLocal = (local: string) =>
-        requestConfirmation({
-            title: `Supprimer le local « ${local} » ?`,
-            message:
-                'Le local disparaît du site. Les actifs qui le portaient restent localisés sur le site.',
-            confirmText: 'Supprimer le local',
-            tone: 'destructive',
-            onConfirm: () => {
-                deleteLocation('local', local, siteName);
-                showToast(`Local « ${local} » supprimé.`, 'success');
-            },
-        });
-
     const cardHeader = (title: string, count?: React.ReactNode) => (
         <div className="flex min-h-12 items-center justify-between gap-3 pt-2 pb-1">
             <h3 className="text-on-surface text-ts-head leading-ts-head min-w-0 truncate font-medium">
@@ -438,7 +430,7 @@ const SiteDetailsPage: React.FC<SiteDetailsPageProps> = ({
                     <FormNote>L'historique garde l'ancien nom sur les faits passés.</FormNote>
 
                     {/* `.sfoot` — deux colonnes égales, filet au-dessus. */}
-                    <div className="border-outline-variant -mx-5 duo-de-pied gap-3 border-t px-5 pt-4 pb-1">
+                    <div className="border-outline-variant duo-de-pied -mx-5 gap-3 border-t px-5 pt-4 pb-1">
                         <Button variant="ghost" onClick={() => setIsRenameOpen(false)}>
                             Annuler
                         </Button>
@@ -453,31 +445,11 @@ const SiteDetailsPage: React.FC<SiteDetailsPageProps> = ({
                 </div>
             </BottomSheet>
 
-            <BottomSheet
+            <FeuilleAjoutLocal
+                siteName={siteName}
                 open={isAddLocalOpen}
                 onClose={() => setIsAddLocalOpen(false)}
-                title="Ajouter un local"
-            >
-                <div className="flex flex-col gap-4">
-                    <InputField
-                        label="Nom du local"
-                        name="local-name"
-                        value={localName}
-                        onChange={(event) => setLocalName(event.target.value)}
-                        supportingText={`Une salle dans ${siteName}.`}
-                        required
-                    />
-
-                    <div className="border-outline-variant -mx-5 duo-de-pied gap-3 border-t px-5 pt-4 pb-1">
-                        <Button variant="ghost" onClick={() => setIsAddLocalOpen(false)}>
-                            Annuler
-                        </Button>
-                        <Button variant="filled" onClick={submitLocal}>
-                            Ajouter
-                        </Button>
-                    </div>
-                </div>
-            </BottomSheet>
+            />
 
             <DetailTemplate
                 /* **Le nom commun, comme les trois autres fiches.** La barre portait un
@@ -548,84 +520,24 @@ const SiteDetailsPage: React.FC<SiteDetailsPageProps> = ({
                     */
                     <section data-colonne="gauche" className="rounded-card bg-surface px-4 pb-4">
                         {cardHeader('Locaux', locals.length)}
-                        {/* **Bornée** (25/09) : trois rangées de tuiles et demie (une de plus à la
-                            demande), la suite défile dans la carte ; la tuile d'ajout passe en
-                            tête pour rester visible. */}
-                        <ListeBornee
-                            hauteur={23.25}
-                            pleineLargeur
-                            label={`Les ${locals.length} locaux`}
-                            className="mt-1"
-                        >
-                            <ul className="grid grid-cols-3 gap-3">
-                                <li>
-                                    <Button
-                                        variant="text"
-                                        onClick={() => setIsAddLocalOpen(true)}
-                                        className="border-outline-variant text-on-surface text-ts-control h-full min-h-24 w-full flex-col gap-1.5 rounded-md border border-dashed font-medium"
-                                    >
-                                        <Icon
-                                            glyph={Plus}
-                                            size={20}
-                                            className="text-text-secondary"
-                                        />
-                                        Ajouter un local
-                                    </Button>
-                                </li>
-                                {locals.map((local) => {
-                                    const localAssets = siteEquipment.filter(
-                                        (item) => item.local === local,
-                                    ).length;
-                                    return (
-                                        <li
-                                            key={local}
-                                            className="bg-surface-container relative flex min-h-24 flex-col justify-between rounded-md p-3"
-                                        >
-                                            <span className="flex items-start gap-2 pr-8">
-                                                <Icon
-                                                    glyph={DoorOpen}
-                                                    size={20}
-                                                    className="text-on-surface-variant mt-0.5 shrink-0"
-                                                />
-                                                <span className="text-on-surface text-ts-body leading-ts-body min-w-0 truncate">
-                                                    {local}
-                                                </span>
-                                            </span>
-                                            <span className="text-on-surface-variant text-ts-sub leading-ts-sub tabular-nums">
-                                                {localAssets} actif{localAssets > 1 ? 's' : ''}
-                                            </span>
-                                            <span className="absolute top-1.5 right-1.5">
-                                                <Menu
-                                                    align="end"
-                                                    floating
-                                                    title={local}
-                                                    items={[
-                                                        {
-                                                            id: 'supprimer',
-                                                            label: 'Supprimer le local',
-                                                            onSelect: () => supprimerLocal(local),
-                                                        },
-                                                    ]}
-                                                    trigger={
-                                                        <Button
-                                                            variant="text"
-                                                            iconOnly
-                                                            size="sm"
-                                                            aria-label={`Actes sur ${local}`}
-                                                        >
-                                                            <Icon
-                                                                glyph={DotsThreeVertical}
-                                                                size={20}
-                                                            />
-                                                        </Button>
-                                                    }
-                                                />
-                                            </span>
-                                        </li>
-                                    );
-                                })}
-                            </ul>
-                        </ListeBornee>
+                        {/* **Les plus fournis, puis la page des locaux** (08/10) : la carte
+                            défilait dans sa hauteur — une liste dans la liste. Elle montre
+                            deux rangs de tuiles et renvoie au reste, comme « Derniers
+                            événements » à l'accueil. */}
+                        <div className="mt-1">
+                            <TuilesDeLocaux
+                                rangees={rangees
+                                    .filter((rangee) => rangee.local)
+                                    .slice(0, TUILES_SUR_LA_FICHE)}
+                                onAjouter={() => setIsAddLocalOpen(true)}
+                                onSupprimer={supprimerLocal}
+                            />
+                        </div>
+                        {locals.length > TUILES_SUR_LA_FICHE && (
+                            <div className="mt-3 -mb-4">
+                                <PiedDesLocaux total={locals.length} onTous={versLesLocaux} />
+                            </div>
+                        )}
                     </section>
                 ) : (
                     (!neverServed || locals.length > 0) && (
@@ -634,142 +546,36 @@ const SiteDetailsPage: React.FC<SiteDetailsPageProps> = ({
                             className="rounded-card bg-surface px-4 py-1"
                         >
                             {cardHeader('Locaux', locals.length)}
-                            {(locals.length > 0 || sansLocal > 0) && (
-                                /* **Le local, sa part du parc, et son ⋮** (24/09). La rangée
-                                   ouvrait, au toucher, la confirmation de suppression : le geste
-                                   le plus naturel sur une liste menait à l'acte le plus rare.
-                                   Elle ouvre à présent les actifs du site ; supprimer passe au
-                                   ⋮, nommé. Un ruban dit la part du parc que porte le local, et
-                                   une dernière rangée ce qui n'est rangé nulle part. `item.local`
-                                   est le champ que 16.1 compte (`item.service` n'existe pas). */
-                                <ListeBornee
-                                    hauteur={26}
-                                    pleineLargeur
-                                    label={`Les ${locals.length} locaux`}
-                                >
-                                    <ul className="border-outline-variant border-t">
-                                        {[
-                                            ...locals.map((local) => ({
-                                                local,
-                                                count: siteEquipment.filter(
-                                                    (item) => item.local === local,
-                                                ).length,
-                                            })),
-                                            ...(sansLocal > 0
-                                                ? [{ local: null, count: sansLocal }]
-                                                : []),
-                                        ].map(({ local, count }) => {
-                                            const part =
-                                                siteEquipment.length > 0
-                                                    ? Math.round(
-                                                          (count / siteEquipment.length) * 100,
-                                                      )
-                                                    : 0;
-                                            return (
-                                                <li
-                                                    key={local ?? '—'}
-                                                    className="border-outline-variant flex items-center gap-1 border-t first:border-t-0"
-                                                >
-                                                    <Button
-                                                        variant="text"
-                                                        layout="card"
-                                                        onClick={() =>
-                                                            onNavigate(
-                                                                `/inventory/site/${encodeURIComponent(siteName)}`,
-                                                            )
-                                                        }
-                                                        className="-ml-4 flex min-h-16 min-w-0 flex-1 items-center gap-3 rounded-none py-3 pl-4 text-left font-normal"
-                                                    >
-                                                        <span
-                                                            className={cn(
-                                                                'rounded-vignette flex h-10 w-10 shrink-0 items-center justify-center',
-                                                                local
-                                                                    ? 'bg-surface-container text-on-surface-variant'
-                                                                    : 'bg-tint-ambre text-on-tint-ambre',
-                                                            )}
-                                                        >
-                                                            <Icon
-                                                                glyph={local ? DoorOpen : Hourglass}
-                                                                size={20}
-                                                            />
-                                                        </span>
-                                                        <span className="min-w-0 flex-1">
-                                                            <span className="flex items-baseline justify-between gap-3">
-                                                                <span className="text-on-surface text-ts-body leading-ts-body min-w-0 truncate">
-                                                                    {local ?? 'Sans local'}
-                                                                </span>
-                                                                <span className="text-on-surface-variant text-ts-sub leading-ts-sub shrink-0 tabular-nums">
-                                                                    {count} actif
-                                                                    {count > 1 ? 's' : ''}
-                                                                </span>
-                                                            </span>
-                                                            <span className="bg-surface-container mt-2 block h-1.5 overflow-hidden rounded-full">
-                                                                <span
-                                                                    className={cn(
-                                                                        'mvt-jauge duration-medium2 ease-emphasized transition-[width]',
-                                                                        'block h-full rounded-full',
-                                                                        local
-                                                                            ? 'bg-on-surface-variant'
-                                                                            : 'bg-[var(--tk-color-st-ambre)]',
-                                                                    )}
-                                                                    style={{ width: `${part}%` }}
-                                                                />
-                                                            </span>
-                                                        </span>
-                                                    </Button>
-                                                    {local ? (
-                                                        <Menu
-                                                            align="end"
-                                                            floating
-                                                            title={local}
-                                                            items={[
-                                                                {
-                                                                    id: 'supprimer',
-                                                                    label: 'Supprimer le local',
-                                                                    description:
-                                                                        count > 0
-                                                                            ? 'ses actifs restent sur le site'
-                                                                            : undefined,
-                                                                    destructive: true,
-                                                                    onSelect: () =>
-                                                                        supprimerLocal(local),
-                                                                },
-                                                            ]}
-                                                            trigger={
-                                                                <Button
-                                                                    variant="text"
-                                                                    iconOnly
-                                                                    aria-label={`Actes sur ${local}`}
-                                                                    className="-mr-3 shrink-0"
-                                                                >
-                                                                    <Icon
-                                                                        glyph={DotsThreeVertical}
-                                                                        size={20}
-                                                                    />
-                                                                </Button>
-                                                            }
-                                                        />
-                                                    ) : (
-                                                        <span
-                                                            className="w-9 shrink-0"
-                                                            aria-hidden
-                                                        />
-                                                    )}
-                                                </li>
-                                            );
-                                        })}
-                                    </ul>
-                                </ListeBornee>
+                            {/* **Les plus fournis, puis la page des locaux** (08/10) : la carte
+                                défilait dans sa hauteur. Elle en montre quatre — la rangée
+                                « Sans local » comprise, qui ne se cache pas — et renvoie au
+                                reste, comme « Derniers événements » à l'accueil. */}
+                            {rangees.length > 0 && (
+                                <RangeesDeLocaux
+                                    rangees={[
+                                        ...rangees
+                                            .filter((rangee) => rangee.local)
+                                            .slice(
+                                                0,
+                                                LOCAUX_SUR_LA_FICHE - (sansLocal > 0 ? 1 : 0),
+                                            ),
+                                        ...rangees.filter((rangee) => !rangee.local),
+                                    ]}
+                                    onOuvrir={(local) =>
+                                        onNavigate(adresseDuLocal(siteName, local))
+                                    }
+                                    onSupprimer={supprimerLocal}
+                                />
                             )}
-                            {/* `.more` — 48 px, un filet au-dessus, centré. */}
-                            <Button
-                                variant="text"
-                                onClick={() => setIsAddLocalOpen(true)}
-                                className="border-outline-variant text-on-surface text-ts-control flex min-h-12 w-full items-center justify-center gap-2 rounded-none border-t font-medium"
-                            >
-                                <Icon glyph={Plus} size={20} className="text-text-secondary" />
-                                Ajouter un local
-                            </Button>
+                            <PiedDesLocaux
+                                onAjouter={() => setIsAddLocalOpen(true)}
+                                total={locals.length}
+                                onTous={
+                                    locals.length > LOCAUX_SUR_LA_FICHE - (sansLocal > 0 ? 1 : 0)
+                                        ? versLesLocaux
+                                        : undefined
+                                }
+                            />
                         </section>
                     )
                 )}

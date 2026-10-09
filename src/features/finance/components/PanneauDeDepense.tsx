@@ -18,6 +18,7 @@ import { formatNumber } from '../../../lib/financial';
 import { cn } from '../../../lib/utils';
 import type { FinanceBudgetItem, FinanceExpense } from '../../../types';
 import { EXPENSE_TYPE_LABELS, etatDuJustificatif } from '../lib/expensePresentation';
+import { JAUGE } from '../../../lib/jauge';
 
 /** Le geste d'un pied de panneau : 40 de haut, 16 d'intérieur, 14 en 500 (comme Tâches). */
 const GESTE = 'h-10 min-h-10 gap-2 rounded-md px-4 text-[0.875rem] leading-5 font-medium';
@@ -115,7 +116,7 @@ const PanneauDeDepense: React.FC<PanneauDeDepenseProps> = ({
         <div className="bg-surface @container flex h-full min-h-0 flex-col overflow-hidden rounded-xl">
             <div
                 key={depense.id}
-                className="mvt-contenu flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto overscroll-contain px-7 py-5"
+                className="mvt-contenu flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto overscroll-contain px-5 py-5"
             >
                 {/* L'en-tête — le poste, le fournisseur, l'objet. */}
                 <div className="flex flex-col gap-1">
@@ -312,10 +313,12 @@ const PanneauDeDepense: React.FC<PanneauDeDepenseProps> = ({
                                 sur {n(poste.allocated)}
                             </span>
                         </div>
-                        <span className="bg-surface-muted-strong block h-1.5 overflow-hidden rounded-full">
+                        <span
+                            className={cn('bg-surface-muted-strong block overflow-hidden', JAUGE)}
+                        >
                             <span
                                 className={cn(
-                                    'mvt-jauge duration-medium2 ease-emphasized block h-full rounded-full transition-[width]',
+                                    'mvt-jauge duration-medium2 ease-emphasized block h-full transition-[width]',
                                     reste < 0
                                         ? 'bg-[var(--tk-color-st-orange)]'
                                         : 'bg-[var(--tk-color-st-vert)]',
@@ -346,7 +349,7 @@ const PanneauDeDepense: React.FC<PanneauDeDepenseProps> = ({
             </div>
 
             {/* Le pied — le clavier à gauche, les gestes à droite. */}
-            <div className="border-outline-variant flex flex-wrap items-center gap-2.5 border-t px-6 py-3">
+            <div className="border-outline-variant flex flex-wrap items-center gap-2.5 border-t px-5 py-3">
                 {touches && (
                     <span className="text-text-tertiary hidden items-center gap-1 text-[0.75rem] leading-4 @min-[560px]:flex">
                         <Touche>J</Touche>

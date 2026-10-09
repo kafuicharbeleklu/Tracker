@@ -21,7 +21,15 @@ import MobileFrame from './src/components/layout/MobileFrame';
 /* Le chemin parcouru, écouté une fois pour toute la session : la flèche de retour le suit. */
 installerCheminParcouru();
 
-const AppLayout = lazy(() => import('./src/components/layout/AppLayout'));
+/*
+ * **Le code de l'application se charge pendant qu'on se connecte** (08/10). Il n'était
+ * demandé qu'une fois les données lues : les deux attentes s'additionnaient, et un second
+ * écran « Chargement de l'application… » suivait le premier. Demandé dès le démarrage,
+ * il arrive pendant la connexion ou la lecture des données.
+ */
+const chargerAppLayout = () => import('./src/components/layout/AppLayout');
+const AppLayout = lazy(chargerAppLayout);
+void chargerAppLayout();
 
 /**
  * Vitrine du design system — `#/dev/design-system`.
@@ -78,7 +86,8 @@ const AppContent: React.FC = () => {
     }
 
     if (isDataHydrating || isFinanceHydrating) {
-        return <LoadingSpinner fullScreen text="Chargement des données Firebase..." />;
+        /* Le nom du service de stockage ne regarde pas la personne qui attend (08/10). */
+        return <LoadingSpinner fullScreen text="Chargement des données…" />;
     }
 
     // 2. Check Access Denied
@@ -103,7 +112,7 @@ const AppContent: React.FC = () => {
     }
 
     return (
-        <Suspense fallback={<LoadingSpinner fullScreen text="Chargement de l'application..." />}>
+        <Suspense fallback={<LoadingSpinner fullScreen text="Chargement de l'application…" />}>
             <AppLayout onLogout={logout} />
         </Suspense>
     );

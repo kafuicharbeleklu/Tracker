@@ -23,6 +23,8 @@ interface AddCategoryPageProps {
     isOpen: boolean;
     onClose: () => void;
     categoryToEdit?: Category | null;
+    /** Le type vient d'être créé : l'appelant ouvre sa fiche (09/10 — créer mène à l'objet). */
+    onCreated?: (id: string) => void;
 }
 
 /**
@@ -37,7 +39,12 @@ interface AddCategoryPageProps {
  * au survol. Les planches ne cernent pas une carte, n'écrivent pas de capitales et ne
  * posent le jaune que sur un acte.
  */
-const AddCategoryPage: React.FC<AddCategoryPageProps> = ({ isOpen, onClose, categoryToEdit }) => {
+const AddCategoryPage: React.FC<AddCategoryPageProps> = ({
+    isOpen,
+    onClose,
+    categoryToEdit,
+    onCreated,
+}) => {
     const { showToast } = useToast();
     const { addCategory, updateCategory } = useData();
 
@@ -102,8 +109,11 @@ const AddCategoryPage: React.FC<AddCategoryPageProps> = ({ isOpen, onClose, cate
             updateCategory(categoryToEdit.id, payload);
             showToast(`Catégorie "${formData.name}" mise à jour`, 'success');
         } else {
-            addCategory(payload);
+            const id = addCategory(payload);
             showToast('Catégorie créée avec succès', 'success');
+            onClose();
+            if (id) onCreated?.(id);
+            return;
         }
         onClose();
     };

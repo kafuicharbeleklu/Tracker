@@ -41,6 +41,25 @@ export interface PlaceAuditRow {
     status: 'A lancer' | 'En cours' | 'A valider' | 'Validee' | 'Complet' | 'A planifier';
 }
 
+/**
+ * **Une rangée de pays** — le premier niveau depuis le 09/10 : ses sites, agrégés. Le
+ * commanditaire : *« la liste des pays pour commencer ; au clic sur un pays, une feuille
+ * s'ouvre pour afficher ses sites ; on choisit le site, la feuille s'actualise vers les
+ * locaux, et au choix du local on atterrit sur la page campagne »*.
+ */
+export interface CountryAuditRow {
+    country: string;
+    siteCount: number;
+    localCount: number;
+    expected: number;
+    found: number;
+    missing: number;
+    exceptions: number;
+    progress: number;
+    lastScanAt: string | null;
+    status: PlaceAuditRow['status'];
+}
+
 /** Valeur sentinelle « aucun filtre » des selects de périmètre. */
 export const ALL_VALUE = '__all__';
 

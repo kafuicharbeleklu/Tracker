@@ -50,6 +50,31 @@ export const presentationEtat = (
     return etape ? PRESENTATION_ETAPE[etape] : getStatusPresentation(item.status);
 };
 
+/**
+ * **Depuis quand l'étape en cours dure** (08/10) — ce que compte la rangée de la liste :
+ * « Devis à valider · 14 j » se lit *depuis quatorze jours à valider*. La date de déclaration
+ * comptait pour toutes les étapes, si bien qu'un devis arrivé la veille paraissait attendre
+ * depuis trois semaines.
+ */
+export const debutDEtape = (
+    item: Pick<Equipment, 'repair' | 'repairStartDate'>,
+): string | undefined => {
+    const r = item.repair;
+    if (!r) return item.repairStartDate;
+    switch (r.stage) {
+        case 'declared':
+            return r.openedAt;
+        case 'deposited':
+            return r.quoteDecision?.status === 'rejected'
+                ? (r.quoteDecision.at ?? r.deposit?.at ?? r.openedAt)
+                : (r.deposit?.at ?? r.openedAt);
+        case 'quote_pending':
+            return r.takenCharge?.at ?? r.openedAt;
+        case 'at_repairer':
+            return r.sentAt ?? r.takenCharge?.at ?? r.openedAt;
+    }
+};
+
 /** La phrase d'étape, pour la carte de la fiche et la file des tâches. */
 export const phraseEtape = (item: Pick<Equipment, 'repair'>): string | null => {
     const r = item.repair;

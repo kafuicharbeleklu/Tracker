@@ -54,7 +54,9 @@ import {
     chargerJournal,
     chargerJournalComplet,
     documentsModifies,
+    ecouterCollection,
     ecouterEcritures,
+    type ChangementsDistants,
     lectureHorsLigne,
     saveCollectionDocs,
     saveSingleDoc,
@@ -188,6 +190,12 @@ interface DataContextType {
      */
     journalComplet: boolean;
     demanderJournalComplet: () => void;
+    /**
+     * **L'heure du dernier changement venu d'un autre appareil** (08/10) — `null` tant que
+     * rien n'est arrivé. Le signal des tâches s'en sert pour ne sonner que pour les autres :
+     * une tâche qu'on vient de se créer soi-même n'est pas une nouvelle.
+     */
+    dernierChangementDistant: number | null;
     users: User[];
     equipment: Equipment[];
     detectedDevices: DetectedDevice[];
@@ -321,12 +329,14 @@ interface DataContextType {
     assignManagerToService: (serviceName: string, managerId: string) => void; // NOUVEAU
 
     // Category CRUD
-    addCategory: (category: Omit<Category, 'id'>) => void;
+    /** Rend l'identifiant du type créé, ou rien si l'acte est refusé. */
+    addCategory: (category: Omit<Category, 'id'>) => string | undefined;
     updateCategory: (id: string, updates: Partial<Category>) => void;
     deleteCategory: (id: string) => boolean;
 
     // Model CRUD
-    addModel: (model: Omit<Model, 'id'>) => void;
+    /** Rend l'identifiant du modèle créé, ou rien si l'acte est refusé. */
+    addModel: (model: Omit<Model, 'id'>) => string | undefined;
     updateModel: (id: string, updates: Partial<Model>) => void;
     deleteModel: (id: string) => boolean;
 
@@ -352,6 +362,18 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 const FIREBASE_BACKEND_ENABLED = Boolean(firestore);
 
 /** Passé ce délai sans réponse du magasin, l'écran le dit (voir `remoteUnavailable`). */
+/**
+ * **Un identifiant horodaté, jamais deux fois le même** (09/10). Les créations prenaient
+ * `Date.now()` : un import qui crée vingt-six modèles dans la même milliseconde leur donnait
+ * le même identifiant, et le magasin n'en gardait que deux. Le format ne change pas — un
+ * nombre de millisecondes —, il avance d'un cran quand l'horloge n'a pas bougé.
+ */
+let dernierIdHorodate = 0;
+const idHorodate = (): string => {
+    dernierIdHorodate = Math.max(Date.now(), dernierIdHorodate + 1);
+    return String(dernierIdHorodate);
+};
+
 const DELAI_HYDRATATION_MS = 12_000;
 /** Les derniers événements lus à l'ouverture, quand le journal n'est pas en cache. */
 const JOURNAL_RECENT = 100;
@@ -1001,6 +1023,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const sessionOuverte = Boolean(currentUser);
     const isHydrating = comptesEnCours || (sessionOuverte && !donneesChargees);
     const [journalComplet, setJournalComplet] = useState<boolean>(!FIREBASE_BACKEND_ENABLED);
+    const [dernierChangementDistant, setDernierChangementDistant] = useState<number | null>(null);
     /** Le magasin distant n'a pas répondu : ce qui est à l'écran est local (voir plus bas). */
     const [remoteUnavailable, setRemoteUnavailable] = useState(false);
     /** Voir `derniereLecture` au contrat : posée à la fin de chaque hydratation. */
@@ -1792,6 +1815,109 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         );
     }, []);
 
+    /*
+     * **Ce qu'un autre appareil écrit arrive sans recharger** (08/10). Une affectation faite
+     * sur le téléphone de l'informatique n'apparaissait sur celui du destinataire qu'au
+     * rechargement : l'application lisait la base à l'ouverture, puis plus rien. Les
+     * collections qui font la file des tâches et les fiches sont maintenant écoutées
+     * (`ecouterCollection`) dès la lecture faite.
+     *
+     * Ce qui arrive grave son empreinte **avant** d'entrer dans l'état : la persistance le
+     * retrouve identique et ne le réécrit pas — sans quoi chaque changement reçu repartirait
+     * en écho vers la base, d'un appareil à l'autre.
+     */
+    useEffect(() => {
+        if (!firestore || !donneesChargees || !sessionOuverte) return;
+        const db = firestore;
+
+        const fusionner =
+            <T extends object>(
+                cle: string,
+                setter: (maj: (prev: T[]) => T[]) => void,
+                preparer: (brut: T & { id: string }) => T | null,
+                getId: (item: T) => string = (item) => (item as { id: string }).id,
+            ) =>
+            ({ docs, retraits }: ChangementsDistants<T>) => {
+                if (!chargeesRef.current.has(cle)) return;
+                const empreintes = empreintesRef.current[cle] ?? new Map<string, string>();
+                empreintesRef.current[cle] = empreintes;
+                const recus = new Map<string, T>();
+                for (const brut of docs) {
+                    const item = preparer(brut);
+                    if (!item) continue;
+                    const id = getId(item);
+                    const empreinte = documentsModifies([item], new Map(), () => id).empreintes.get(
+                        id,
+                    );
+                    if (!empreinte || empreintes.get(id) === empreinte) continue;
+                    empreintes.set(id, empreinte);
+                    recus.set(id, item);
+                }
+                const partis = new Set(retraits.filter((id) => empreintes.delete(id)));
+                if (recus.size === 0 && partis.size === 0) return;
+                setter((prev) => {
+                    const remplaces = new Set<string>();
+                    const gardes: T[] = [];
+                    for (const item of prev) {
+                        const id = getId(item);
+                        if (partis.has(id)) continue;
+                        const recu = recus.get(id);
+                        if (recu) remplaces.add(id);
+                        gardes.push(recu ?? item);
+                    }
+                    const nouveaux = [...recus]
+                        .filter(([id]) => !remplaces.has(id))
+                        .map(([, item]) => item);
+                    return [...nouveaux, ...gardes];
+                });
+                setDernierChangementDistant(Date.now());
+            };
+
+        const arrets = [
+            ecouterCollection<User>(
+                db,
+                'users',
+                fusionner<User>('users', setUsers, (user) =>
+                    isDemoSeedUser(user.id) ? null : normalizeUserRecord(user, user),
+                ),
+            ),
+            ecouterCollection<Equipment>(
+                db,
+                'equipment',
+                fusionner<Equipment>('equipment', setEquipment, (item) =>
+                    isDemoSeedEquipment(item.id) ? null : normalizeEquipmentRecord(item, item),
+                ),
+            ),
+            ecouterCollection<DetectedDevice>(
+                db,
+                'detectedDevices',
+                fusionner<DetectedDevice>(
+                    'detectedDevices',
+                    setDetectedDevices,
+                    (device) => device,
+                ),
+            ),
+            ecouterCollection<Approval>(
+                db,
+                'approvals',
+                fusionner<Approval>('approvals', setApprovals, (approval) =>
+                    estDemandeSansSujet(approval)
+                        ? null
+                        : normalizeApprovalRecord(
+                              approval,
+                              APPROVAL_SEED.find((seed) => seed.id === approval.id),
+                          ),
+                ),
+            ),
+            ecouterCollection<HistoryEvent>(
+                db,
+                'events',
+                fusionner<HistoryEvent>('events', setEvents, (event) => event),
+            ),
+        ];
+        return () => arrets.forEach((arreter) => arreter());
+    }, [donneesChargees, sessionOuverte]);
+
     // Save to localStorage
     useEffect(() => {
         localStorage.setItem(STORAGE_KEYS.users.current, JSON.stringify(users));
@@ -2551,7 +2677,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 };
             }
 
-            const newId = Date.now().toString();
+            const newId = idHorodate();
 
             // AUTOMATIC MANAGER ASSIGNMENT
             const finalUser =
@@ -2647,7 +2773,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 };
 
             const now = new Date().toISOString();
-            const id = Date.now().toString();
+            const id = idHorodate();
             /* Un nom lisible à partir de l'adresse : « karim.diallo@… » devient
                « Karim Diallo ». La personne le corrigera à sa première connexion. */
             const guessedName = email
@@ -3143,7 +3269,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 return;
             }
 
-            const newItem = { ...item, id: item.id || Date.now().toString() };
+            const newItem = { ...item, id: item.id || idHorodate() };
             setEquipment((prev) => [...prev, newItem]);
             logEvent({
                 type: 'CREATE',
@@ -4700,7 +4826,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const addApproval = useCallback(
         (approval: Omit<Approval, 'id'>) => {
-            const newId = Date.now().toString();
+            const newId = idHorodate();
             // Routage §9.9 : le statut initial ne vit pas que dans l'UI — une demande
             // sans gate manager (aucun manager-du-bénéficiaire distinct du demandeur)
             // entre directement au traitement IT, quel que soit l'appelant.
@@ -4903,11 +5029,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const addCategory = useCallback((catData: Omit<Category, 'id'>) => {
         const permissionDecision = canManageSystemByRole(currentUserAccessRef.current);
         if (!permissionDecision.allowed) {
-            return;
+            return undefined;
         }
 
-        const newId = Date.now().toString();
+        const newId = idHorodate();
         setCategories((prev) => [...prev, { ...catData, id: newId }]);
+        return newId;
     }, []);
     const updateCategory = useCallback((id: string, updates: Partial<Category>) => {
         const permissionDecision = canManageSystemByRole(currentUserAccessRef.current);
@@ -4933,11 +5060,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const addModel = useCallback((modelData: Omit<Model, 'id'>) => {
         const permissionDecision = canManageSystemByRole(currentUserAccessRef.current);
         if (!permissionDecision.allowed) {
-            return;
+            return undefined;
         }
 
-        const newId = Date.now().toString();
+        const newId = idHorodate();
         setModels((prev) => [...prev, { ...modelData, id: newId }]);
+        return newId;
     }, []);
     const updateModel = useCallback((id: string, updates: Partial<Model>) => {
         const permissionDecision = canManageSystemByRole(currentUserAccessRef.current);
@@ -4969,6 +5097,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             derniereLecture,
             journalComplet,
             demanderJournalComplet,
+            dernierChangementDistant,
             equipment,
             detectedDevices,
             categories,
@@ -5036,6 +5165,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             derniereLecture,
             journalComplet,
             demanderJournalComplet,
+            dernierChangementDistant,
             equipment,
             detectedDevices,
             categories,

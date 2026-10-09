@@ -15,6 +15,7 @@ import {
 import Reading from '../../../components/layout/Reading';
 import BottomSheet from '../../../components/ui/BottomSheet';
 import Button from '../../../components/ui/Button';
+import FlecheDeRetour from '../../../components/ui/FlecheDeRetour';
 import { FabContainer } from '../../../components/ui/FabContainer';
 import Icon from '../../../components/ui/Icon';
 import InputField from '../../../components/ui/InputField';
@@ -413,7 +414,7 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                     )}
 
                     {/* `.sfoot` — deux colonnes égales, filet au-dessus. */}
-                    <div className="border-outline-variant -mx-5 duo-de-pied gap-3 border-t px-5 pt-4 pb-1">
+                    <div className="border-outline-variant duo-de-pied -mx-5 gap-3 border-t px-5 pt-4 pb-1">
                         <Button variant="ghost" onClick={closeCreate}>
                             Annuler
                         </Button>
@@ -458,7 +459,11 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                 </div>
             ) : (
                 <div className="px-page bg-background large:max-w-[calc(63rem+2*var(--tk-space-page))] large:mx-auto sticky top-0 z-20 flex w-full flex-col gap-3 pt-5">
-                    <div className="flex items-center gap-3">
+                    <div className="flex min-h-[52px] items-center gap-3">
+                        {onBack && (
+                            /* 8 jusqu'au titre, comme les listes : la rangée en met 12. */
+                            <FlecheDeRetour onBack={onBack} compact={false} className="-mr-1" />
+                        )}
                         <h1 className="font-brand text-on-surface text-ts-page leading-ts-page shrink-0 font-semibold tracking-[-0.02em]">
                             {GLOSSARY.LOCATIONS}
                         </h1>

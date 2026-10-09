@@ -7,7 +7,8 @@ import TopAppBar from './TopAppBar';
 import { ViewType } from '../../types';
 import Button from '../ui/Button';
 import { useAppNavigation } from '../../hooks/useAppNavigation';
-import { cheminPrecedent } from '../../lib/cheminParcouru';
+import { cheminPrecedent, remplacerAdresseCourante } from '../../lib/cheminParcouru';
+import { lirePerimetreDuParc, type PerimetreDuParc } from '../../lib/perimetreDuParc';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { scrollAppToTop } from '../../lib/appScroll';
 import { APP_SCROLLER_ID } from './MobileFrame';
@@ -22,6 +23,7 @@ import { champDeRecherche, useRaccourciRecherche } from '../../hooks/useRaccourc
 import { SkeletonList } from '../ui/Skeleton';
 import { SelectionRegimeProvider } from '../../context/SelectionRegimeContext';
 import RequestSheet from '../../features/tasks/components/RequestSheet';
+import AvisDesTaches from '../../features/tasks/components/AvisDesTaches';
 import ClosureBanner, { type ClosureBannerProps } from '../ui/ClosureBanner';
 import HandoverActSheet from '../../features/inventory/components/HandoverActSheet';
 import ReturnActSheet from '../../features/inventory/components/ReturnActSheet';
@@ -30,13 +32,11 @@ const DashboardPage = lazy(() => import('../../features/dashboard/pages/Dashboar
 const InventoryPage = lazy(() => import('../../features/inventory/pages/InventoryPage'));
 const UsersPage = lazy(() => import('../../features/users/pages/UsersPage'));
 const TasksPage = lazy(() => import('../../features/tasks/pages/TasksPage'));
-const ApprovalDetailsPage = lazy(() => import('../../features/tasks/pages/ApprovalDetailsPage'));
 const FinanceManagementPage = lazy(
     () => import('../../features/finance/pages/FinanceManagementPage'),
 );
 const ExpenseJournalPage = lazy(() => import('../../features/finance/pages/ExpenseJournalPage'));
 const BudgetLinesPage = lazy(() => import('../../features/finance/pages/BudgetLinesPage'));
-const ExercisesPage = lazy(() => import('../../features/finance/pages/ExercisesPage'));
 const ManagementPage = lazy(() => import('../../features/management/pages/ManagementPage'));
 const RbacPage = lazy(() => import('../../features/management/pages/RbacPage'));
 const LocationsPage = lazy(() => import('../../features/locations/pages/LocationsPage'));
@@ -63,6 +63,7 @@ const ImportLocationsPage = lazy(
     () => import('../../features/locations/pages/ImportLocationsPage'),
 );
 const SiteDetailsPage = lazy(() => import('../../features/locations/pages/SiteDetailsPage'));
+const SiteLocauxPage = lazy(() => import('../../features/locations/pages/SiteLocauxPage'));
 const AuditDetailsPage = lazy(() => import('../../features/audit/pages/AuditDetailsPage'));
 
 interface AppLayoutProps {
@@ -173,14 +174,11 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
      */
     const acteEnCours = acteDemande && permissions.canManageInventory ? acteDemande : null;
     const objetDeLActe = acteEnCours ? lireObjetDeLAdresse() : null;
-    /* L'acte vient de la fiche ouverte à côté d'une liste (P3) : la liste reste dessous. */
-    const acteDuPanneau = acteEnCours ? lireObjetDeLAdresse('ouvert') !== null : false;
 
     /*
-     * **La page que la feuille couvre.** Quand l'adresse nomme un objet, c'est sa fiche
-     * — l'acte parle de lui. Quand elle n'en nomme aucun (l'accueil, le FAB), c'est
-     * *« la page où l'on est »* : l'écran précédent, retenu ici, et non l'inventaire,
-     * qui ferait changer d'écran un geste qui n'en change pas.
+     * **La page que la feuille couvre** est *« la page où l'on est »* : l'écran précédent,
+     * retenu ici — la liste, une fiche, l'accueil —, et non l'inventaire ni la fiche de
+     * l'objet, qui feraient changer d'écran un geste qui n'en change pas.
      */
     const ecranPrecedent = useRef<{ view: ViewType; id: string | null; adresse: string | null }>({
         view: 'dashboard',
@@ -199,8 +197,18 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
         }
     });
 
+    /*
+     * **L'acte se pose sur l'écran d'où l'on vient** (09/10). Dès que l'adresse nommait un
+     * objet, la page de dessous devenait sa fiche : attribuer depuis le ⋮ d'une rangée, la
+     * fiche d'un modèle ou celle d'une personne changeait d'écran sous la feuille, et la
+     * refermer laissait sur la fiche de l'objet — pas là d'où l'on était parti. La fiche de
+     * l'objet n'est plus que le repli d'un lien direct, quand aucun écran ne précède.
+     */
+    const surLaFicheDeLObjet = Boolean(
+        acteEnCours && objetDeLActe && !ecranPrecedent.current.adresse,
+    );
     const currentView: ViewType = acteEnCours
-        ? objetDeLActe && !acteDuPanneau
+        ? surLaFicheDeLObjet
             ? 'equipment_details'
             : ecranPrecedent.current.view
         : demandeEnCours
@@ -208,17 +216,14 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
           : vueDemandee;
     const selectedItemId =
         acteEnCours || demandeEnCours
-            ? (acteEnCours && !acteDuPanneau ? objetDeLActe : null) || ecranPrecedent.current.id
+            ? (surLaFicheDeLObjet ? objetDeLActe : null) || ecranPrecedent.current.id
             : selectedIdRoute;
 
     /* **Le passage d'une page à l'autre** (26/09) : fondu d'une destination à l'autre, de
        la droite en descendant, de la gauche en remontant. L'invitation d'une personne est
        une feuille sur la liste : la page, elle, ne change pas. */
     const contenuRef = useRef<HTMLDivElement>(null);
-    useTransitionDePage(
-        contenuRef,
-        `${currentView === 'add_user' ? 'users' : currentView}:${selectedItemId ?? ''}`,
-    );
+    useTransitionDePage(contenuRef, `${currentView}:${selectedItemId ?? ''}`);
 
     /**
      * **La clôture d'un acte engagé depuis une feuille** — 06.3, forme 2 : *« rien de
@@ -248,9 +253,10 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
     };
 
     const fermerLActe = () => {
-        /* Engagé depuis le panneau d'une liste : on revient à la liste, la fiche ouverte. */
-        if (acteDuPanneau && ecranPrecedent.current.adresse)
-            navigate(ecranPrecedent.current.adresse);
+        /* On revient à l'adresse d'où l'acte est parti — la liste et sa fiche ouverte, la
+           fiche d'une personne, celle d'un modèle. Sans elle (lien direct), la fiche de
+           l'objet. */
+        if (ecranPrecedent.current.adresse) navigate(ecranPrecedent.current.adresse);
         else if (objetDeLActe) navigateToItem('equipment_details', objetDeLActe);
         else if (ecranPrecedent.current.id) {
             navigateToItem(ecranPrecedent.current.view, ecranPrecedent.current.id);
@@ -264,9 +270,14 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
      * vient d'un écran qui a désigné le périmètre.
      */
     const [scopedSite, setScopedSite] = useState<string | null>(null);
+    /** Le local, le type ou le modèle reçu par la liste des actifs (09/10) — même vie que le site. */
+    const [scopedParc, setScopedParc] = useState<PerimetreDuParc | null>(null);
 
     const handleViewChange = (view: ViewType) => {
-        if (view === 'equipment') setInventoryFilter(null);
+        if (view === 'equipment') {
+            setInventoryFilter(null);
+            setScopedParc(null);
+        }
         if (view === 'equipment' || view === 'users') setScopedSite(null);
         navigateToView(view);
         scrollAppToTop();
@@ -319,8 +330,11 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
     };
 
     const handleNavigate = (path: string) => {
-        if (path.startsWith('/inventory/site/')) {
-            setScopedSite(decodeURIComponent(path.split('/inventory/site/')[1]));
+        const versLeParc = lirePerimetreDuParc(path);
+        if (versLeParc) {
+            /* Un site, un de ses locaux, un type, un modèle : la liste arrive filtrée. */
+            setScopedSite(versLeParc.site);
+            setScopedParc(versLeParc.perimetre);
             setInventoryFilter(null);
             navigateToView('equipment');
             scrollAppToTop();
@@ -334,6 +348,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
             navigateToView('equipment');
         } else if (path === '/inventory') {
             setInventoryFilter(null);
+            setScopedParc(null);
             navigateToView('equipment');
         } else {
             /*
@@ -358,12 +373,16 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
         'user_details',
         'finance',
         'finance_expenses',
+        /* Les lignes d'un exercice sont une liste de Finances, comme les dépenses : même
+           chrome (09/10 — la barre y manquait). */
+        'finance_lines',
         'management',
         'rbac',
         'category_details',
         'model_details',
         'locations',
         'site_details',
+        'site_locals',
         'audit',
         'audit_details',
         /* 18.1 dessine sa barre du bas, « Plus » allumé, comme les autres destinations
@@ -422,19 +441,15 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
         'rbac',
         'finance_expenses',
         'finance_lines',
-        'finance_exercises',
         /* Emplacements et la fiche d'un site portent la barre de 04.1 et celle de la
            fiche : la barre du haut redirait la destination une ligne plus bas. */
         'locations',
         'site_details',
+        'site_locals',
         /* Le Catalogue porte désormais la barre de 04.1 — titre, filet, geste —
            comme les quatre autres listes du gabarit : la barre du haut la
            redirait une ligne plus bas. */
         'management',
-        /* Le détail d'une demande (06.5) porte sa propre barre « Demande » : la
-           barre du haut ajoutait un « Tracker » au-dessus, deux bandes pour une
-           seule identité. */
-        'approval_details',
         /* L'Historique (18.1) prend le gabarit de liste 17.8, qui porte son titre :
            la barre du haut l'écrivait une seconde fois, juste au-dessus. */
         'history',
@@ -451,16 +466,10 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
         'add_equipment',
         'edit_equipment',
         'import_equipment',
-        'add_user',
         'edit_user',
         'import_users',
         'import_models',
         'import_locations',
-        /* Ajouter une catégorie ou un modèle, c'est le Catalogue **et une boîte
-           par-dessus** : la barre du haut y redisait « Catalogue » au-dessus du `.top`
-           du Catalogue. */
-        'add_category',
-        'add_model',
         /* Les Rapports portent le `.top` des destinations depuis le 10/09. */
         'reports',
     ];
@@ -486,7 +495,6 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                 return DESTINATIONS.users.label;
             case 'user_details':
                 return 'Profil utilisateur';
-            case 'add_user':
             case 'edit_user':
                 return 'Utilisateur';
             case 'import_users':
@@ -497,12 +505,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                 return 'Journal des dépenses';
             case 'finance_lines':
                 return 'Lignes du budget';
-            case 'finance_exercises':
-                return 'Exercices';
             case 'management':
-                return DESTINATIONS.management.label;
-            case 'add_category':
-            case 'add_model':
                 return DESTINATIONS.management.label;
             case 'rbac':
                 return DESTINATIONS.rbac.label;
@@ -516,6 +519,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                 return DESTINATIONS.locations.label;
             case 'site_details':
                 return 'Détail site';
+            case 'site_locals':
+                return 'Locaux';
             case 'import_locations':
                 return 'Import emplacements';
             case 'audit':
@@ -563,7 +568,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                 return true;
             }
             if (view === 'users' || view === 'user_details') return permissions.canViewUsers;
-            if (view === 'add_user' || view === 'edit_user' || view === 'import_users') {
+            if (view === 'edit_user' || view === 'import_users') {
                 return permissions.canManageUsers;
             }
             if (view === 'finance' || view === 'finance_expenses') {
@@ -571,21 +576,21 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
             }
             /* Ajuster les enveloppes écrit : la lecture seule ne suffit pas. */
             if (view === 'finance_lines') return permissions.canManageFinance;
-            if (view === 'finance_exercises') {
-                return permissions.canViewFinance || permissions.canManageFinance;
-            }
             if (
                 view === 'management' ||
                 view === 'rbac' ||
-                view === 'add_category' ||
-                view === 'add_model' ||
                 view === 'import_models' ||
                 view === 'category_details' ||
                 view === 'model_details'
             ) {
                 return permissions.canViewManagement || permissions.canManageSystem;
             }
-            if (view === 'locations' || view === 'site_details' || view === 'import_locations') {
+            if (
+                view === 'locations' ||
+                view === 'site_details' ||
+                view === 'site_locals' ||
+                view === 'import_locations'
+            ) {
                 return permissions.canViewLocations || permissions.canManageLocations;
             }
             if (view === 'audit' || view === 'audit_details') {
@@ -621,11 +626,13 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
             case 'equipment':
                 return (
                     <InventoryPage
+                        onBack={goBack}
                         onViewChange={handleViewChange}
                         onEquipmentClick={(id) => handleItemClick('equipment_details', id)}
                         onUserClick={(id) => handleItemClick('user_details', id)}
                         initialStatus={inventoryFilter}
                         initialSite={scopedSite}
+                        initialPerimetre={scopedParc}
                         /* P2a — dès 840, la fiche s'ouvre à côté de la liste : la page elle-même. */
                         renderFiche={(id, fermer) => (
                             <EquipmentDetailsPage equipmentId={id} onBack={fermer} />
@@ -642,7 +649,23 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                     <InventoryPage onViewChange={handleViewChange} />
                 );
             case 'add_equipment':
-                return <AddEquipmentPage onCancel={() => goBack()} onSave={() => goBack()} />;
+                return (
+                    <AddEquipmentPage
+                        onCancel={() => goBack()}
+                        /* **Créer mène à l'objet** (09/10) : on arrivait à la liste, la fiche
+                           qu'on venait d'écrire à retrouver dedans. L'adresse du formulaire
+                           cède sa place dans le chemin : la flèche de la fiche ramène à la
+                           liste, pas à un formulaire vide. */
+                        onSave={(id) => {
+                            if (!id) {
+                                goBack();
+                                return;
+                            }
+                            remplacerAdresseCourante(`/inventory/${id}`);
+                            handleItemClick('equipment_details', id);
+                        }}
+                    />
+                );
             case 'edit_equipment':
                 return selectedItemId ? (
                     <AddEquipmentPage
@@ -668,6 +691,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
             case 'users':
                 return (
                     <UsersPage
+                        onBack={goBack}
                         onViewChange={handleViewChange}
                         onUserClick={(id) => handleItemClick('user_details', id)}
                         initialSite={scopedSite}
@@ -698,19 +722,9 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                     />
                 ) : (
                     <UsersPage
+                        onBack={goBack}
                         onViewChange={handleViewChange}
                         onUserClick={(id) => handleItemClick('user_details', id)}
-                    />
-                );
-            case 'add_user':
-                /* Créer un compte, c'est inviter (05.3) : la liste, et sa feuille ouverte. */
-                return (
-                    <UsersPage
-                        key="inviter"
-                        onViewChange={handleViewChange}
-                        onUserClick={(id) => handleItemClick('user_details', id)}
-                        inviter
-                        onInviteClose={() => handleViewChange('users')}
                     />
                 );
             case 'edit_user':
@@ -722,6 +736,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                     />
                 ) : (
                     <UsersPage
+                        onBack={goBack}
                         onViewChange={handleViewChange}
                         onUserClick={(id) => handleItemClick('user_details', id)}
                     />
@@ -738,8 +753,6 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                 return <FinanceManagementPage onViewChange={handleViewChange} onBack={goBack} />;
             case 'finance_expenses':
                 return <ExpenseJournalPage onBack={() => retourVers('finance')} />;
-            case 'finance_exercises':
-                return <ExercisesPage onBack={() => retourVers('finance')} />;
             case 'finance_lines':
                 return (
                     <BudgetLinesPage
@@ -755,16 +768,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                     <ManagementPage
                         onViewChange={handleViewChange}
                         onCategoryClick={(id) => handleItemClick('category_details', id)}
+                        onModelClick={(id) => handleItemClick('model_details', id)}
                         onBack={goBack}
-                    />
-                );
-            case 'add_category':
-            case 'add_model':
-                return (
-                    <ManagementPage
-                        onViewChange={handleViewChange}
-                        onCategoryClick={(id) => handleItemClick('category_details', id)}
-                        initialAddModal={currentView === 'add_category' ? 'category' : 'model'}
                     />
                 );
             case 'rbac':
@@ -775,6 +780,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                         categoryId={selectedItemId}
                         onBack={() => retourVers('management')}
                         onModelClick={(id) => handleItemClick('model_details', id)}
+                        onNavigate={handleNavigate}
                     />
                 ) : (
                     <ManagementPage onViewChange={handleViewChange} />
@@ -784,12 +790,20 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                     <ModelDetailsPage
                         modelId={selectedItemId}
                         onBack={() => retourVers('management')}
+                        onNavigate={handleNavigate}
                     />
                 ) : (
                     <ManagementPage onViewChange={handleViewChange} />
                 );
             case 'import_models':
-                return <ImportModelsPage onCancel={() => goBack()} onSave={() => goBack()} />;
+                /* **Importer mène à la liste** (09/10), comme les imports d'actifs et de
+                   personnes : annuler suit le chemin, enregistrer montre ce qui est entré. */
+                return (
+                    <ImportModelsPage
+                        onCancel={() => goBack()}
+                        onSave={() => handleViewChange('management')}
+                    />
+                );
 
             case 'locations':
                 return (
@@ -813,8 +827,27 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                         onSiteClick={(site) => handleItemClick('site_details', site)}
                     />
                 );
+            case 'site_locals':
+                return selectedItemId ? (
+                    <SiteLocauxPage
+                        siteName={selectedItemId}
+                        /* Le chemin parcouru, sinon la fiche du site. */
+                        onBack={() => retourVersObjet('site_details', selectedItemId)}
+                        onNavigate={handleNavigate}
+                    />
+                ) : (
+                    <LocationsPage
+                        onViewChange={handleViewChange}
+                        onSiteClick={(site) => handleItemClick('site_details', site)}
+                    />
+                );
             case 'import_locations':
-                return <ImportLocationsPage onCancel={() => goBack()} onSave={() => goBack()} />;
+                return (
+                    <ImportLocationsPage
+                        onCancel={() => goBack()}
+                        onSave={() => handleViewChange('locations')}
+                    />
+                );
 
             case 'audit':
                 return <AuditPage onViewChange={handleViewChange} onBack={goBack} />;
@@ -832,7 +865,6 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                         /* Le fait ouvert renvoie à l'objet et à la personne (18.1). */
                         onOpenEquipment={(id) => handleItemClick('equipment_details', id)}
                         onOpenUser={(id) => handleItemClick('user_details', id)}
-                        onOpenApproval={(id) => handleItemClick('approval_details', id)}
                     />
                 );
             case 'reports':
@@ -849,12 +881,11 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
 
             case 'tasks':
                 // Planche 08.1 : la destination unique des liens du tableau de bord.
-                return <TasksPage onNavigate={handleViewChange} onItemClick={handleItemClick} />;
-            case 'approval_details':
                 return (
-                    <ApprovalDetailsPage
-                        approvalId={selectedItemId || undefined}
-                        onBack={() => retourVers('tasks')}
+                    <TasksPage
+                        onNavigate={handleViewChange}
+                        onItemClick={handleItemClick}
+                        onBack={goBack}
                     />
                 );
 
@@ -1019,6 +1050,9 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                         </ErrorBoundary>
                     </main>
                 </div>
+
+                {/* Ce qui arrive d'un autre appareil se signale, où que l'on soit (08/10). */}
+                <AvisDesTaches />
 
                 {/* Mobile Bottom Navigation Bar */}
                 {showBottomNav && (

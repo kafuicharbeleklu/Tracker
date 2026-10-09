@@ -3,9 +3,10 @@ import { useToast } from '../../../context/ToastContext';
 import ReferentialImportTemplate, {
     type ImportCandidate,
     type ImportColumn,
+    type TableauImporte,
 } from '../../../components/layout/ReferentialImportTemplate';
 import SelectField from '../../../components/ui/SelectField';
-import { buildCsvLine, parseCsvLine } from '../../../lib/csv';
+import { buildCsvLine } from '../../../lib/csv';
 import { useData } from '../../../context/DataContext';
 import { useAccessControl } from '../../../hooks/useAccessControl';
 import { authService } from '../../../services/authService';
@@ -40,11 +41,14 @@ const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
     { value: 'SuperAdmin', label: 'Super admin — configure l’application' },
 ];
 
+/* Les colonnes se reconnaissent à leur nom, français compris (09/10). */
 const COLUMNS: ImportColumn[] = [
-    { key: 'Name', required: true },
-    { key: 'Email', required: true },
-    { key: 'Role' },
-    { key: 'Department' },
+    { key: 'Name', required: true, alias: ['Nom', 'Nom complet', 'Prénom et nom', 'Utilisateur'] },
+    /* Les listes du personnel séparent le prénom du nom : « Nom », « Prénoms ». */
+    { key: 'FirstName', alias: ['Prénom', 'Prénoms'] },
+    { key: 'Email', required: true, alias: ['E-mail', 'Courriel', 'Mail', 'Adresse e-mail'] },
+    { key: 'Role', alias: ['Rôle', 'Profil'] },
+    { key: 'Department', alias: ['Service', 'Département', 'Direction'] },
 ];
 
 /* Séparateur virgule : `parse` le relit tel quel. */
@@ -74,35 +78,40 @@ const ImportUsersPage: React.FC<ImportUsersPageProps> = ({ onCancel, onSave }) =
        ne s'offre pas à qui ne l'est pas : `addUser` le refuserait ligne par ligne. */
     const [defaultRole, setDefaultRole] = useState<UserRole>('User');
 
-    const parse = (text: string): ImportCandidate<UserDraft>[] => {
-        const lines = text.split(/\r?\n/).filter((line) => line.trim() !== '');
-        if (lines.length < 2) return [];
-        const separateur = lines[0].includes(';') && !lines[0].includes(',') ? ';' : ',';
-        const headers = parseCsvLine(lines[0], separateur).map((h) => h.trim().toLowerCase());
+    const parse = (tableau: TableauImporte): ImportCandidate<UserDraft>[] => {
         const vus = new Set<string>();
-        return lines.slice(1).map((line, index) => {
-            const values = parseCsvLine(line, separateur);
-            const draft: Partial<UserDraft> = {};
-            headers.forEach((key, i) => {
-                const v = values[i]?.trim();
-                if (key.includes('nom') || key.includes('name')) draft.name = v;
-                else if (key.includes('mail')) draft.email = v;
-                else if (key.includes('role') || key.includes('rôle')) draft.role = v;
-                else if (key.includes('depart') || key.includes('service')) draft.department = v;
-            });
-            const email = draft.email?.toLowerCase() ?? '';
+        return tableau.lignes.map((ligne) => {
+            const prenom = ligne.get('FirstName');
+            const nom = ligne.get('Name');
+            const draft: UserDraft = {
+                name: [prenom, nom].filter(Boolean).join(' '),
+                email: ligne.get('Email'),
+                role: ligne.get('Role'),
+                department: ligne.get('Department'),
+            };
+            const email = draft.email.toLowerCase();
             let error: string | undefined;
             if (!draft.name || !draft.email) error = 'Nom et adresse requis';
             else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) error = 'Adresse illisible';
-            else if (users.some((u) => u.email.toLowerCase() === email))
-                error = 'A déjà un compte à cette adresse';
             else if (vus.has(email)) error = 'Adresse en double dans le fichier';
+            /* Un compte existe : rien à corriger, et cela passe avant le doublon du fichier. */
+            const ecartee =
+                email && users.some((u) => u.email.toLowerCase() === email)
+                    ? 'A déjà un compte'
+                    : undefined;
+            if (ecartee) error = undefined;
             vus.add(email);
+            const roleInconnu =
+                draft.role && !ROLE_BY_CSV[draft.role.trim().toLowerCase()]
+                    ? `Rôle « ${draft.role} » inconnu — rôle par défaut appliqué`
+                    : undefined;
             return {
-                line: index + 2,
+                line: ligne.line,
                 label: draft.name || '(sans nom)',
                 error,
-                value: error ? undefined : (draft as UserDraft),
+                ecartee,
+                remarque: error || ecartee ? undefined : roleInconnu,
+                value: error || ecartee ? undefined : draft,
             };
         });
     };
@@ -161,7 +170,7 @@ const ImportUsersPage: React.FC<ImportUsersPageProps> = ({ onCancel, onSave }) =
             sample={SAMPLE}
             noun={{ one: 'personne', many: 'personnes' }}
             contractNote="Nom et adresse sont requis ; l'adresse sera l'identifiant de connexion."
-            dropSubLabel="CSV, séparateur virgule ou point-virgule, encodage UTF-8"
+            dropSubLabel="CSV ou Excel · une ligne par personne"
             parse={parse}
             onImport={handleImport}
             reglages={

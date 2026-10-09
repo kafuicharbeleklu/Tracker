@@ -1102,7 +1102,6 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                 title={view === 'groups' ? 'Groupes' : 'Accès'}
                 onBack={view === 'groups' ? retourAuxRoles : onBack}
                 /* Groupes est une sous-page d'Accès : sa flèche vaut aussi au bureau. */
-                retourAuBureau={view === 'groups'}
                 backLabel={view === 'groups' ? 'Retour aux accès' : 'Retour'}
                 search={{
                     value: query,
@@ -1741,7 +1740,7 @@ const MembresSheet: React.FC<{
                         </Button>
                     ))}
                 </div>
-                <div className="border-outline-variant -mx-5 duo-de-pied gap-3 border-t px-5 pt-4 pb-1">
+                <div className="border-outline-variant duo-de-pied -mx-5 gap-3 border-t px-5 pt-4 pb-1">
                     <Button
                         variant="tonal"
                         className="bg-surface-container text-on-surface hover:bg-surface-container-high justify-center"

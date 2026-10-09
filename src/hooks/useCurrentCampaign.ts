@@ -39,6 +39,15 @@ export interface CurrentCampaign {
     ecarts: number;
     /** Le premier scan de ce lieu — « commencée hier ». */
     startedAt: string;
+    /**
+     * **Où l'on comptait** (09/10) — le local du dernier scan, ou le site hors de ses locaux.
+     * L'inventaire se compte par local ; reprendre « le site entier » ouvrait un périmètre
+     * que la vue globale ne propose jamais pour un site qui a des locaux.
+     */
+    local?: string;
+    horsLocal?: boolean;
+    /** Ce lieu-là est fini : reprendre, c'est choisir le local suivant. */
+    lieuTermine: boolean;
 }
 
 const normalize = (value?: string): string => (value || '').trim().toLowerCase();
@@ -117,6 +126,19 @@ export const useCurrentCampaign = (): CurrentCampaign | null => {
                 dernier.timestamp,
             );
 
+        /* Le local du dernier scan. Vide, il désigne le site d'un seul tenant — ou, si le
+           site a des locaux, ce qui n'est rangé dans aucun. */
+        const local = readString(dernier.metadata?.scopeLocal).trim();
+        const siteALocaux = duLieu.some((item) => (item.local || '').trim());
+        const horsLocal = !local && siteALocaux;
+        const duDernierLieu = duLieu.filter((item) =>
+            local
+                ? (item.local || '').trim() === local
+                : horsLocal
+                  ? !(item.local || '').trim()
+                  : true,
+        );
+
         return {
             country,
             site,
@@ -125,6 +147,12 @@ export const useCurrentCampaign = (): CurrentCampaign | null => {
             progress: Math.round((found / expected) * 100),
             ecarts,
             startedAt,
+            local: local || undefined,
+            horsLocal,
+            lieuTermine:
+                (Boolean(local) || horsLocal) &&
+                duDernierLieu.length > 0 &&
+                duDernierLieu.every((item) => vus.has(item.id)),
         };
     }, [equipment, events]);
 };

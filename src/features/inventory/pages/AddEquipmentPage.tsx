@@ -34,12 +34,14 @@ import {
 } from '../../../components/ui/FormParts';
 import FilePicker from '../../../components/ui/FilePicker';
 import { useScanPossible } from '../../../hooks/useScanPossible';
+import { codeDeLaLecture } from '../../../lib/lectureDeCode';
 import ListRow from '../../../components/ui/ListRow';
 
 interface AddEquipmentPageProps {
     equipmentId?: string; // Optional for Edit Mode
     onCancel: () => void;
-    onSave: () => void;
+    /** Enregistré. À la création, l'identifiant de la fiche : on y va, pas à la liste. */
+    onSave: (id?: string) => void;
 }
 
 /**
@@ -349,12 +351,15 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
             updateEquipment(equipmentId, payload);
             showToast(`${readableId} — fiche mise à jour.`, 'success');
         } else {
+            const id = Date.now().toString();
             addEquipment({
                 ...payload,
-                id: Date.now().toString(),
+                id,
                 assignmentStatus: 'NONE',
             });
             showToast(`${readableId} est entré au parc.`, 'success');
+            onSave(id);
+            return;
         }
 
         onSave();
@@ -362,6 +367,14 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
 
     const currencySymbol =
         settings.currency === 'USD' ? '$' : settings.currency === 'EUR' ? '€' : settings.currency;
+
+    /** Le numéro lu — d'un QR, sa valeur utile —, écrit en clair avant d'être pris (N2). */
+    const lireLeNumero = (lu: string) =>
+        setScanHit({
+            id: `serial_${Date.now()}`,
+            code: codeDeLaLecture(lu),
+            detail: selectedModel ? `Numéro de série · ${selectedModel.name}` : 'Numéro de série',
+        });
 
     return (
         <>
@@ -780,10 +793,12 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                 </div>
             </BottomSheet>
 
-            {/* 17.3, emploi « simple / 04.3 » : le numéro de série. La vue ne décode rien —
-                la lecture réelle du produit passe par la saisie, que le pied porte. */}
+            {/* 17.3, emploi « simple / 04.3 » : le numéro de série, lu par la caméra ou
+                saisi dans le pied (09/10). */}
+            {/* `z-[110]` : le formulaire est un écran plein, à `z-[100]` — à `z-50` puis `z-[90]`,
+                le viseur s'ouvrait **derrière** lui (09/10). */}
             {isScanning && (
-                <div className="fixed inset-0 z-50 bg-[var(--tk-color-inverse-surface)]">
+                <div className="fixed inset-0 z-[110] bg-[var(--tk-color-inverse-surface)]">
                     <ScanView
                         mode="simple"
                         onClose={() => setIsScanning(false)}
@@ -796,15 +811,8 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                             setScanHit(null);
                         }}
                         onRetry={() => setScanHit(null)}
-                        onManualSubmit={(code) =>
-                            setScanHit({
-                                id: `serial_${Date.now()}`,
-                                code,
-                                detail: selectedModel
-                                    ? `Numéro de série · ${selectedModel.name}`
-                                    : 'Numéro de série',
-                            })
-                        }
+                        onLecture={lireLeNumero}
+                        onManualSubmit={lireLeNumero}
                     />
                 </div>
             )}

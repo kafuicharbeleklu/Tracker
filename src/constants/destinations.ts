@@ -171,7 +171,6 @@ export const SECTION_OF_VIEW: Partial<Record<ViewType, DestinationId>> = {
 
     users: 'users',
     user_details: 'users',
-    add_user: 'users',
     edit_user: 'users',
     import_users: 'users',
 
@@ -179,22 +178,19 @@ export const SECTION_OF_VIEW: Partial<Record<ViewType, DestinationId>> = {
        section à part (17.7). */
     tasks: 'tasks',
     new_request: 'tasks',
-    approval_details: 'tasks',
 
     finance: 'finance',
     finance_expenses: 'finance',
     finance_lines: 'finance',
-    finance_exercises: 'finance',
 
     management: 'management',
-    add_category: 'management',
-    add_model: 'management',
     import_models: 'management',
     category_details: 'management',
     model_details: 'management',
 
     locations: 'locations',
     site_details: 'locations',
+    site_locals: 'locations',
     import_locations: 'locations',
 
     audit: 'audit',

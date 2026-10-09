@@ -854,6 +854,27 @@ body {
 .mvt-pop {
     animation: tk-pop var(--tk-motion-duration-medium1) var(--tk-motion-easing-emphasized-decelerate);
 }
+/* L'attente respire (08/10) — le squelette d'une page qui arrive : son opacité monte et
+   descend, une rangée après l'autre (`--attente-retard`). Pas de balayage lumineux (17.3,
+   A3). Sous « réduire les animations », la règle globale le fige. Le décalage se déclare à
+   la racine : chaque rangée le pose (style en ligne) et ses blocs en héritent — déclaré sur
+   `.mvt-attente` même, il écraserait celui de la rangée. */
+:root {
+    --attente-retard: 0s;
+}
+@keyframes tk-respire {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.45;
+    }
+}
+.mvt-attente {
+    animation: tk-respire 1.6s ease-in-out infinite;
+    animation-delay: var(--attente-retard, 0s);
+}
 .mvt-indicateur {
     animation: tk-indicateur var(--tk-motion-duration-short4)
         var(--tk-motion-easing-emphasized-decelerate) backwards;
@@ -2205,6 +2226,9 @@ body {
    ========================================================================== */
 .live-loader {
     --live-cycle: 2.4s;
+    /* La phase de l'horloge de la page (08/10) — un retard négatif posé par `LiveLoader` :
+       un écran de chargement qui en relaie un autre reprend où il en était. */
+    --live-depart: 0s;
     /* Le quart du signe dans le cycle, et le pas entre deux traits d'un même signe :
        chaque élément du SVG pose les siens. */
     --live-retard: 0s;
@@ -2212,34 +2236,43 @@ body {
 }
 .live-loader .live-signe {
     animation: live-allume var(--live-cycle) ease-in-out infinite;
-    animation-delay: var(--live-retard, 0s);
+    animation-delay: calc(var(--live-depart, 0s) + var(--live-retard, 0s));
     opacity: 0.28;
 }
+/* **Les angles restent tracés au repos** (08/10). Ils repartaient de rien à chaque cycle :
+   effacés d'un coup, chacun à un instant un peu différent, ils clignotaient — une image ne
+   montrait qu'un angle sur trois. Ils s'effacent maintenant en glissant, puis se retracent,
+   dans le quart du signe ; d'un cycle à l'autre, rien ne saute. */
 .live-loader .live-angle {
     stroke-dasharray: 1;
-    stroke-dashoffset: 1;
-    animation: live-trace var(--live-cycle) cubic-bezier(0.2, 0, 0, 1) infinite;
-    animation-delay: calc(var(--live-retard, 0s) + var(--live-pas, 0s));
+    stroke-dashoffset: 0;
+    animation: live-trace var(--live-cycle) linear infinite;
+    animation-delay: calc(var(--live-depart, 0s) + var(--live-retard, 0s) + var(--live-pas, 0s));
 }
 .live-loader .live-tourne,
 .live-loader .live-moulin {
     transform-box: fill-box;
     transform-origin: center;
     animation: live-quart var(--live-cycle) cubic-bezier(0.2, 0, 0, 1) infinite;
-    animation-delay: var(--live-retard, 0s);
+    animation-delay: calc(var(--live-depart, 0s) + var(--live-retard, 0s));
+}
+/* **Le moulin fait un tour entier** (08/10) : ses quatre triangles ne se superposent pas à
+   un quart de tour, et le retour à zéro du cycle suivant se voyait comme un saut. */
+.live-loader .live-moulin {
+    animation-name: live-tour;
 }
 .live-loader .live-coeur {
     transform-box: fill-box;
     transform-origin: center;
     animation: live-bat var(--live-cycle) ease-in-out infinite;
-    animation-delay: var(--live-retard, 0s);
+    animation-delay: calc(var(--live-depart, 0s) + var(--live-retard, 0s));
 }
 .live-loader .live-onde {
     transform-box: fill-box;
     transform-origin: center;
     opacity: 0;
     animation: live-onde var(--live-cycle) ease-out infinite;
-    animation-delay: var(--live-retard, 0s);
+    animation-delay: calc(var(--live-depart, 0s) + var(--live-retard, 0s));
 }
 @keyframes live-allume {
     0%,
@@ -2255,10 +2288,20 @@ body {
     }
 }
 @keyframes live-trace {
+    /* Tracé → effacé en glissant (le trait part par sa fin) → invisible des deux côtés,
+       d'où le saut de -1 à 1 sans que rien ne bouge → retracé depuis son début. */
     0% {
-        stroke-dashoffset: 1;
+        stroke-dashoffset: 0;
+        animation-timing-function: cubic-bezier(0.3, 0, 1, 1);
     }
-    16%,
+    6% {
+        stroke-dashoffset: -1;
+    }
+    6.01% {
+        stroke-dashoffset: 1;
+        animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
+    }
+    22%,
     100% {
         stroke-dashoffset: 0;
     }
@@ -2271,6 +2314,16 @@ body {
     24%,
     100% {
         transform: rotate(90deg);
+    }
+}
+@keyframes live-tour {
+    0%,
+    4% {
+        transform: rotate(0deg);
+    }
+    36%,
+    100% {
+        transform: rotate(360deg);
     }
 }
 @keyframes live-bat {
@@ -2301,6 +2354,15 @@ body {
 }
 /* Sans mouvement : les signes s'allument tour à tour, rien ne se trace ni ne tourne. */
 @media (prefers-reduced-motion: reduce) {
+    /* **L'allumage n'est pas un mouvement** (08/10). La règle globale ramène toute animation
+       à 1 ms, une fois : les signes restaient pâles et figés, et un téléphone réglé sur
+       « supprimer les animations » voyait un écran de chargement mort. Ils s'allument
+       donc encore tour à tour — rien ne se trace, ne tourne ni ne bat. */
+    .live-loader .live-signe {
+        animation-duration: var(--live-cycle) !important;
+        animation-iteration-count: infinite !important;
+        animation-delay: calc(var(--live-depart, 0s) + var(--live-retard, 0s)) !important;
+    }
     .live-loader .live-angle {
         animation: none;
         stroke-dashoffset: 0;

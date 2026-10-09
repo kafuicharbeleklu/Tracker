@@ -1,9 +1,13 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 
 import ReferentialImportTemplate, {
     type ImportCandidate,
     type ImportColumn,
+    type TableauImporte,
 } from '../../../components/layout/ReferentialImportTemplate';
+import SelectField from '../../../components/ui/SelectField';
+import { trouverModele } from '../../../lib/correspondanceModele';
+import { lireDate, lireMontant, normaliserNom, plusProche } from '../../../lib/tableur';
 import { useData } from '../../../context/DataContext';
 import { useToast } from '../../../context/ToastContext';
 import { Equipment } from '../../../types';
@@ -15,6 +19,7 @@ interface ImportEquipmentPageProps {
 }
 
 interface EquipmentDraft {
+    department: string;
     model: string;
     type: string;
     serial: string;
@@ -77,47 +82,101 @@ interface EquipmentDraft {
  * ferait diverger les trois imports. À arbitrer en portant 09.2.
  */
 
-/** Le contrat, montré avant d'aller chercher un fichier — 09.2. */
+/**
+ * Le contrat, montré avant d'aller chercher un fichier — 09.2. **Chaque colonne porte ses
+ * autres noms** (09/10) : les inventaires de Neemba disent « Numéro de Série », « Model
+ * Commercial », « Fabricant », « Service », « Date fin de garantie ».
+ */
 const COLUMNS: ImportColumn[] = [
     {
         key: 'Model',
         description: 'Un modèle du catalogue — il porte le type et la marque',
         requirement: 'requis',
         required: true,
+        alias: ['Modèle', 'Model Commercial', 'Modèle commercial', 'Référence', 'Désignation'],
     },
     {
         key: 'Serial',
         description: "Le numéro de série lu sur l'étiquette, unique au parc",
         requirement: 'requis',
         required: true,
+        alias: ['Numéro de série', 'N° de série', 'N° série', 'No série', 'SN', 'Serial Number'],
     },
     {
         key: 'Country',
         description: "Le pays du référentiel — son code ouvre l'identifiant",
         requirement: 'requis',
         required: true,
+        alias: ['Pays'],
+        remplacee: 'déduit du site choisi plus bas',
     },
     {
         key: 'Site',
         description: "L'emplacement de la ligne — la fiche y naît",
         requirement: 'requis',
         required: true,
+        alias: ['Emplacement', 'Localisation', 'Agence'],
+        remplacee: 'le site choisi plus bas',
     },
-    { key: 'Memory', description: 'Mémoire — « 16 Go »', requirement: 'facultatif' },
-    { key: 'Storage', description: 'Stockage — « 512 Go SSD »', requirement: 'facultatif' },
-    { key: 'OS', description: 'Système — « Windows 11 Pro »', requirement: 'facultatif' },
-    { key: 'Supplier', description: 'Fournisseur', requirement: 'facultatif' },
+    {
+        key: 'Brand',
+        description: 'La marque — elle départage deux modèles au même nom',
+        requirement: 'facultatif',
+        alias: ['Marque', 'Fabricant', 'Constructeur', 'Manufacturer'],
+    },
+    {
+        key: 'Department',
+        description: 'Le service qui l’emploie',
+        requirement: 'facultatif',
+        alias: ['Service', 'Département', 'Direction'],
+    },
+    {
+        key: 'Memory',
+        description: 'Mémoire — « 16 Go »',
+        requirement: 'facultatif',
+        alias: ['Mémoire', 'RAM'],
+    },
+    {
+        key: 'Storage',
+        description: 'Stockage — « 512 Go SSD »',
+        requirement: 'facultatif',
+        alias: ['Stockage', 'Disque', 'Capacité'],
+    },
+    {
+        key: 'OS',
+        description: 'Système — « Windows 11 Pro »',
+        requirement: 'facultatif',
+        alias: ['Système', "Système d'exploitation", 'Version Windows'],
+    },
+    {
+        key: 'Supplier',
+        description: 'Fournisseur',
+        requirement: 'facultatif',
+        alias: ['Fournisseur', 'Vendeur'],
+    },
     {
         key: 'PurchaseDate',
-        description: "Date d'achat, au format AAAA-MM-JJ",
+        description: "Date d'achat — « 2026-01-05 » ou « 05/01/2026 »",
         requirement: 'facultatif',
+        alias: ['Date achat', "Date d'achat", 'Acheté le', "Date d'acquisition"],
     },
-    { key: 'PurchasePrice', description: "Prix d'achat, en chiffres", requirement: 'facultatif' },
-    { key: 'WarrantyEnd', description: 'Fin de garantie, AAAA-MM-JJ', requirement: 'facultatif' },
+    {
+        key: 'PurchasePrice',
+        description: "Prix d'achat — « 1 250 000 »",
+        requirement: 'facultatif',
+        alias: ["Prix d'achat", 'Prix', 'Montant', 'Coût', 'Valeur'],
+    },
+    {
+        key: 'WarrantyEnd',
+        description: 'Fin de garantie — « 2028-01-05 » ou « 05/01/2028 »',
+        requirement: 'facultatif',
+        alias: ['Date fin de garantie', 'Date de fin de garantie', 'Fin de garantie'],
+    },
     {
         key: 'Reserve',
         description: 'Réserve — un défaut connu, une pièce manquante',
         requirement: 'facultatif',
+        alias: ['Réserve', 'Commentaire', 'Commentaires', 'Observation', 'Remarque', 'Notes'],
     },
 ];
 
@@ -132,84 +191,138 @@ const SAMPLE = {
 };
 
 const ImportEquipmentPage: React.FC<ImportEquipmentPageProps> = ({ onCancel, onSave }) => {
-    const { equipment, models, addEquipment, categories, settings } = useData();
+    const { equipment, models, addEquipment, categories, settings, locationData } = useData();
     const { showToast } = useToast();
 
-    /** Un modèle se désigne par son nom ; la casse ne doit pas décider d'un refus. */
-    const modelByName = useMemo(() => {
-        const table = new Map<string, (typeof models)[number]>();
-        models.forEach((model) => table.set(model.name.toLowerCase(), model));
-        return table;
-    }, [models]);
+    /**
+     * **Le site des lignes qui n'en portent pas** (09/10) — les inventaires de Neemba ne
+     * disent ni le pays ni le site : une feuille par site, le site dans le nom du fichier.
+     * On le choisit une fois, après avoir vu ce qui entre ; une colonne Site l'emporte.
+     */
+    const [siteParDefaut, setSiteParDefaut] = useState('');
 
-    const parse = (text: string): ImportCandidate<EquipmentDraft>[] => {
-        const lines = text.split(/\r?\n/).filter((line) => line.trim());
-        if (lines.length < 2) return [];
+    /** Les sites du référentiel, avec leur pays : « Lomé Siège » → Togo. */
+    const sites = useMemo(
+        () =>
+            Object.entries(locationData.sites).flatMap(([pays, noms]) =>
+                (noms as string[]).map((nom) => ({ pays, nom, cle: normaliserNom(nom) })),
+            ),
+        [locationData.sites],
+    );
 
-        const separator = lines[0].includes(';') ? ';' : ',';
+    const parse = (tableau: TableauImporte): ImportCandidate<EquipmentDraft>[] => {
         /* Le parc grandit au fil du fichier : deux lignes qui portent la même série ne
            peuvent pas entrer toutes les deux, et la seconde doit le savoir avant
            l'écriture plutôt que d'écraser la première. */
-        const knownSerials = new Set(
+        const auParc = new Set(
             equipment
-                .map((item) => (item.serialNumber || '').toLowerCase())
+                .map((item) => normaliserNom(item.serialNumber || ''))
                 .filter((serial) => serial),
         );
+        const lus = new Set<string>();
+        const defaut = sites.find((site) => site.cle === normaliserNom(siteParDefaut));
 
-        return lines.slice(1).map((line, index) => {
-            const values = line
-                .split(separator)
-                .map((value) => value.replace(/^["']|["']$/g, '').trim());
-            const [
-                rawModel = '',
-                serial = '',
-                country = '',
-                site = '',
-                ram = '',
-                storage = '',
-                os = '',
-                supplier = '',
-                purchaseDate = '',
-                rawPrice = '',
-                warrantyEnd = '',
-                notes = '',
-            ] = values;
-            const model = modelByName.get(rawModel.toLowerCase());
+        return tableau.lignes.map((ligne) => {
+            const rawModel = ligne.get('Model');
+            const marque = ligne.get('Brand');
+            const serial = ligne.get('Serial');
+            const remarques: string[] = [];
+            const { modele, ambigus } = trouverModele(models, rawModel, marque);
+
+            /* Le site : celui de la ligne, sinon celui choisi pour le fichier. */
+            const siteLu = ligne.get('Site');
+            const paysLu = ligne.get('Country');
+            const site = siteLu
+                ? sites.find(
+                      (s) =>
+                          s.cle === normaliserNom(siteLu) &&
+                          (!paysLu || normaliserNom(s.pays) === normaliserNom(paysLu)),
+                  )
+                : defaut;
 
             let error: string | undefined;
-            if (!rawModel) error = 'Modèle absent — la colonne Model est vide';
-            else if (!model) error = `Modèle « ${rawModel} » inconnu au catalogue`;
-            else if (!serial) error = 'Numéro de série absent';
-            else if (knownSerials.has(serial.toLowerCase()))
-                error = `Le numéro de série ${serial} est déjà au parc`;
-            else if (!country) error = "Pays absent — l'identifiant s'en déduit";
-            else if (!site) error = 'Emplacement absent';
+            /* **Un catalogue vide ne juge rien** (09/10). Quand la base ne répond pas, la
+               lecture rend un catalogue vide et chaque ligne était refusée « modèle
+               inconnu » — neuf causes pour une seule : le catalogue n'est pas là. */
+            if (models.length === 0)
+                error =
+                    'Catalogue vide ou non chargé — vérifiez la connexion, ou créez d’abord les modèles';
+            else if (!rawModel) error = 'Modèle absent — la colonne Model est vide';
+            else if (ambigus.length > 1)
+                error = `Modèle « ${rawModel} » ambigu : ${ambigus.slice(0, 3).join(', ')}${ambigus.length > 3 ? '…' : ''}`;
+            else if (!modele) {
+                const proche = plusProche(
+                    rawModel,
+                    models.map((m) => m.name),
+                );
+                error = `Modèle « ${rawModel} » inconnu au catalogue${proche ? ` — « ${proche} » ?` : ''}`;
+            } else if (!serial) error = 'Numéro de série absent';
+            else if (/^\d+([.,]\d+)?E\+?\d+$/i.test(serial))
+                /* « 3.195E+12 » : Excel a pris le numéro pour un nombre et l'a tronqué. */
+                error = `Numéro de série ${serial} abîmé par Excel — mettez la colonne au format Texte`;
+            else if (lus.has(normaliserNom(serial)))
+                error = 'Numéro de série en double dans le fichier';
+            else if (siteLu && !site) {
+                const proche = plusProche(
+                    siteLu,
+                    sites.map((s) => s.nom),
+                );
+                error = `Site « ${siteLu} » absent des emplacements${proche ? ` — « ${proche} » ?` : ''}`;
+            } else if (!site)
+                error = siteParDefaut
+                    ? `Site « ${siteParDefaut} » absent des emplacements`
+                    : 'Site absent — choisissez le site des lignes qui n’en portent pas';
 
-            if (!error) knownSerials.add(serial.toLowerCase());
+            if (!error && modele && normaliserNom(modele.name) !== normaliserNom(rawModel))
+                remarques.push(`Modèle « ${rawModel} » lu comme « ${modele.name} »`);
+
+            /* Les dates et le prix, comme on les écrit : illisibles, ils restent vides. */
+            const achatLu = ligne.get('PurchaseDate');
+            const purchaseDate = lireDate(achatLu);
+            if (achatLu && !purchaseDate) remarques.push("Date d'achat illisible, laissée vide");
+            const garantieLue = ligne.get('WarrantyEnd');
+            const warrantyEnd = lireDate(garantieLue);
+            if (garantieLue && !warrantyEnd)
+                remarques.push('Fin de garantie illisible, laissée vide');
+            const prixLu = ligne.get('PurchasePrice');
+            const prix = lireMontant(prixLu);
+            if (prixLu && Number.isNaN(prix)) remarques.push('Prix illisible, compté à 0');
+
+            /* Déjà au parc : rien à corriger, la fiche existe — réimporter l'inventaire ne
+               fait pas cent refus. Et cela passe avant tout défaut de la ligne : qu'elle
+               n'ait pas de site ne se corrige pas, puisqu'elle n'entrera pas. */
+            const ecartee =
+                serial && auParc.has(normaliserNom(serial)) ? 'Déjà au parc' : undefined;
+            if (ecartee) error = undefined;
+            if (serial) lus.add(normaliserNom(serial));
 
             return {
-                line: index + 2,
+                line: ligne.line,
                 label: serial
                     ? `${rawModel || '(sans modèle)'} · ${serial}`
                     : rawModel || '(sans nom)',
                 error,
-                value: error
-                    ? undefined
-                    : {
-                          model: model!.name,
-                          type: model!.type,
-                          serial,
-                          country,
-                          site,
-                          ram,
-                          storage,
-                          os,
-                          supplier,
-                          purchaseDate,
-                          purchasePrice: parseFloat(rawPrice.replace(',', '.')) || 0,
-                          warrantyEnd,
-                          notes,
-                      },
+                ecartee,
+                remarque: error || ecartee ? undefined : remarques[0],
+                value:
+                    error || ecartee || !modele || !site
+                        ? undefined
+                        : {
+                              model: modele.name,
+                              type: modele.type,
+                              serial,
+                              country: site.pays,
+                              site: site.nom,
+                              department: ligne.get('Department'),
+                              ram: ligne.get('Memory'),
+                              storage: ligne.get('Storage'),
+                              os: ligne.get('OS'),
+                              supplier: ligne.get('Supplier'),
+                              purchaseDate,
+                              purchasePrice: Number.isNaN(prix) ? 0 : prix,
+                              warrantyEnd,
+                              notes: ligne.get('Reserve'),
+                          },
             };
         });
     };
@@ -240,6 +353,7 @@ const ImportEquipmentPage: React.FC<ImportEquipmentPageProps> = ({ onCancel, onS
                 serialNumber: draft.serial,
                 country: draft.country,
                 site: draft.site,
+                department: draft.department || undefined,
                 ram: draft.ram || undefined,
                 storage: draft.storage || undefined,
                 os: draft.os || undefined,
@@ -277,16 +391,34 @@ const ImportEquipmentPage: React.FC<ImportEquipmentPageProps> = ({ onCancel, onS
             noun={{ one: 'équipement', many: 'équipements' }}
             parse={parse}
             onImport={handleImport}
-            dropSubLabel="CSV ou XLSX · une ligne par objet, l'identifiant déduit"
+            dropSubLabel="CSV ou Excel · une ligne par objet, l'identifiant déduit"
+            reglages={(tableau) =>
+                /* Le site des lignes qui n'en portent pas — seulement si le fichier en laisse. */
+                tableau.lignes.some((ligne) => !ligne.get('Site')) ? (
+                    <SelectField
+                        label="Site des lignes qui n’en portent pas"
+                        name="siteParDefaut"
+                        value={siteParDefaut}
+                        onChange={(e) => setSiteParDefaut(e.target.value)}
+                        options={[
+                            { value: '', label: 'Choisir un site' },
+                            ...sites.map((s) => ({ value: s.nom, label: `${s.nom} · ${s.pays}` })),
+                        ]}
+                        supportingText={
+                            tableau.trouvees.Site
+                                ? 'Une colonne Site renseignée l’emporte, ligne par ligne.'
+                                : 'Le fichier ne dit pas le site : toutes ses lignes y entrent.'
+                        }
+                    />
+                ) : null
+            }
             rejectionNote={
-                /* Le gabarit pose la note en `flex` : elle doit lui arriver en **un**
-                   enfant, sinon chaque fragment devient une colonne. */
+                /* **Une note, un fait** : ce qui débloque le refus le plus fréquent. Elle
+                   disait aussi d'où viennent l'identifiant et le statut — trois phrases, dont
+                   deux sans rapport avec un refus. */
                 <span>
-                    Un modèle absent du catalogue se crée d'abord au{' '}
-                    <b className="font-medium">Référentiel</b>. L'identifiant lisible et le code
-                    interne, eux, ne se lisent pas dans le fichier — ils sont déduits à l'écriture,
-                    du code du pays et du numéro de série. Les fiches naissent{' '}
-                    <b className="font-medium">Disponibles</b> sur l'emplacement de leur ligne.
+                    Un modèle absent se crée au <b className="font-medium">Référentiel</b> :
+                    importez-y ce même fichier.
                 </span>
             }
         />

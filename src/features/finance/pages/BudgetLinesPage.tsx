@@ -33,6 +33,7 @@ import { CORPS_BUREAU, PAGE_BUREAU } from '../../../lib/regimeBureau';
 import type { FinanceBudgetItem, FinanceExpenseType } from '../../../types';
 import ChiffreAnime from '../../../components/ui/ChiffreAnime';
 import ChiffreAjuste from '../../../components/ui/ChiffreAjuste';
+import { JAUGE, JAUGE_RANGEE } from '../../../lib/jauge';
 
 /**
  * **15.2 — Lignes du budget : ajuster les enveloppes.**
@@ -372,7 +373,9 @@ const BudgetLinesPage: React.FC<BudgetLinesPageProps> = ({ year, onBack }) => {
                                         <span aria-hidden="true" className="-mr-2 h-5 w-0" />
                                         {etiquette(ligne)}
                                         <span className="whitespace-nowrap">
-                                            {ligne.spent > 0 ? 'déjà consommée' : 'rien de consommé'}
+                                            {ligne.spent > 0
+                                                ? 'déjà consommée'
+                                                : 'rien de consommé'}
                                         </span>
                                     </span>
                                 </td>
@@ -389,7 +392,12 @@ const BudgetLinesPage: React.FC<BudgetLinesPageProps> = ({ year, onBack }) => {
                                     />
                                 </td>
                                 <td className="px-2.5 align-middle">
-                                    <span className="bg-surface-container block h-2 overflow-hidden rounded-xs">
+                                    <span
+                                        className={cn(
+                                            'bg-surface-container block overflow-hidden',
+                                            JAUGE_RANGEE,
+                                        )}
+                                    >
                                         <i
                                             className={cn(
                                                 'mvt-jauge duration-medium2 ease-emphasized transition-[width]',
@@ -500,7 +508,7 @@ const BudgetLinesPage: React.FC<BudgetLinesPageProps> = ({ year, onBack }) => {
                 </p>
             </div>
             <div>
-                <div className="bg-surface-container flex h-2.5 overflow-hidden rounded-full">
+                <div className={cn('bg-surface-container flex overflow-hidden', JAUGE)}>
                     {segments.map((seg) => (
                         <i
                             key={seg.cle}
@@ -558,7 +566,12 @@ const BudgetLinesPage: React.FC<BudgetLinesPageProps> = ({ year, onBack }) => {
                                         {part} %
                                     </span>
                                 </span>
-                                <span className="bg-surface-container mt-2 block h-1.5 overflow-hidden rounded-full">
+                                <span
+                                    className={cn(
+                                        'bg-surface-container mt-2 block overflow-hidden',
+                                        JAUGE_RANGEE,
+                                    )}
+                                >
                                     <i
                                         className={cn(
                                             'mvt-jauge duration-medium2 ease-emphasized transition-[width]',
@@ -682,7 +695,12 @@ const BudgetLinesPage: React.FC<BudgetLinesPageProps> = ({ year, onBack }) => {
                                       </div>
                                       <span className="-mr-2 shrink-0">{menuDe(ligne)}</span>
                                   </div>
-                                  <span className="bg-surface-container mt-4 block h-2 overflow-hidden rounded-xs">
+                                  <span
+                                      className={cn(
+                                          'bg-surface-container mt-4 block overflow-hidden',
+                                          JAUGE,
+                                      )}
+                                  >
                                       <i
                                           className={cn(
                                               'mvt-jauge duration-medium2 ease-emphasized transition-[width]',
@@ -740,13 +758,20 @@ const BudgetLinesPage: React.FC<BudgetLinesPageProps> = ({ year, onBack }) => {
                                 {sousTitre}
                             </p>
                         </div>
-                        <Button variant="outlined" onClick={onBack}>
+                        {/* Les gestes du chrome du bureau font 40, comme la flèche (17.11) ;
+                            48 au doigt. Ils tenaient 48 à côté d'une flèche de 40 (08/10). */}
+                        <Button
+                            variant="outlined"
+                            onClick={onBack}
+                            className="doigt:h-12 doigt:min-h-12 h-10 min-h-10"
+                        >
                             Annuler
                         </Button>
                         <Button
                             variant="tonal"
                             icon={<Icon glyph={Check} size={20} />}
                             onClick={enregistrer}
+                            className="doigt:h-12 doigt:min-h-12 h-10 min-h-10"
                         >
                             Enregistrer
                         </Button>
@@ -953,7 +978,7 @@ const BudgetLinesPage: React.FC<BudgetLinesPageProps> = ({ year, onBack }) => {
                     )}
 
                     {/* `.sfoot` — deux colonnes égales, filet au-dessus. */}
-                    <div className="border-outline-variant -mx-5 duo-de-pied gap-3 border-t px-5 pt-4 pb-1">
+                    <div className="border-outline-variant duo-de-pied -mx-5 gap-3 border-t px-5 pt-4 pb-1">
                         <Button variant="ghost" onClick={() => setDialogue(null)}>
                             Annuler
                         </Button>

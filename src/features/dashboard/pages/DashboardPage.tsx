@@ -34,7 +34,7 @@ import Figure from '../../../components/ui/Figure';
 import CardEmptyState from '../../../components/ui/CardEmptyState';
 import { getCategoryLabel } from '../../../constants/glossary';
 import { calculateLinearDepreciation, formatDate, formatMoment } from '../../../lib/financial';
-import { rememberAuditScope } from '../../../lib/auditScope';
+import { ouvrirLeChoixSur, rememberAuditScope } from '../../../lib/auditScope';
 import { ACTIVE_APPROVAL_STATUSES, getHistoryEventSentence } from '../../../lib/businessRules';
 import { cn } from '../../../lib/utils';
 import heroImage from '../../../assets/dashboard-hero.webp';
@@ -42,6 +42,7 @@ import { NOM_SUR_UNE_LIGNE, infobulle } from '../../../lib/nomLong';
 import { CASE_SOUPLE, RANGEE_SOUPLE } from '../../../lib/souple';
 import { useEntree } from '../../../hooks/useEntree';
 import ChiffreAnime from '../../../components/ui/ChiffreAnime';
+import { JAUGE, JAUGE_RANGEE } from '../../../lib/jauge';
 
 /**
  * Tableau de bord — **porté sur la planche 03.1, passe sobre du 02/09**.
@@ -328,6 +329,31 @@ const FLEET_STATES: readonly {
     },
 ];
 
+/**
+ * **Le reste du parc, en deux groupes** (08/10) — après les trois états de la planche, la
+ * barre et la légende les portent dans cet ordre. `status` : le filtre de la liste qu'ouvre
+ * l'entrée — le hors service en couvre plusieurs, il ouvre donc la liste entière.
+ */
+const RESTE_DU_PARC: readonly {
+    key: 'pending' | 'horsService';
+    status: string;
+    label: string;
+    color: string;
+}[] = [
+    {
+        key: 'pending',
+        status: 'En attente',
+        label: 'en attente',
+        color: 'var(--tk-color-st-ambre)',
+    },
+    {
+        key: 'horsService',
+        status: '',
+        label: 'hors service',
+        color: 'var(--tk-color-st-gris)',
+    },
+];
+
 /** `.vmot` — la pastille ronde de 48 du régime vide, `rgba(122,185,85,.22)`. */
 const EMPTY_MOTIF_STYLE: React.CSSProperties = {
     backgroundColor: 'color-mix(in srgb, var(--tk-color-live-vert) 22%, transparent)',
@@ -491,7 +517,7 @@ const Gauge: React.FC<{
             <div
                 role="img"
                 aria-label={ariaLabel ?? `${Math.round(clamped)} %`}
-                className="bg-surface-container relative mt-4 h-2 rounded-xs"
+                className={cn('bg-surface-container relative mt-4', JAUGE)}
             >
                 <span
                     className={cn(
@@ -572,11 +598,24 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
 
     /**
      * **Reprendre, ce n'est pas relister.** Le renvoi ne repasse pas par la vue globale
-     * (16.1) : il retient le lieu et ouvre le comptage (16.2) là où il en était. Le
-     * périmètre est le site entier — c'est celui que la carte nomme.
+     * (16.1) : il retient le lieu et ouvre le comptage (16.2) **là où il en était — le
+     * local du dernier scan** (09/10). Il ouvrait le site entier, un périmètre que
+     * l'inventaire ne propose jamais pour un site qui a des locaux. Si ce local est fini,
+     * reprendre, c'est choisir le suivant : la vue globale s'ouvre sur les locaux du site.
      */
     const reprendreCampagne = (encours: CurrentCampaign) => {
-        rememberAuditScope({ country: encours.country, site: encours.site });
+        const lieu = {
+            country: encours.country,
+            site: encours.site,
+            local: encours.local,
+            horsLocal: encours.horsLocal,
+        };
+        if (encours.lieuTermine) {
+            ouvrirLeChoixSur(lieu);
+            onViewChange('audit');
+            return;
+        }
+        rememberAuditScope(lieu);
         onViewChange('audit_details');
     };
 
@@ -591,31 +630,38 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
             available,
             repair,
             /**
-             * **Ce que les trois états ne couvrent pas.** La planche compte trois états et
-             * sa fixture s'y épuise — 7 + 5 + 2 = 14. Le parc réel non : un actif *retiré*
-             * ou *manquant* n'est ni attribué, ni disponible, ni en réparation, et il
-             * manquait à la barre sans que rien ne le dise.
-             *
-             * Le reste est **nommé état par état** : « 34 retirés, 11 manquants » se lit,
-             * là où « 45 hors des trois états » demande d'aller chercher lesquels.
+             * **Ce que les trois états ne couvrent pas** — en deux groupes (08/10). La carte
+             * le disait en une phrase, « Hors service : 13 en attentes, 8 retirés, 1 réformé… » :
+             * six états en vrac, un pluriel faux, et des objets **en attente** (une remise à
+             * confirmer, un retour à recevoir) comptés hors service alors qu'ils circulent.
+             * - `pending` — en attente : en mouvement, pas hors service ;
+             * - `horsService` — retiré, réformé, perdu, manquant, en maintenance : ce qui ne
+             *   sert pas. Son détail se lit au lecteur d'écran et dans la liste.
              */
-            reste: (() => {
+            pending: equipment.filter((item) => item.status === 'En attente').length,
+            horsService: (() => {
                 const parEtat = new Map<string, number>();
                 equipment.forEach((item) => {
                     if (
                         item.status === 'Attribué' ||
                         item.status === 'Disponible' ||
-                        item.status === 'En réparation'
+                        item.status === 'En réparation' ||
+                        item.status === 'En attente'
                     )
                         return;
                     parEtat.set(item.status, (parEtat.get(item.status) ?? 0) + 1);
                 });
                 const total = [...parEtat.values()].reduce((a, b) => a + b, 0);
-                const phrase = [...parEtat.entries()]
+                /* Un adjectif s'accorde (« 8 retirés ») ; une locution, non (« 2 en
+                   maintenance préventive »). */
+                const detail = [...parEtat.entries()]
                     .sort((a, b) => b[1] - a[1])
-                    .map(([etat, n]) => `${n} ${etat.toLowerCase()}${n > 1 ? 's' : ''}`)
+                    .map(([etat, n]) => {
+                        const mot = etat.toLowerCase();
+                        return `${n} ${mot}${n > 1 && !mot.includes(' ') ? 's' : ''}`;
+                    })
                     .join(', ');
-                return { total, phrase };
+                return { total, detail };
             })(),
         };
     }, [equipment]);
@@ -1127,24 +1173,43 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                         même que celui de `.wbar`, la jauge de la carte voisine —
                         il dit « le reste du parc », il ne le peint pas en état. */}
                     <div
-                        className="bg-surface-container mt-3.5 flex h-1.5 gap-0.5 overflow-hidden rounded-xs"
+                        className={cn(
+                            'bg-surface-container mt-3.5 flex gap-0.5 overflow-hidden',
+                            JAUGE,
+                        )}
                         role="img"
-                        aria-label={`${counts.assigned} attribués, ${counts.available} disponibles, ${counts.repair} en réparation${counts.reste.total > 0 ? `, ${counts.reste.phrase}` : ''} sur ${counts.total}`}
+                        aria-label={`${counts.assigned} attribués, ${counts.available} disponibles, ${counts.repair} en réparation, ${counts.pending} en attente, ${counts.horsService.total} hors service, sur ${counts.total}`}
                     >
-                        {FLEET_STATES.map((state) => {
-                            const width =
-                                counts.total > 0 ? (counts[state.key] / counts.total) * 100 : 0;
-                            return width > 0 ? (
+                        {/* **Le parc entier, sans creux** (08/10) : les trois états s'arrêtaient à
+                            92 %, et le fond pâle qui suivait se lisait comme une barre
+                            inachevée. Chaque segment prend sa part du parc (`flex` : les
+                            écarts de 2 px sont retirés de la place avant le partage). */}
+                        {[
+                            ...FLEET_STATES.map((state) => ({
+                                cle: state.key,
+                                n: counts[state.key],
+                                couleur: state.color,
+                            })),
+                            ...RESTE_DU_PARC.map((groupe) => ({
+                                cle: groupe.key,
+                                n:
+                                    groupe.key === 'pending'
+                                        ? counts.pending
+                                        : counts.horsService.total,
+                                couleur: groupe.color,
+                            })),
+                        ].map((segment) =>
+                            segment.n > 0 ? (
                                 <span
-                                    key={state.key}
-                                    className="mvt-jauge duration-medium2 ease-emphasized block h-full transition-[width]"
+                                    key={segment.cle}
+                                    className="mvt-jauge duration-medium2 ease-emphasized block h-full min-w-0.5"
                                     style={{
-                                        width: `${width}%`,
-                                        backgroundColor: state.color,
+                                        flex: `${segment.n} 1 0%`,
+                                        backgroundColor: segment.couleur,
                                     }}
                                 />
-                            ) : null;
-                        })}
+                            ) : null,
+                        )}
                     </div>
                     {/* `.qual` — trois colonnes, 22 / 28 en Archivo, le libellé 14 / 20
                         avec sa pastille de 8. **En rangée souple** (07/10) : des tiers égaux
@@ -1162,26 +1227,45 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                             />
                         ))}
                     </div>
-                    {/* `.calm` — la phrase qui répond au creux de la barre, dans
-                        l'idiome de la carte voisine (« Les 3 autres types ont au
-                        moins une unité »). Elle ne paraît que s'il y a un reste :
-                        un parc entièrement en service n'a rien à expliquer. */}
-                    {counts.reste.total > 0 && (
-                        <Button
-                            variant="text"
-                            onClick={() => openFleet('')}
-                            /* `whitespace-normal` : un bouton tient son libellé sur une ligne, et
-                               cette phrase en fait deux dès que le reste compte quatre états —
-                               elle sortait de la carte de 195 px à 430, de 305 à 320 (07/10). */
-                            className="text-on-surface-variant hover:text-on-surface mt-2.5 min-h-0 justify-start px-0 text-left text-[0.75rem] leading-4 font-normal whitespace-normal hover:bg-transparent"
-                        >
-                            <span>
-                                Hors service :{' '}
-                                <b className="text-on-surface font-medium tabular-nums">
-                                    {counts.reste.phrase}
-                                </b>
-                            </span>
-                        </Button>
+                    {/* **Le reste, en légende** (08/10) — deux entrées au plus, la pastille
+                        de leur segment, le chiffre en gras ; chacune ouvre la liste. Elle ne
+                        paraît que s'il y a un reste : un parc entièrement en service n'a rien
+                        à expliquer. */}
+                    {counts.pending + counts.horsService.total > 0 && (
+                        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
+                            {RESTE_DU_PARC.map((groupe) => {
+                                const n =
+                                    groupe.key === 'pending'
+                                        ? counts.pending
+                                        : counts.horsService.total;
+                                if (n === 0) return null;
+                                return (
+                                    <Button
+                                        key={groupe.key}
+                                        variant="text"
+                                        onClick={() => openFleet(groupe.status)}
+                                        aria-label={
+                                            groupe.key === 'pending'
+                                                ? `${n} en attente, voir la liste`
+                                                : `${n} hors service : ${counts.horsService.detail}. Voir la liste`
+                                        }
+                                        className="text-text-secondary hover:text-on-surface h-auto min-h-8 gap-1.5 px-0 text-[0.8125rem] leading-[1.125rem] font-normal hover:bg-transparent"
+                                    >
+                                        <span
+                                            aria-hidden="true"
+                                            className="h-2 w-2 shrink-0 rounded-xs"
+                                            style={{ backgroundColor: groupe.color }}
+                                        />
+                                        <span>
+                                            <b className="text-on-surface font-medium tabular-nums">
+                                                {n}
+                                            </b>{' '}
+                                            {groupe.label}
+                                        </span>
+                                    </Button>
+                                );
+                            })}
+                        </div>
                     )}
                 </section>
             ) : (
@@ -1437,7 +1521,12 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                             <span className="text-on-surface text-ts-body leading-ts-body min-w-0 flex-1 truncate">
                                 {item.type}
                             </span>
-                            <span className="bg-surface-container h-1.5 w-20 shrink-0 overflow-hidden rounded-xs">
+                            <span
+                                className={cn(
+                                    'bg-surface-container w-20 shrink-0 overflow-hidden',
+                                    JAUGE_RANGEE,
+                                )}
+                            >
                                 <span
                                     className="bg-on-surface mvt-jauge duration-medium2 ease-emphasized block h-full rounded-xs transition-[width]"
                                     style={{ width: `${item.percent}%` }}

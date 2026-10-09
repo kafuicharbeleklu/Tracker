@@ -1,6 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
-    ArrowLeft,
     Books,
     CaretDown,
     CaretRight,
@@ -21,6 +20,7 @@ import {
 import Reading from '../../../components/layout/Reading';
 import BottomSheet from '../../../components/ui/BottomSheet';
 import Button from '../../../components/ui/Button';
+import FlecheDeRetour from '../../../components/ui/FlecheDeRetour';
 import { FabContainer } from '../../../components/ui/FabContainer';
 import FacetChip from '../../../components/ui/FacetChip';
 import FilterButton from '../../../components/ui/FilterButton';
@@ -45,9 +45,20 @@ import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { IconGestureSizeContext } from '../../../hooks/useIconGestureSize';
 import { cn } from '../../../lib/utils';
 import { CADRE_BUREAU, CORPS_BUREAU, PAGE_BUREAU } from '../../../lib/regimeBureau';
+import { correspondre, lireClasseur, lireMontant } from '../../../lib/tableur';
 import { CATEGORY_FAMILIES, Category, ViewType } from '../../../types';
 import AddCategoryPage from './AddCategoryPage';
 import AddModelPage from './AddModelPage';
+
+/** Les colonnes d'un fichier de types, et les noms sous lesquels un tableur les porte. */
+const COLONNES_DE_TYPE = [
+    { key: 'Name', alias: ['Nom', 'Type', 'Catégorie', 'Category'] },
+    { key: 'Description', alias: ['Libellé'] },
+    { key: 'Method', alias: ['Méthode', 'Amortissement', 'Depreciation'] },
+    { key: 'Years', alias: ['Durée', 'Années', 'Ans'] },
+    { key: 'Salvage', alias: ['Valeur résiduelle', 'Résiduelle', 'Residual'] },
+    { key: 'Icon', alias: ['Icône', 'IconName'] },
+];
 
 const ALL_FAMILIES = 'Toutes';
 
@@ -137,11 +148,11 @@ const ADD_ROW_GLYPH_CLASS = 'flex h-10 w-10 shrink-0 items-center justify-center
 
 interface ManagementPageProps {
     onCategoryClick?: (id: string) => void;
+    /** Ouvrir la fiche d'un modèle — celui qu'on vient de créer. */
+    onModelClick?: (id: string) => void;
     onViewChange?: (view: ViewType) => void;
     /** Le retour vers « Plus » — la flèche de 09.1, au téléphone seulement. */
     onBack?: () => void;
-    /** Lien profond /management/{categories|models}/add : modale ouverte au rendu. */
-    initialAddModal?: 'category' | 'model';
 }
 
 /**
@@ -168,8 +179,8 @@ interface ManagementPageProps {
  */
 const ManagementPage: React.FC<ManagementPageProps> = ({
     onCategoryClick,
+    onModelClick,
     onViewChange,
-    initialAddModal,
     onBack,
 }) => {
     const { equipment, categories, models, addCategory } = useData();
@@ -195,15 +206,6 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
     useDeclareSelectionRegime(selection.isActive);
     const categoryImportInputRef = useRef<HTMLInputElement | null>(null);
     const debouncedSearch = useDebounce(searchQuery, 300);
-
-    /* **Une route d'ajout en ferme une autre.** L'effet n'ouvrait que la sienne : en
-       passant de `#/management/categories/add` à `#/management/models/add`, les deux
-       saisies restaient montées l'une sur l'autre — invisible tant que c'étaient des
-       fenêtres de 560, franc depuis qu'elles occupent l'écran. */
-    useEffect(() => {
-        setIsCategoryModalOpen(initialAddModal === 'category');
-        setIsModelModalOpen(initialAddModal === 'model');
-    }, [initialAddModal]);
 
     /** Le décompte de modèles d'un type — c'est lui qui décide de ce qu'on peut créer. */
     const modelCountByType = useMemo(() => {
@@ -393,6 +395,12 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
         setIsModelModalOpen(true);
     };
 
+    /**
+     * **Importer des types** — CSV ou Excel, lus comme les autres imports (09/10,
+     * `lib/tableur`) : encodage et séparateur déduits, colonnes reconnues à leur nom. Le
+     * fichier était coupé sur la première virgule et lu par rang ; sans en-tête reconnu, on
+     * garde ce rang-là — nom, description, méthode, durée, valeur résiduelle, icône.
+     */
     const handleCategoryImportFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         event.target.value = '';
@@ -402,55 +410,60 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
         }
 
         try {
-            const content = await file.text();
-            const lines = content
-                .split(/\r?\n/)
-                .map((line) => line.trim())
-                .filter((line) => Boolean(line));
-
-            if (lines.length === 0) {
-                showToast('Le fichier CSV est vide.', 'warning');
+            const classeur = await lireClasseur(file);
+            const feuille = classeur.feuilles[0];
+            if (!feuille) {
+                showToast('Le fichier est vide.', 'warning');
                 return;
             }
+
+            const lu = correspondre(feuille.lignes, COLONNES_DE_TYPE);
+            const avecEntete = lu.indices.Name !== undefined;
+            const rang: Record<string, number | undefined> = avecEntete
+                ? lu.indices
+                : { Name: 0, Description: 1, Method: 2, Years: 3, Salvage: 4, Icon: 5 };
+            const valeur = (ligne: string[], cle: string) => {
+                const i = rang[cle];
+                return i === undefined ? '' : (ligne[i] ?? '').trim();
+            };
+            const lignes = feuille.lignes
+                .slice(avecEntete ? lu.ligneEntete + 1 : 0)
+                .filter((ligne) => ligne.some(Boolean));
 
             const existingNames = new Set(
                 categories.map((category) => category.name.toLowerCase()),
             );
-            const delimiter = lines[0].includes(';') ? ';' : ',';
-            const hasHeader = /nom|catég|categorie/i.test(lines[0]);
-            const rows = hasHeader ? lines.slice(1) : lines;
-
             let createdCount = 0;
-            let skippedCount = 0;
+            let dejaLa = 0;
+            let sansNom = 0;
 
-            rows.forEach((row) => {
-                const values = row
-                    .split(delimiter)
-                    .map((cell) => cell.trim().replace(/^"|"$/g, ''));
-                const name = values[0];
-
+            lignes.forEach((ligne) => {
+                const name = valeur(ligne, 'Name');
                 if (!name) {
-                    skippedCount += 1;
+                    sansNom += 1;
                     return;
                 }
 
                 const normalizedName = name.toLowerCase();
                 if (existingNames.has(normalizedName)) {
-                    skippedCount += 1;
+                    dejaLa += 1;
                     return;
                 }
 
-                const method = values[2]?.toLowerCase() === 'degressive' ? 'degressive' : 'linear';
-                const years = Number.parseInt(values[3] || '3', 10);
-                const salvageValuePercent = Number.parseFloat(values[4] || '0');
-                const iconName = values[5] && CATEGORY_ICONS[values[5]] ? values[5] : 'Laptop';
+                const method = /d[ée]gress/i.test(valeur(ligne, 'Method'))
+                    ? 'degressive'
+                    : 'linear';
+                const years = Number.parseInt(valeur(ligne, 'Years') || '3', 10);
+                const salvageValuePercent = lireMontant(valeur(ligne, 'Salvage') || '0');
+                const icone = valeur(ligne, 'Icon');
+                const iconName = icone && CATEGORY_ICONS[icone] ? icone : 'Laptop';
 
                 addCategory({
                     name,
-                    description: values[1] || '',
+                    description: valeur(ligne, 'Description'),
                     icon: CATEGORY_ICONS[iconName],
                     iconName,
-                    // Le CSV ne porte pas la colonne : une catégorie importée est attribuable
+                    // Le fichier ne porte pas la colonne : une catégorie importée est attribuable
                     // par défaut, comme celle créée au formulaire.
                     assignable: true,
                     defaultDepreciation: {
@@ -466,15 +479,26 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                 createdCount += 1;
             });
 
+            /* Ce qui est entré, et ce qui ne l'est pas — avec sa raison. */
+            const restes = [
+                dejaLa > 0 ? `${dejaLa} déjà au catalogue` : '',
+                sansNom > 0 ? `${sansNom} sans nom` : '',
+            ].filter(Boolean);
             if (createdCount > 0) {
-                showToast(`${createdCount} catégorie(s) importée(s).`, 'success');
-            }
-
-            if (createdCount === 0 && skippedCount > 0) {
-                showToast('Aucun type ajouté : doublons ou lignes invalides.', 'warning');
+                showToast(
+                    `${createdCount} type${createdCount > 1 ? 's importés' : ' importé'}${restes.length ? ` · ${restes.join(', ')}` : ''}.`,
+                    'success',
+                );
+            } else {
+                showToast(
+                    restes.length
+                        ? `Aucun type ajouté : ${restes.join(', ')}.`
+                        : 'Aucun type à lire dans ce fichier.',
+                    'warning',
+                );
             }
         } catch {
-            showToast("Impossible d'importer ce fichier CSV.", 'error');
+            showToast('Ce fichier ne se lit pas : ni CSV, ni classeur Excel.', 'error');
         }
     };
 
@@ -484,24 +508,20 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
         <div className={cn('relative flex min-h-0 w-full min-w-0 flex-1 flex-col', PAGE_BUREAU)}>
             <AddCategoryPage
                 isOpen={isCategoryModalOpen}
-                onClose={() => {
-                    setIsCategoryModalOpen(false);
-                    if (initialAddModal === 'category') onViewChange?.('management');
-                }}
+                onClose={() => setIsCategoryModalOpen(false)}
                 categoryToEdit={null}
+                onCreated={onCategoryClick}
             />
             <AddModelPage
                 isOpen={isModelModalOpen}
-                onClose={() => {
-                    setIsModelModalOpen(false);
-                    if (initialAddModal === 'model') onViewChange?.('management');
-                }}
+                onClose={() => setIsModelModalOpen(false)}
                 modelToEdit={null}
+                onCreated={onModelClick}
             />
             <input
                 ref={categoryImportInputRef}
                 type="file"
-                accept=".csv,text/csv"
+                accept=".csv,.txt,.xlsx,.xls,.ods,text/csv"
                 className="hidden"
                 onChange={(event) => void handleCategoryImportFile(event)}
             />
@@ -571,7 +591,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
 
                     <div
                         data-pied
-                        className="border-outline-variant -mx-5 mt-4 duo-de-pied gap-3 border-t px-5 pt-4 pb-1"
+                        className="border-outline-variant duo-de-pied -mx-5 mt-4 gap-3 border-t px-5 pt-4 pb-1"
                     >
                         <Button
                             variant="tonal"
@@ -720,16 +740,19 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                         posé ici le 07/09 était une **seconde porte** vers la feuille que
                         le bouton flottant ouvre déjà en bas de l'écran. La flèche de retour,
                         elle, y est : on arrive ici depuis « Plus », comme sur 18.1. */}
-                        <div className="flex min-h-12 items-center gap-1">
-                            {isCompact && onBack && (
-                                <button
-                                    type="button"
-                                    aria-label="Retour"
-                                    onClick={onBack}
-                                    className="text-on-surface hover:bg-surface-container -ml-3 flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-md transition-colors"
-                                >
-                                    <Icon glyph={ArrowLeft} size={24} />
-                                </button>
+                        <div
+                            className={cn(
+                                'flex items-center gap-1',
+                                isCompact ? 'min-h-12' : 'min-h-[52px]',
+                            )}
+                        >
+                            {onBack && (
+                                <FlecheDeRetour
+                                    onBack={onBack}
+                                    compact={isCompact}
+                                    /* 8 jusqu'au titre, comme les listes : la rangée n'en met que 4. */
+                                    className={isCompact ? undefined : 'mr-1'}
+                                />
                             )}
                             <h1 className="font-brand text-on-surface text-ts-page leading-ts-page min-w-0 shrink font-semibold tracking-[-0.02em]">
                                 Catalogue
@@ -999,7 +1022,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                                                   modèle s'éteint et le dit, en ambre, avec
                                                   l'horloge de l'attente.
                                                 */
-                                                <ul className="large:grid-cols-3 grid grid-cols-2 gap-3">
+                                                <ul className="large:grid-cols-3 grid grid-cols-2 gap-4">
                                                     {items.map((cat) => {
                                                         const modelCount =
                                                             modelCountByType.get(cat.name) ?? 0;
@@ -1263,10 +1286,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                 référentiel vide, **au même endroit**. Il s'effaçait justement là où il est
                 le seul chemin. */}
             {isCompact && !selection.isActive && (
-                <FabContainer
-                    description="Ajouter au catalogue"
-                    className="compact:bottom-[76px] right-5 bottom-[76px]"
-                >
+                <FabContainer description="Ajouter au catalogue">
                     <button
                         type="button"
                         aria-label="Ajouter au catalogue"

@@ -3,7 +3,6 @@ import {
     CheckCircle,
     Laptop,
     List,
-    LockKey,
     SquaresFour,
     UsersThree,
     type Icon as PhosphorGlyph,
@@ -48,7 +47,8 @@ import {
  *
  * ## Ce que la feuille ne porte pas, et pourquoi
  *
- * - **Le compte, ni la déconnexion.** Ils sont à l'avatar, en haut (arbitrage A4).
+ * - **Le compte, ni la déconnexion.** Ils sont à l'avatar, en haut (arbitrage A4), et
+ *   le compte est la première rangée de Paramètres (09/10).
  *   Deux portes vers « Mon compte » en font une de trop — et la règle de cette
  *   planche est plus nette encore : *la cinquième case ne porte que des destinations,
  *   jamais un acte*. **Se déconnecter est un acte**, le seul qui quitte le produit.
@@ -251,16 +251,18 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
         // « Rôles & accès » ne s'affichait donc JAMAIS. Administrer les rôles est un
         // acte d'administration système — c'est `canManageSystem` qui le garde.
         if (permissions.canManageSystem) administration.push(row('rbac'));
-        /* **Paramètres a quitté cette feuille** (arbitrage du commanditaire, 06/09) :
-           il vit dans le menu de l'avatar, avec Mon compte et la déconnexion. La
-           feuille « Plus » ne range que des destinations de travail — deux portes vers
-           le même réglage en font une de trop. */
+        /* **Paramètres revient dans cette feuille, à la place de « Mon compte »** (09/10,
+           revue de navigation acceptée par le commanditaire). Le 06/09 il l'avait fait
+           sortir — *« deux portes vers le même réglage en font une de trop »* — et la
+           rangée « Mon compte » avait pris sa place : au téléphone, les réglages ne
+           s'atteignaient plus que par l'avatar de l'accueil. Une rangée, pas deux : le
+           compte est la première rangée de Paramètres. Un code PIN à définir y mène tout
+           droit. */
         administration.push({
-            id: 'account',
-            label: 'Mon compte',
-            glyph: LockKey,
+            ...row('settings'),
             fact: pinToDefine ? { text: 'code PIN à définir', warn: true } : undefined,
-            onSelect: () => navigate('/settings/account'),
+            onSelect: () =>
+                pinToDefine ? navigate('/settings/account') : onViewChange('settings'),
         });
 
         return [
@@ -566,9 +568,12 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
                                 haut-droit du glyphe ; `.dot` quand le fait ne se compte
                                 pas. Le lecteur d'écran l'entend dans le nom du geste. */}
                             {item.badge !== undefined && (
+                                /* La clé suit le nombre : il rebondit quand une tâche
+                                   arrive (08/10). */
                                 <span
+                                    key={item.badge}
                                     aria-hidden="true"
-                                    className="absolute top-2 left-[calc(50%+6px)] flex h-4 min-w-4 items-center justify-center rounded-lg bg-[var(--tk-color-danger)] px-1 text-[0.6875rem] leading-4 font-medium text-white tabular-nums"
+                                    className="mvt-pop absolute top-2 left-[calc(50%+6px)] flex h-4 min-w-4 items-center justify-center rounded-lg bg-[var(--tk-color-danger)] px-1 text-[0.6875rem] leading-4 font-medium text-white tabular-nums"
                                 >
                                     {item.badge > 99 ? '99+' : item.badge}
                                 </span>

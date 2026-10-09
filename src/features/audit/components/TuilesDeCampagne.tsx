@@ -6,6 +6,7 @@ import ChiffreAnime from '../../../components/ui/ChiffreAnime';
 import Icon from '../../../components/ui/Icon';
 import { useEntree } from '../../../hooks/useEntree';
 import { cn } from '../../../lib/utils';
+import { JAUGE } from '../../../lib/jauge';
 
 export type TeinteDeTuile = 'vert' | 'bleu' | 'orange' | 'ambre' | 'neutre';
 
@@ -78,8 +79,13 @@ const TuilesDeCampagne: React.FC<{ tuiles: TuileDeCampagne[]; className?: string
                             <span className="text-text-secondary min-w-0 flex-1 truncate text-[0.8125rem] leading-[1.125rem] font-medium">
                                 {tuile.label}
                             </span>
+                            {/* **Le mot cède, pas le libellé** (28/09) : à 1024 la tuile fait
+                                209 px, et « affiché » coupait « Fiches corrigées » en « Fiches
+                                c… ». Le mot ne paraît que si le plus long libellé tient à côté
+                                (207 px de contenu, une tuile de 243) ; en deçà, l'anneau seul
+                                dit la tuile choisie. */}
                             {tuile.choisie && (
-                                <span className="text-on-surface shrink-0 text-[0.6875rem] leading-4 font-semibold tracking-[0.04em] uppercase">
+                                <span className="text-on-surface hidden shrink-0 text-[0.6875rem] leading-4 font-semibold tracking-[0.04em] uppercase @[13.25rem]:inline">
                                     affiché
                                 </span>
                             )}
@@ -102,9 +108,14 @@ const TuilesDeCampagne: React.FC<{ tuiles: TuileDeCampagne[]; className?: string
                             )}
                         </span>
                         {typeof tuile.progression === 'number' ? (
-                            <span className="bg-surface-muted-strong mt-auto block h-1.5 w-full overflow-hidden rounded-full">
+                            <span
+                                className={cn(
+                                    'bg-surface-muted-strong mt-auto block w-full overflow-hidden',
+                                    JAUGE,
+                                )}
+                            >
                                 <span
-                                    className="mvt-jauge duration-medium2 ease-emphasized block h-full rounded-full bg-[var(--tk-color-st-vert)] transition-[width]"
+                                    className="mvt-jauge duration-medium2 ease-emphasized block h-full bg-[var(--tk-color-st-vert)] transition-[width]"
                                     style={{
                                         width: `${Math.min(100, Math.max(0, tuile.progression))}%`,
                                     }}
@@ -127,7 +138,7 @@ const TuilesDeCampagne: React.FC<{ tuiles: TuileDeCampagne[]; className?: string
                     </>
                 );
                 const forme = cn(
-                    'bg-surface flex min-w-0 flex-col items-start gap-2 rounded-xl px-[18px] py-4 text-left',
+                    'bg-surface @container flex min-w-0 flex-col items-start gap-2 rounded-xl px-[18px] py-4 text-left',
                     tuile.choisie && 'shadow-[0_0_0_2px_var(--tk-color-text-primary)]',
                 );
                 return tuile.onClick ? (

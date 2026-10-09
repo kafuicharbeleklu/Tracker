@@ -43,12 +43,15 @@ interface CategoryDetailsPageProps {
     categoryId: string;
     onBack: () => void;
     onModelClick: (id: string) => void;
+    /** Les renvois porteurs d'un périmètre — « ses actifs au parc », filtrés sur ce type. */
+    onNavigate?: (path: string) => void;
 }
 
 const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({
     categoryId,
     onBack,
     onModelClick,
+    onNavigate,
 }) => {
     const { equipment, categories, models, deleteCategory } = useData();
     const { navigateToView } = useAppNavigation();
@@ -230,7 +233,14 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({
                                vivait en petit lien au pied de la page. */
                             onClick:
                                 categoryEquipment.length > 0
-                                    ? () => navigateToView('equipment')
+                                    ? () =>
+                                          /* Les actifs **de ce type** (09/10) : le renvoi
+                                             ouvrait la liste entière. */
+                                          onNavigate
+                                              ? onNavigate(
+                                                    `/inventory/type/${encodeURIComponent(category.name)}`,
+                                                )
+                                              : navigateToView('equipment')
                                     : undefined,
                         },
                     ]}
@@ -478,6 +488,7 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({
                 isOpen={isAddModelOpen}
                 onClose={() => setIsAddModelOpen(false)}
                 initialType={category.name}
+                onCreated={onModelClick}
             />
         </DetailTemplate>
     );

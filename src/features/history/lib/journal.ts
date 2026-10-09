@@ -16,6 +16,7 @@ import {
 } from '@phosphor-icons/react';
 
 import { libelleAttestation } from '../../../components/ui/Attestation';
+import { codeDAttestation, codeDeLaPreuve } from '../../../lib/attestation';
 import type { Approval, Equipment, EventType, HistoryEvent, User } from '../../../types';
 
 /**
@@ -331,6 +332,13 @@ export const complementDe = (evenement: HistoryEvent, registres: Registres): str
 export const methodeDe = (evenement: HistoryEvent): string | undefined =>
     libelleAttestation(lire(evenement, 'method')) ?? lire(evenement, 'proof');
 
+/**
+ * **Le code de l'attestation d'un fait** — signature, code PIN ou les deux : ce qu'un badge
+ * dit sur son étape (09/10). Lu du code de l'acte, sinon de la preuve écrite d'une remise.
+ */
+export const attestationDe = (evenement: HistoryEvent): string | undefined =>
+    codeDAttestation(lire(evenement, 'method')) ?? codeDeLaPreuve(lire(evenement, 'proof'));
+
 /** Le lieu du fait, tel qu'il a été relevé au moment de l'acte — jamais le lieu d'aujourd'hui. */
 export const lieuDe = (evenement: HistoryEvent): string | undefined => lire(evenement, 'location');
 
@@ -548,8 +556,10 @@ export interface Preuve {
     evenement: HistoryEvent;
     /** « Clara Admin atteste avoir remis » */
     titre: string;
-    /** « 09:42 · code PIN, signature apposée » */
+    /** « 09:42 » — et la méthode en mots seulement quand aucun badge ne la dit. */
     detail: string;
+    /** Le code de l'attestation (`pin`, `signature`, `pin+signature`) : le badge de l'étape. */
+    attestation?: string;
     /** L'autre partie n'a pas encore attesté : la ligne attend. */
     attente?: boolean;
     /** Une étape qui n'a pas encore commencé — le parcours d'une demande ouverte la montre. */
@@ -621,8 +631,17 @@ const preuveDe = (evenement: HistoryEvent, registres: Registres, fait: HistoryEv
             ? `${signataire} atteste avoir ${participe}`
             : `${signataire} a ${participe}`
         : signataire;
-    const comment = methode ?? (sAttesteDe(evenement) ? 'méthode non consignée' : undefined);
-    return { evenement, titre, detail: [quand, comment].filter(Boolean).join(' · ') };
+    /* Signature ou code : le badge de l'étape le dit, les mots ne se répètent pas. */
+    const attestation = attestationDe(evenement);
+    const comment = attestation
+        ? undefined
+        : (methode ?? (sAttesteDe(evenement) ? 'méthode non consignée' : undefined));
+    return {
+        evenement,
+        titre,
+        detail: [quand, comment].filter(Boolean).join(' · '),
+        attestation,
+    };
 };
 
 /**
@@ -847,7 +866,8 @@ export const parcoursDeLaDemande = (
         )
             continue;
         const { verbe, atteste } = acteSurLaDemande(e);
-        const methode = methodeDe(e);
+        const attestation = attestationDe(e);
+        const methode = attestation ? undefined : methodeDe(e);
         const motif = lire(e, 'reason') ?? lire(e, 'comment');
         const role = e.isSystem ? undefined : roleDans(demande, e.actorId, roleProduitDe(e));
         etapes.push({
@@ -859,11 +879,14 @@ export const parcoursDeLaDemande = (
                 detail: [
                     role,
                     dansLaLigne(quandDe(e.timestamp)),
-                    methode ?? (atteste ? 'méthode non consignée' : undefined),
+                    attestation
+                        ? undefined
+                        : (methode ?? (atteste ? 'méthode non consignée' : undefined)),
                     motif ? `« ${motif} »` : undefined,
                 ]
                     .filter(Boolean)
                     .join(' · '),
+                attestation,
             },
         });
     }
@@ -884,8 +907,10 @@ export const parcoursDeLaDemande = (
                 detail: [
                     role,
                     dansLaLigne(quandDe(e.timestamp)),
-                    methodeDe(e) ?? 'méthode non consignée',
-                ].join(' · '),
+                    preuve.attestation ? undefined : (methodeDe(e) ?? 'méthode non consignée'),
+                ]
+                    .filter(Boolean)
+                    .join(' · '),
             },
         });
     }

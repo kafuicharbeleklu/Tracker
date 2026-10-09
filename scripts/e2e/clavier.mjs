@@ -94,6 +94,9 @@ export default async function clavier(navigateur, baseUrl, ok) {
     await ouvrirPremiereCarte(page);
     await page.waitForTimeout(1200);
     const attribuer = page.locator('main aside button:has-text("Attribuer")').first();
+    /* La fiche se peuple en 2 à 3 s sur le serveur de développement : on attend son geste
+       plutôt qu'un délai fixe (08/10 — elle échouait selon la charge de la machine). */
+    await attribuer.waitFor({ timeout: 15_000 }).catch(() => {});
     if (await attribuer.count()) {
         await attribuer.click();
         await page.waitForTimeout(800);
