@@ -175,6 +175,8 @@ function ReferentialImportTemplate<T>({
     const [classeur, setClasseur] = useState<ClasseurLu | null>(null);
     const [feuille, setFeuille] = useState(0);
     const [lecture, setLecture] = useState<'attente' | 'en cours' | 'faite' | 'echec'>('attente');
+    /** Les lignes retenues sont parties à l'écriture : le pied ne répond plus. */
+    const [ecrit, setEcrit] = useState(false);
 
     /* La feuille, l'en-tête et la correspondance des colonnes — puis les lignes, lues par nom. */
     const tableau = useMemo<
@@ -262,6 +264,7 @@ function ReferentialImportTemplate<T>({
     };
 
     const reset = () => {
+        setEcrit(false);
         setFile(null);
         setClasseur(null);
         setFeuille(0);
@@ -340,15 +343,19 @@ function ReferentialImportTemplate<T>({
             title={title}
             onCancel={onCancel}
             onSave={() => {
-                if (!previewMode || enAttente) return;
+                if (!previewMode || enAttente || ecrit) return;
                 if (acceptedCount === 0) {
                     reset();
                     return;
                 }
+                /* **Un import ne s'écrit qu'une fois** (09/10). L'écran d'arrivée se charge à
+                   la demande : tant qu'il n'est pas là, cette page reste affichée, bouton
+                   compris — un second appui écrivait les mêmes lignes une seconde fois. */
+                setEcrit(true);
                 onImport(accepted.map((row) => row.value as T));
             }}
             saveLabel={saveLabel}
-            isSaving={!previewMode || enAttente}
+            isSaving={!previewMode || enAttente || ecrit}
             /* `.pfoot` — un bouton, pleine largeur. Le pied portait aussi « Annuler »,
                grisé tant qu'aucun fichier n'était lu : on ne pouvait pas renoncer à
                l'import avant de l'avoir commencé, sinon par la flèche de retour — qui

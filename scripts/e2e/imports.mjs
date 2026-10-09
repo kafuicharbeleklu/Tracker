@@ -82,6 +82,21 @@ const deposer = async (page, fichier) => {
     await page.getByText('Ce qui sera créé').first().waitFor({ timeout: 30_000 });
     await page.waitForTimeout(300);
 };
+/**
+ * Après « Importer », l'écran quitte la page d'import pour la liste. On attend que la page
+ * d'import ait **disparu**, pas un délai ni la seule adresse : la liste se charge à la demande,
+ * et tant qu'elle n'est pas là l'ancienne page reste à l'écran — y revenir à ce moment-là la
+ * retrouvait telle quelle, fichier lu, sans champ de dépôt (09/10).
+ */
+const importTermine = async (page) => {
+    await page.waitForFunction(
+        () => !location.hash.includes('/import') && !document.querySelector('[data-plein-ecran]'),
+        undefined,
+        { timeout: 120_000 },
+    );
+    await page.waitForTimeout(400);
+};
+
 const texteDe = async (page) => (await page.locator('main').innerText()).replace(/\s+/g, ' ');
 /** Le pied : le seul bouton plein de la page. */
 const pied = (page) =>
@@ -165,7 +180,7 @@ export default async function imports(navigateur, baseUrl, ok) {
     );
 
     await pied(page).click();
-    await page.waitForTimeout(1200);
+    await importTermine(page);
     await aller(page, '/inventory');
     await page.locator('input[data-recherche-de-page]').first().fill('E2E-000');
     await page.waitForTimeout(700);
@@ -212,7 +227,7 @@ export default async function imports(navigateur, baseUrl, ok) {
         (await pied(page).innerText()).trim(),
     );
     await pied(page).click();
-    await page.waitForTimeout(1200);
+    await importTermine(page);
 
     // les trois existent bien : redéposé, le classeur n'apporte plus rien
     await aller(page, '/management/models/import');
@@ -243,7 +258,10 @@ export default async function imports(navigateur, baseUrl, ok) {
         .waitForFunction(
             () =>
                 location.hash.includes('/management/models/') &&
-                /E2E /.test(document.querySelector('main')?.innerText ?? ''),
+                /* La fiche du modèle, et plus celle du type : l'adresse change avant l'écran,
+                   et la fiche du type porte elle aussi « E2E » (échec en CI le 09/10). */
+                /Unités/.test(document.querySelector('main')?.innerText ?? '') &&
+                !/Ajouter un modèle/.test(document.querySelector('main')?.innerText ?? ''),
             undefined,
             { timeout: 30_000 },
         )
