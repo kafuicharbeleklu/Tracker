@@ -17,7 +17,7 @@ import {
 import DetailTemplate from '../../../components/layout/DetailTemplate';
 import BottomSheet from '../../../components/ui/BottomSheet';
 import FactRow from '../../../components/ui/FactRow';
-import { Consequences, FormNote } from '../../../components/ui/FormParts';
+import { Consequences } from '../../../components/ui/FormParts';
 import Button from '../../../components/ui/Button';
 import Icon from '../../../components/ui/Icon';
 import InputField from '../../../components/ui/InputField';
@@ -202,8 +202,7 @@ const SiteDetailsPage: React.FC<SiteDetailsPageProps> = ({
         }
         requestConfirmation({
             title: `Fermer « ${siteName} » ?`,
-            message:
-                "Il sort des sélecteurs d'emplacement. Son nom reste dans l'historique, et aucun actif ne perd son lieu — il n'y en a aucun.",
+            message: "Il sort des sélecteurs d'emplacement.",
             confirmText: 'Fermer le site',
             tone: 'destructive',
             onConfirm: () => {
@@ -429,7 +428,6 @@ const SiteDetailsPage: React.FC<SiteDetailsPageProps> = ({
                             },
                         ]}
                     />
-                    <FormNote>L'historique garde l'ancien nom sur les faits passés.</FormNote>
 
                     {/* `.sfoot` — deux colonnes égales, filet au-dessus. */}
                     <div className="border-outline-variant duo-de-pied -mx-5 gap-3 border-t px-5 pt-4 pb-1">

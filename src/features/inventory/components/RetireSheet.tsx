@@ -170,7 +170,7 @@ const RetireSheet: React.FC<RetireSheetProps> = ({
             {etape === 'recap' ? (
                 <div className="flex flex-col gap-4">
                     <p className="text-on-surface-variant text-ts-sub leading-ts-sub">
-                        Irréversible. L'historique, lui, est conservé.
+                        Irréversible.
                     </p>
 
                     <SubjectRow

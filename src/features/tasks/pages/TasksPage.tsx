@@ -849,7 +849,10 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick, onBack }
             */
             outilsBureau={
                 enPanneau ? (
-                    <div className="flex flex-wrap items-center gap-2 pb-1">
+                    /* 44 tout compris, comme la ligne d'outils de toute liste (10/10) : elle en
+                       faisait 40, et la barre de sélection qui la remplace, 44 — entrer en
+                       sélection descendait la file de 4 px. */
+                    <div className="flex min-h-11 flex-wrap items-center gap-2 pb-1">
                         <SearchField
                             dense
                             raccourci
@@ -1061,7 +1064,12 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick, onBack }
                             )}
                         >
                             {selection.isActive ? (
-                                <SelectionBox selected={selection.isSelected(task.id)} />
+                                /* Au bureau la vignette fait 36 : la case aussi, sinon chaque
+                                   rangée gagnait 2 px en sélection et la file glissait. */
+                                <SelectionBox
+                                    selected={selection.isSelected(task.id)}
+                                    dense={enPanneau}
+                                />
                             ) : (
                                 <span className="relative shrink-0">
                                     <span
@@ -1428,8 +1436,8 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick, onBack }
                     }
                     subtitle={
                         refusAffiche.refusal.nextStatus === 'Rejected'
-                            ? `Définitif. ${refusAffiche.refusal.requesterName} lira votre motif, tel quel.`
-                            : 'La demande repart au traitement, avec votre motif.'
+                            ? `Définitif. ${refusAffiche.refusal.requesterName} lira votre motif.`
+                            : undefined
                     }
                     subject={{ title: refusAffiche.title, subtitle: refusAffiche.context }}
                     counterparty={
@@ -1485,8 +1493,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick, onBack }
                         </p>
                         <p className="flex items-center gap-2 rounded-md bg-[var(--tk-color-tint-ambre)] px-4 py-2 text-[0.75rem] leading-4 font-medium text-[var(--tk-color-on-tint-ambre)]">
                             <Icon glyph={ArrowCounterClockwise} size={18} />
-                            Rien n'est perdu — vous pourrez redemander. La personne qui l'examinait
-                            ne la verra plus.
+                            Vous pourrez redemander.
                         </p>
                         <label className="block">
                             <span className="text-text-muted mb-2 block text-[0.75rem] leading-4 font-medium">

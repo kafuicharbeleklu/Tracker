@@ -321,7 +321,6 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose 
                                 onFileSelect={startImportProcess}
                                 accept=".xlsx,.xls,.csv,.txt,.pdf,.jpg,.jpeg,.png,.webp"
                                 label="Déposer le budget"
-                                subLabel="L'année, les postes et leurs montants arrivent remplis ; ce qui est mal lu arrive vide."
                             />
                             <Button
                                 variant="text"

@@ -14,8 +14,14 @@ import { cn } from '../../lib/utils';
  * la coche. Les glyphes carrés de la bibliothèque n'ont ni ce filet ni ce remplissage,
  * et faisaient de la case un dessin parmi d'autres.
  */
-export const SelectionBox: React.FC<{ selected: boolean }> = ({ selected }) => (
-    <span className="flex h-10 w-10 shrink-0 items-center justify-center">
+export const SelectionBox: React.FC<{
+    selected: boolean;
+    /** La boîte prend la place d'une vignette de 36 (la file du bureau) : la rangée garde sa hauteur. */
+    dense?: boolean;
+}> = ({ selected, dense = false }) => (
+    <span
+        className={cn('flex shrink-0 items-center justify-center', dense ? 'h-9 w-9' : 'h-10 w-10')}
+    >
         <span
             className={cn(
                 'duration-short3 flex h-6 w-6 shrink-0 items-center justify-center rounded-[4px] transition-[background-color,box-shadow]',

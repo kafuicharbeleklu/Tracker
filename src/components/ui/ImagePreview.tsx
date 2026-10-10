@@ -133,8 +133,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ src, subject }) => {
                                         La photo ne se charge pas
                                     </span>
                                     <span className="max-w-[320px] text-[0.8125rem] leading-5">
-                                        Son adresse ne répond pas. Elle se remplace en modifiant
-                                        l'objet.
+                                        Son adresse ne répond pas.
                                     </span>
                                 </p>
                             ) : (

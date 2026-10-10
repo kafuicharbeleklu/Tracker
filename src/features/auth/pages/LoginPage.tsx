@@ -535,15 +535,12 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                         >
                             Retour à la connexion
                         </Button>
-                        {/* `.pt` / `.ps` — titre de carte 17 sur 24 en Archivo 600, puis la
-                                phrase de soutien 14 sur 20, 20 px avant le champ. */}
-                        <h2 className="font-brand text-ts-head leading-ts-head mb-1 font-semibold tracking-[-0.01em]">
+                        {/* `.pt` — titre de carte 17 sur 24 en Archivo 600, 20 px avant le champ.
+                                La phrase de soutien est retirée (10/10) : le titre et le
+                                bouton « Envoyer le lien » disent déjà ce qui va se passer. */}
+                        <h2 className="font-brand text-ts-head leading-ts-head mb-5 font-semibold tracking-[-0.01em]">
                             Mot de passe oublié
                         </h2>
-                        <p className="text-on-surface-variant text-ts-sub leading-ts-sub mb-5">
-                            Un lien par courriel, valable 30 minutes. La phrase de retour est la
-                            même que l'adresse ait un compte ou non.
-                        </p>
 
                         <div className="mb-[18px]">
                             <InputField
@@ -592,7 +589,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                                 vient de partir.
                             </>
                         }
-                        detail="Le lien vaut 30 minutes. Votre code PIN ne change pas."
+                        detail="Le lien vaut 30 minutes."
                         actions={
                             <>
                                 <Button

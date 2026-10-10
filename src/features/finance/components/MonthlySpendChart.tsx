@@ -261,6 +261,8 @@ const MonthlySpendChart: React.FC<MonthlySpendChartProps> = ({
                                                     variant="text"
                                                     aria-pressed={estChoisi}
                                                     aria-label={`${MOIS_LONGS[mois]} : ${n(valeur)} ${currency}${auDela ? ', au-delà du douzième de l’enveloppe' : ''}`}
+                                                    /* La valeur exacte du mois, au survol (10/10). */
+                                                    data-infobulle={`${MOIS_LONGS[mois]} : ${n(valeur)} ${currency}${auDela ? ', au-delà du douzième de l’enveloppe' : ''}`}
                                                     onClick={() =>
                                                         setChoisi(estChoisi ? null : mois)
                                                     }

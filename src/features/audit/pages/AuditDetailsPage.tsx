@@ -12,10 +12,8 @@ import {
     DotsThreeVertical,
     Export,
     Hourglass,
-    Info,
     Funnel,
     LockSimple,
-    MagnifyingGlass,
     MapPin,
     Package,
     PencilSimple,
@@ -31,6 +29,7 @@ import Button from '../../../components/ui/Button';
 import Icon from '../../../components/ui/Icon';
 import Menu, { type MenuItem } from '../../../components/ui/Menu';
 import { useData } from '../../../context/DataContext';
+import BoutonDeRecherche from '../../../components/ui/BoutonDeRecherche';
 import SearchField from '../../../components/ui/SearchField';
 import ScreenState from '../../../components/ui/ScreenState';
 import CardEmptyState from '../../../components/ui/CardEmptyState';
@@ -51,6 +50,7 @@ import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { useCeQuiTient } from '../../../hooks/useCeQuiTient';
 import { useScanPossible } from '../../../hooks/useScanPossible';
 import { useEntree } from '../../../hooks/useEntree';
+import { useRechercheRepliee } from '../../../hooks/useRechercheRepliee';
 import { MEDIA } from '../../../constants/breakpoints';
 import SideSheet from '../../../components/ui/SideSheet';
 import Modal from '../../../components/ui/Modal';
@@ -394,7 +394,8 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
      */
     const [recherche, setRecherche] = useState('');
     /** Au téléphone, la recherche s'ouvre à la loupe : la bande porte la jauge et les puces. */
-    const [rechercheOuverte, setRechercheOuverte] = useState(false);
+    /* La loupe du téléphone — la même que sur toutes les listes (10/10). */
+    const repliDeRecherche = useRechercheRepliee({ value: recherche, onChange: setRecherche });
     /** La carte des écarts, dans la colonne de droite — la tuile « Écarts » y mène. */
     const carteDesEcarts = useRef<HTMLElement>(null);
     const [scanOpen, setScanOpen] = useState(false);
@@ -1213,10 +1214,9 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
             title: `Clôturer l'audit de ${selectedPlace} ?`,
             message: (
                 <>
-                    Le relevé est figé et remis à un responsable d’inventaire. À la validation,{' '}
+                    Le relevé est figé et remis à un responsable. À la validation,{' '}
                     <strong>{missingSnapshot.length} actif(s) jamais scanné(s)</strong> seront
-                    marqués manquants et retirés du lieu ; s’il renvoie la campagne, le comptage
-                    reprend.
+                    marqués manquants.
                 </>
             ),
             confirmText: 'Clôturer',
@@ -1354,12 +1354,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
         const label = item?.name || 'la fiche créée';
         requestConfirmation({
             title: `Écarter ${label} ?`,
-            message: (
-                <>
-                    Le scan avait créé une fiche à partir du seul code lu. L'écarter la retire du
-                    parc. Le code pourra être rescanné plus tard s'il correspond à un vrai actif.
-                </>
-            ),
+            message: <>La fiche créée par le scan est retirée du parc.</>,
             tone: 'destructive',
             irreversible: true,
             confirmText: 'Écarter',
@@ -1829,14 +1824,10 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
     /** « Sélectionner plusieurs » : pendant la campagne, sur ce qui reste à scanner. */
     const selectionPossible =
         ongletAffiche === 'todo' && peutCompter && !auditFinalized && todoItems.length > 0;
-    const listeCorrigeable =
-        (ongletAffiche === 'scanned' || ongletAffiche === 'corrigees') &&
-        peutCorriger &&
-        !auditFinalized &&
-        listeAffichee.length > 0;
 
-    /* Les indices de la planche : ils ne paraissent que quand ils s'appliquent. Une
-       explication permanente devient du décor. */
+    /* Les indices de la planche : ils ne paraissent que quand ils s'appliquent, et ne disent
+       que le fait (10/10). Chacun traînait trois lignes d'explication — jusqu'à une dette
+       interne, « D3 », écrite à l'écran. */
     const indicesDeLaListe = (
         <>
             {ongletAffiche === 'todo' &&
@@ -1844,29 +1835,21 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                     <p className="text-body-small text-on-surface-variant pt-[7px] pb-4">
                         <strong className="text-on-surface font-medium">
                             L'actif en réparation reste à scanner.
-                        </strong>{' '}
-                        Il est attendu dans le lieu : c'est le relevé qui dit s'il y est, pas son
-                        statut. À la clôture, ne pas l'avoir vu ne le rendra pas manquant — son
-                        absence est justifiée.
+                        </strong>
                     </p>
                 )}
             {ongletAffiche === 'missing' && horsSiteItems.length > 0 && (
                 <p className="text-body-small text-on-surface-variant pt-[7px] pb-4">
                     <strong className="text-on-surface font-medium">
                         Hors site : ni retrouvés, ni manquants.
-                    </strong>{' '}
-                    Ces actifs sont chez le réparateur : leur absence du lieu s'explique, et la
-                    validation ne les accuse pas.
+                    </strong>
                 </p>
             )}
             {ongletAffiche === 'missing' && auditFinalized && assignedMissingCount > 0 && (
                 <p className="text-body-small text-on-surface-variant pt-[7px] pb-4">
                     <strong className="text-on-surface font-medium">
                         {assignedMissingCount} des {missingItems.length} jamais vus sont attribués.
-                    </strong>{' '}
-                    Leur porteur reste responsable : le manquant devrait ouvrir une tâche chez lui,
-                    et il ne s'efface pas avec la campagne. La file ne le fait pas encore — dette
-                    D3.
+                    </strong>
                 </p>
             )}
         </>
@@ -2348,8 +2331,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                         entry.decision === 'attached' ? (
                             <>
                                 Rattaché à <strong className="font-medium">{selectedPlace}</strong>{' '}
-                                {formatSince(entry.decidedAt)}. L'actif compte désormais parmi les
-                                retrouvés.
+                                {formatSince(entry.decidedAt)}.
                             </>
                         ) : entry.decision === 'left' ? (
                             <>
@@ -2359,16 +2341,12 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                         — <strong className="font-medium">{registeredAt}</strong>
                                     </>
                                 ) : null}
-                                . Il était de passage ici.
+                                .
                             </>
                         ) : entry.decision === 'kept' ? (
-                            <>
-                                Fiche gardée et ouverte pour être complétée{' '}
-                                {formatSince(entry.decidedAt)}. Elle est rattachée au périmètre de
-                                la campagne.
-                            </>
+                            <>Fiche gardée {formatSince(entry.decidedAt)}.</>
                         ) : (
-                            <>Fiche écartée et retirée du parc. Le code pourra être rescanné.</>
+                            <>Fiche écartée et retirée du parc.</>
                         )
                     ) : isOutOfService ? (
                         <>
@@ -2381,9 +2359,8 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                         </>
                     ) : (
                         <>
-                            Aucune fiche ne portait ce code. Le scan a lu{' '}
-                            <strong className="font-medium">{name}</strong> sur l'étiquette — le
-                            reste de la fiche est à saisir. Faut-il la garder ?
+                            Aucune fiche ne portait ce code : le scan a lu{' '}
+                            <strong className="font-medium">{name}</strong>. Faut-il la garder ?
                         </>
                     )}
                 </p>
@@ -2418,18 +2395,6 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                     </div>
                 )}
 
-                {/* La ligne de conséquence, sous les gestes : ce que le geste écrit
-                    réellement. */}
-                {!entry.resolved && (
-                    <p className="text-label-small text-on-surface-variant mt-2 flex items-start gap-2">
-                        <Icon glyph={Info} size={18} className="mt-px shrink-0" />
-                        <span>
-                            {isOutOfService
-                                ? "« Rattacher » écrit l'emplacement dans la fiche — c'est une modification d'actif, elle est journalisée."
-                                : 'La fiche existe déjà, créée du seul code lu : « Compléter » ouvre le formulaire de 04.3 pour le reste.'}
-                        </span>
-                    </p>
-                )}
                 {entry.resolved &&
                     (auditFinalized ? (
                         <p className="text-label-small text-on-surface-variant mt-2.5">
@@ -2731,18 +2696,10 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                 !sousEcran && (
                                     <>
                                         {scopeIsReady && sessionTotal > 0 && (
-                                            <Button
-                                                variant="text"
-                                                iconOnly
-                                                aria-label="Chercher un actif"
-                                                aria-pressed={rechercheOuverte}
-                                                onClick={() => {
-                                                    if (rechercheOuverte) setRecherche('');
-                                                    setRechercheOuverte(!rechercheOuverte);
-                                                }}
-                                            >
-                                                <Icon glyph={MagnifyingGlass} size="geste" />
-                                            </Button>
+                                            <BoutonDeRecherche
+                                                ouverte={repliDeRecherche.ouverte}
+                                                onBasculer={repliDeRecherche.basculer}
+                                            />
                                         )}
                                         {auditFinalized ? (
                                             <Button
@@ -2787,8 +2744,9 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                         28/09 : une jauge et des puces dans l'en-tête, là où le
                                         bureau a ses tuiles. Les tuiles sont maintenant les mêmes
                                         aux trois formats, dans le corps de la page. */}
-                                    {rechercheOuverte && (
+                                    {repliDeRecherche.ouverte && (
                                         <SearchField
+                                            autoFocus={repliDeRecherche.parGeste}
                                             value={recherche}
                                             onChange={setRecherche}
                                             placeholder="Modèle, code, porteur"
@@ -3082,23 +3040,18 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                     </Button>
                                 </div>
                             ) : (
-                                (selectionPossible || listeCorrigeable) && (
-                                    <div className="text-text-secondary flex min-h-9 items-center justify-between gap-3 px-0.5 text-[0.75rem] leading-4">
-                                        <span className="min-w-0">
-                                            {ongletAffiche === 'todo'
-                                                ? 'Touchez un actif pour vérifier sa fiche'
-                                                : 'Touchez un actif pour corriger sa fiche'}
-                                        </span>
-                                        {selectionPossible && (
-                                            <Button
-                                                variant="text"
-                                                size="sm"
-                                                onClick={() => selection.enter()}
-                                                className="text-on-surface text-ts-sub -mr-2 h-9 min-h-9 shrink-0 px-2"
-                                            >
-                                                Sélectionner
-                                            </Button>
-                                        )}
+                                /* « Touchez un actif pour vérifier sa fiche » est retiré (10/10) :
+                                   une rangée qui s'ouvre n'a pas besoin de le dire. */
+                                selectionPossible && (
+                                    <div className="flex min-h-9 items-center justify-end px-0.5">
+                                        <Button
+                                            variant="text"
+                                            size="sm"
+                                            onClick={() => selection.enter()}
+                                            className="text-on-surface text-ts-sub -mr-2 h-9 min-h-9 shrink-0 px-2"
+                                        >
+                                            Sélectionner
+                                        </Button>
                                     </div>
                                 )
                             )}
@@ -3166,7 +3119,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                     <ScanView
                         mode="batch"
                         onClose={() => setScanOpen(false)}
-                        tip="Cadrez le numéro de série ou le code-barres. Le compteur monte à chaque lecture."
+                        tip="Cadrez le numéro de série ou le code-barres."
                         hits={scanHits}
                         expected={sessionTotal}
                         finishLabel="Terminer le lot"
@@ -3187,7 +3140,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                 open={manualOpen}
                 onClose={() => setManualOpen(false)}
                 title="Saisir le code lu"
-                description="Le numéro de série ou le code d’actif lu sur l’étiquette — ou le contenu d’un QR, si l’actif en porte un."
+                description="Le numéro de série ou le code d’actif lu sur l’étiquette."
             >
                 <div className="space-y-4">
                     <textarea

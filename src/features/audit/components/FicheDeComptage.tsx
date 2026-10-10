@@ -113,10 +113,6 @@ const FicheDeComptage: React.FC<FicheDeComptageProps> = ({
             <div className="flex flex-col gap-4">
                 <p className="text-on-surface-variant text-ts-sub leading-ts-sub">
                     {[equipement.assetId, equipement.serialNumber].filter(Boolean).join(' · ')}
-                    {' — '}
-                    {mode === 'compter'
-                        ? 'la fiche est-elle toujours juste ? Corrigez ce qui a changé depuis la dernière campagne.'
-                        : 'corrigez ce qui a changé depuis la dernière campagne.'}
                 </p>
                 <SelectField
                     name="detenteur"

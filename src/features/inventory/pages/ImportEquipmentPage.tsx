@@ -392,7 +392,7 @@ const ImportEquipmentPage: React.FC<ImportEquipmentPageProps> = ({ onCancel, onS
             noun={{ one: 'équipement', many: 'équipements' }}
             parse={parse}
             onImport={handleImport}
-            dropSubLabel="CSV ou Excel · une ligne par objet, l'identifiant déduit"
+            dropSubLabel="CSV ou Excel · une ligne par objet"
             reglages={(tableau) =>
                 /* Le site des lignes qui n'en portent pas — seulement si le fichier en laisse. */
                 tableau.lignes.some((ligne) => !ligne.get('Site')) ? (
@@ -405,11 +405,6 @@ const ImportEquipmentPage: React.FC<ImportEquipmentPageProps> = ({ onCancel, onS
                             { value: '', label: 'Choisir un site' },
                             ...sites.map((s) => ({ value: s.nom, label: `${s.nom} · ${s.pays}` })),
                         ]}
-                        supportingText={
-                            tableau.trouvees.Site
-                                ? 'Une colonne Site renseignée l’emporte, ligne par ligne.'
-                                : 'Le fichier ne dit pas le site : toutes ses lignes y entrent.'
-                        }
                     />
                 ) : null
             }

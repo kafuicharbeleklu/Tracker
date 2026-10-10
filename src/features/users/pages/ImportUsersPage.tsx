@@ -169,7 +169,7 @@ const ImportUsersPage: React.FC<ImportUsersPageProps> = ({ onCancel, onSave }) =
             columns={COLUMNS}
             sample={SAMPLE}
             noun={{ one: 'personne', many: 'personnes' }}
-            contractNote="Nom et adresse sont requis ; l'adresse sera l'identifiant de connexion."
+            contractNote="Nom et adresse sont requis."
             dropSubLabel="CSV ou Excel · une ligne par personne"
             parse={parse}
             onImport={handleImport}
@@ -184,7 +184,6 @@ const ImportUsersPage: React.FC<ImportUsersPageProps> = ({ onCancel, onSave }) =
                     options={ROLE_OPTIONS.filter(
                         (o) => o.value !== 'SuperAdmin' || currentUser?.role === 'SuperAdmin',
                     )}
-                    supportingText="Une colonne Role renseignée l'emporte, ligne par ligne."
                 />
             }
         />

@@ -111,15 +111,14 @@ const QuoteDecisionSheet: React.FC<QuoteDecisionSheetProps> = ({
                                 {
                                     glyph: Check,
                                     tint: 'vert',
-                                    content:
-                                        'L’objet part chez le prestataire ; la facture fera la dépense.',
+                                    content: 'L’objet part chez le prestataire.',
                                 },
                             ]}
                         />
                     )
                 )}
 
-                <div className="border-outline-variant -mx-5 duo-de-pied gap-3 border-t px-5 pt-4 pb-1">
+                <div className="border-outline-variant duo-de-pied -mx-5 gap-3 border-t px-5 pt-4 pb-1">
                     {refus ? (
                         <>
                             <Button variant="ghost" onClick={() => setRefus(false)}>

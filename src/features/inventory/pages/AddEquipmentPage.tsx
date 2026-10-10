@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { COLONNES_FORMULAIRE } from '../../../lib/regimeBureau';
-import { Camera, Check, FileText, Info, Package, Scan, Tag } from '@phosphor-icons/react';
+import { Camera, Check, FileText, Package, Scan, Tag } from '@phosphor-icons/react';
 
 import Button from '../../../components/ui/Button';
 import Icon from '../../../components/ui/Icon';
@@ -27,7 +27,6 @@ import {
     FieldLabel,
     FormNote,
     FormSection,
-    FormWarn,
     OptionRow,
     ShotBox,
     TINT_CLASS,
@@ -114,7 +113,7 @@ const CREATION_STATES: Array<{
     {
         value: 'Disponible',
         title: 'Disponible',
-        hint: "Entre dans les sélecteurs d'attribution",
+        hint: 'Peut être attribué',
         tint: 'vert',
     },
     {
@@ -510,20 +509,15 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                                         resolvedId || '—'
                                     )}
                                 </span>
-                                <span className="text-ts-sub leading-ts-sub mt-0.5 block opacity-85">
-                                    {countryPrefix
-                                        ? "Pays de l'emplacement + numéro de série"
-                                        : formData.country
-                                          ? `${formData.country} n'a pas de code : composition par type, site et rang`
-                                          : "Choisissez un pays : son code ouvre l'identifiant"}
-                                </span>
+                                {/* La sous-ligne ne paraît que s'il manque quelque chose : elle
+                                    expliquait de quoi l'identifiant est fait (10/10). */}
+                                {!countryPrefix && !formData.country && (
+                                    <span className="text-ts-sub leading-ts-sub mt-0.5 block opacity-85">
+                                        Choisissez un pays
+                                    </span>
+                                )}
                             </span>
                         </div>
-
-                        <FormWarn glyph={Info}>
-                            Marque, type et amortissement viennent du <b>catalogue</b> : ils ne sont
-                            pas redemandés, et une correction se fait là-bas.
-                        </FormWarn>
                     </FormSection>
 
                     {/* ── Configuration ────────────────────────────────────────────── */}
@@ -613,9 +607,7 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                                         {formData.status}
                                     </p>
                                     <FormNote>
-                                        Cet état vient d'un geste — une attribution, une réparation,
-                                        une sortie. Il ne se corrige pas ici, sinon le parc perd la
-                                        trace du geste.
+                                        Cet état vient d'un geste : il ne se corrige pas ici.
                                     </FormNote>
                                 </>
                             ) : (
@@ -641,9 +633,7 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
 
                         {isEditMode && (
                             <FormNote>
-                                <b>Le porteur ne se change pas ici.</b> Un objet change de mains par
-                                une attribution ou une restitution, jamais par une correction de
-                                fiche.
+                                <b>Le porteur ne se change pas ici.</b>
                             </FormNote>
                         )}
                     </FormSection>
@@ -804,7 +794,7 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                     <ScanView
                         mode="simple"
                         onClose={() => setIsScanning(false)}
-                        tip="Cadrez le numéro de série de l'étiquette. Tenez l'appareil à environ 20 cm."
+                        tip="Cadrez le numéro de série de l'étiquette."
                         hit={scanHit}
                         acceptLabel="Utiliser ce numéro"
                         onAccept={(accepted) => {

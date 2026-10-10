@@ -5896,3 +5896,88 @@ e2e `squelettes` garde la forme, la première ligne et les colonnes de quatorze 
 vérifié : les squelettes au téléphone et à la tablette au-delà de la campagne (ils reprennent
 les formes d'avant) ; la fiche d'un rôle, qui prend la forme commune.
 
+### Les surinformations retirées ; au téléphone, la loupe déplie la recherche (10/10, fin de journée)
+
+**Une note ne dit plus que ce qui sert à agir.** Relevé du commanditaire : *« il y a des détails
+qui surchargent, comme "12 caractères minimum ; une phrase vaut mieux qu'un mot compliqué" ;
+même le détail "Votre code PIN ne change pas" — fais la revue dans toute l'application »*. La
+règle du 23/09 (un fait par note, 100 signes) laissait passer le conseil, la phrase qui rassure
+et la mécanique du produit. Revue faite sur les 759 phrases que l'application affiche
+(`~/tracker-outils/textes/relever.py`) : 157 retirées ou raccourcies dans 45 fichiers, 120 de
+moins à l'écran.
+
+Ce qui part : le **conseil** (« une phrase vaut mieux… », « en dessous de 15 minutes l'agent
+parle plus qu'il n'observe ») ; **ce qui rassure** sur ce qui ne change pas (« Vous resterez
+connecté », « Votre code PIN ne change pas », « L'historique, lui, est conservé ») ; la
+**mécanique** (« la phrase de retour est la même que l'adresse ait un compte ou non », « un
+groupe ajoute un droit, jamais un lien hiérarchique », « Aucun bouton d'enregistrement… ») ; la
+**seconde phrase** d'une note ou d'une confirmation ; la **sous-ligne qui paraphrase** son titre
+(les quatre réglages du sommaire des Paramètres, les options d'une période ou d'une taille de
+fichier). Deux mentions internes étaient à l'écran : « dette D3 » et « le formulaire de 04.3 ».
+
+Ce qui reste : l'erreur et le refus ; la conséquence d'un acte irréversible, en une phrase ;
+la consigne d'un geste physique (cadrer une étiquette) ; la contrainte d'un format, **dans le
+champ** (« 12 caractères minimum » est le texte du champ vide, et revient en erreur) ; l'état
+vide ; ce qui évite une erreur (« non appliquée » sur la portée d'un rôle, « Visible par les
+gestionnaires uniquement », le dégressif encore calculé en linéaire).
+
+**Planches à mettre à jour** : 02.1, 02.2 (mot de passe oublié, premier accès — le bloc « Deux
+secrets, deux usages » est retiré), 07.1 (mon compte), 14.1 (sommaire des paramètres), 16.1 et
+16.2 (inventaire), 17.4 (attestation), 09.x et 05.x pour leurs notes.
+
+**Au téléphone, l'en-tête d'une liste ne porte que son titre.** Demande : *« par défaut
+uniquement le titre de page, à son extrémité un bouton qui au clic affiche la barre de
+recherche accompagnée des autres boutons, filtre etc., un peu comme WhatsApp — pour la version
+mobile »*. La bande (recherche, tri, entonnoir, puces) est repliée derrière une loupe
+(`BoutonDeRecherche`, `useRechercheRepliee`) : dépliée, le champ prend le curseur et la loupe
+devient la croix ; la croix vide la recherche et replie. Une recherche en cours tient la bande
+ouverte ; un filtre resté posé met un point sur la loupe. Sous 600 px seulement : la tablette
+garde sa ligne d'outils. Concerne Actifs, Tâches, Équipe, Historique, Dépenses, Inventaire et
+Accès (gabarit des listes), le Catalogue, les Emplacements et la campagne (qui avait déjà sa
+loupe). L'en-tête replié fait 69 px au lieu de 129 — la hauteur de toute barre de téléphone
+qui n'a que son titre (`BarreDePage` : 8, 48, 12 et le filet) : il était tombé à 49, relevé
+aussitôt par le commanditaire (« il faut que tout soit homogène »). Mesuré sur 22 pages : 69
+partout. **17.8 est à mettre à jour** (elle pose la recherche sous le titre, toujours).
+
+Vérifié au banc, à 393 px, sur les neuf listes : replié (titre seul), déplié (champ au
+curseur), une recherche tapée puis la croix (recherche vidée, bande repliée) — 27 / 27 ; les
+feuilles de mot de passe et de code PIN, le sommaire des Paramètres et « Mot de passe oublié »
+relus sans leurs notes.
+
+### Héros des dépenses, infobulles, pays remplis, sélection qui ne rétrécit plus (10/10, soir)
+
+**Le héros des dépenses, au téléphone et à la tablette.** Il tenait un surtitre, un chiffre et
+une phrase qui redisait le compte du titre ; à 768 px, trois lignes à gauche d'une bande de
+640. Il prend la grammaire du héros de Finances — l'exercice et son état, le consommé, « sur
+100 000 000 », la jauge, « 74 % de l'enveloppe · la dernière le 26 septembre » — et porte deux
+comptes : en attente, sans justificatif. Dès 576 px de large, ces comptes passent à droite du
+chiffre. **15.3 est à mettre à jour.**
+
+**Les infobulles.** Le produit n'en avait pas (`Tooltip` enveloppe son déclencheur dans une
+boîte, ce qui déplace ses marges : deux emplois en tout). `Infobulles`, monté une fois à la
+racine, écoute le document et pose une seule bulle dans un portail : `data-infobulle`, un geste
+sans mot (son `aria-label`), un `title` natif (qu'elle remplace), un texte coupé (son texte
+entier). Une demi-seconde à la souris, aussitôt au clavier, rien au doigt. Elle ne dit que le
+nom. Tous les gestes d'icône du produit portent déjà un nom : aucun n'est resté muet sur les
+huit pages relevées. Annotés à la main : CAPEX / OPEX, les segments du parc et de la
+couverture, les barres de l'histogramme.
+
+**Les pays du référentiel sont remplis sur le globe.** Leurs contours viennent de Natural Earth
+1:50 m, générés une fois hors du dépôt (`~/tracker-outils/generateurs/contours.mjs`, 230 pays,
+41 Ko, chargés à l'ouverture de la carte) ; un contour qui passe derrière l'horizon est coupé
+au bord du globe. Ils restent minuscules (2 % du disque) : une carte à plat cadrée sur le
+référentiel est proposée, non construite.
+
+**Entrer en sélection ne rétrécit plus la carte, au bureau.** La coque réservait les 76 px du
+pied d'actes du téléphone à toutes les largeurs : la carte d'Actifs, d'Équipe et de Tâches
+perdait 76 px de haut. Le pied n'est réservé que sous 600 px. La ligne d'outils dense de Tâches
+et de Dépenses fait 44 px tout compris, comme les autres (la file descendait de 4 px), et la
+case de sélection prend les 36 px de la vignette qu'elle remplace (chaque rangée gagnait 2 px).
+Mesuré à 1440 et 1366 sur Actifs et Équipe (cartes et tableau), Tâches et la campagne : aucune
+carte ne bouge.
+
+**Propositions publiées, non construites** : une identité pour la tablette (en portrait, 16
+pages sur 19 sont une colonne de 640 px), la carte à plat en cartouches, l'histogramme du
+téléphone en rangées, un plan pour les Paramètres (langue, thème, notifications et sept autres
+réglages fixes ou à moitié branchés) — https://claude.ai/artifact/Mfxos1ckVQZA9kSmLYcDtM
+

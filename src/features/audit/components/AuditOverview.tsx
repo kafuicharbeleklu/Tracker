@@ -16,7 +16,6 @@ import CardEmptyState from '../../../components/ui/CardEmptyState';
 import FacetChip from '../../../components/ui/FacetChip';
 import FilterButton from '../../../components/ui/FilterButton';
 import Icon from '../../../components/ui/Icon';
-import InfoTip from '../../../components/ui/InfoTip';
 import { PiedDeCarte, ToutVoir, HAUTEUR_DU_PIED } from '../../../components/ui/ToutVoir';
 import { cn } from '../../../lib/utils';
 import {
@@ -350,29 +349,23 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
     );
 
     /**
-     * `.fnote` — ce que la rangée suivante fera. Elle n'est pas un état vide : elle
-     * explique le geste, et elle change avec le niveau où l'on se trouve.
+     * `.fnote` — **un fait, et seulement s'il y en a un** (10/10). Elle expliquait le geste
+     * (« Choisissez le pays, puis le site et le local à compter ») : la liste le dit d'elle-
+     * même. Il reste ce que la liste ne peut pas montrer — des actifs qu'aucun site ne situe.
      */
-    const note = (
-        <div className="text-on-surface-variant text-ts-sub leading-ts-sub flex items-start gap-2 px-1">
-            <Icon glyph={Info} size={18} className="text-text-muted mt-px shrink-0" />
-            <span>
-                {niveau === 'pays'
-                    ? 'Choisissez le pays, puis le site et le local à compter.'
-                    : 'Un site s’ouvre sur ses locaux ; sans local, il se compte d’ici.'}
-                {unscopedAssets > 0 && (
-                    <>
-                        {' '}
-                        <b className="text-on-surface font-medium">
-                            {unscopedAssets} actif{unscopedAssets > 1 ? 's' : ''} n'
-                            {unscopedAssets > 1 ? 'entrent' : 'entre'} dans aucune campagne
-                        </b>{' '}
-                        — aucun site ne les situe.
-                    </>
-                )}
-            </span>
-        </div>
-    );
+    const note =
+        unscopedAssets > 0 ? (
+            <div className="text-on-surface-variant text-ts-sub leading-ts-sub flex items-start gap-2 px-1">
+                <Icon glyph={Info} size={18} className="text-text-muted mt-px shrink-0" />
+                <span>
+                    <b className="text-on-surface font-medium">
+                        {unscopedAssets} actif{unscopedAssets > 1 ? 's' : ''} n'
+                        {unscopedAssets > 1 ? 'entrent' : 'entre'} dans aucune campagne
+                    </b>{' '}
+                    — aucun site ne les situe.
+                </span>
+            </div>
+        ) : undefined;
 
     /* Les cinq colonnes du tableau des sites — la même grille pour l'en-tête et les
        rangées, sinon elles cessent de s'aligner à la première troncature. */
@@ -796,6 +789,7 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
                             couverture.parts[part.cle].actifs > 0 ? (
                                 <i
                                     key={part.cle}
+                                    data-infobulle={`${couverture.parts[part.cle].actifs} ${part.libelle}`}
                                     className={cn(
                                         'mvt-jauge duration-medium2 ease-emphasized transition-[width]',
                                         'block h-full',
@@ -1018,23 +1012,19 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
                                 ? 'Sites'
                                 : 'Locaux'}
                     </h3>
-                    <InfoTip
-                        title="Comment on compte"
-                        detail="Le local s'ouvre sur ses équipements et le scan. Le site se clôt quand tous ses locaux sont comptés."
-                    />
                 </header>
                 {!choix ? (
                     niveau === 'pays' ? (
                         <CardEmptyState
                             glyph={GlobeHemisphereWest}
                             title="Choisissez un pays"
-                            description="Ses sites s'affichent ici ; un site choisi, ses locaux, avec ce qu'il reste à compter."
+                            description="Ses sites s'afficheront ici."
                         />
                     ) : (
                         <CardEmptyState
                             glyph={MapPin}
                             title="Choisissez un site"
-                            description="Ses locaux s'affichent ici, avec ce qu'il reste à compter dans chacun."
+                            description="Ses locaux s'afficheront ici."
                         />
                     )
                 ) : rangeesDuChoix.length > 0 ? (

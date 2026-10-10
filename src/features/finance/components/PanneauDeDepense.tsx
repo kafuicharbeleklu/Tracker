@@ -164,11 +164,6 @@ export const CorpsDeLaDepense: React.FC<CorpsDeLaDepenseProps> = ({
                                     ? 'Aucun justificatif'
                                     : 'Justificatif facultatif'}
                             </span>
-                            <span className="text-text-secondary text-ts-sub leading-ts-sub block">
-                                {justificatif === 'manquant'
-                                    ? 'La facture reste à joindre.'
-                                    : 'Un abonnement se justifie par son contrat.'}
-                            </span>
                         </span>
                         <Button
                             variant="outlined"

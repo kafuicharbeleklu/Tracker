@@ -1210,6 +1210,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                             ...FLEET_STATES.map((state) => ({
                                 cle: state.key,
                                 n: counts[state.key],
+                                mot: state.label,
                                 couleur: state.color,
                             })),
                             ...RESTE_DU_PARC.map((groupe) => ({
@@ -1218,12 +1219,15 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                     groupe.key === 'pending'
                                         ? counts.pending
                                         : counts.horsService.total,
+                                mot: groupe.label,
                                 couleur: groupe.color,
                             })),
                         ].map((segment) =>
                             segment.n > 0 ? (
                                 <span
                                     key={segment.cle}
+                                    /* Chaque segment dit sa part au survol (10/10). */
+                                    data-infobulle={`${segment.n} ${segment.mot}`}
                                     className="mvt-jauge duration-medium2 ease-emphasized block h-full min-w-0.5"
                                     style={{
                                         flex: `${segment.n} 1 0%`,
@@ -1925,7 +1929,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                             <CardEmptyState
                                 glyph={CloudSlash}
                                 title="Les données ne sont pas arrivées"
-                                description="La base n’a pas répondu : le parc n’est pas vide, il n’a pas été lu. Vérifiez la connexion, puis rechargez."
+                                description="La base n’a pas répondu. Vérifiez la connexion, puis rechargez."
                                 action={
                                     <Button
                                         variant="outlined"

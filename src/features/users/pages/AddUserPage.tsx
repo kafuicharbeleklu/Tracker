@@ -296,7 +296,6 @@ const AddUserPage: React.FC<AddUserPageProps> = ({ userId, onCancel, onSave }) =
             <ScreenState
                 icon={EnvelopeSimple}
                 title="Un compte se crée par invitation"
-                description="Trois réponses suffisent — l'adresse, le rôle, le site. La personne complète le reste à sa première connexion."
                 actions={
                     <Button variant="filled" onClick={onCancel}>
                         Revenir à l'équipe
@@ -458,10 +457,6 @@ const AddUserPage: React.FC<AddUserPageProps> = ({ userId, onCancel, onSave }) =
                             <Icon glyph={LockSimple} size={18} />
                             {editedUser?.pin ? 'Défini' : 'Non défini'}
                         </p>
-                        <FormNote>
-                            Il se réinitialise depuis la fiche. Sans lui, une remise se prouve par
-                            signature.
-                        </FormNote>
                     </div>
                 </FormSection>
 

@@ -275,7 +275,7 @@ const FirstLoginPage: React.FC<{ token?: string }> = ({ token }) => {
                                 <>
                                     Les invitations sont valables{' '}
                                     <b>{INVITATION_VALIDITY_DAYS} jours</b>. Demandez-en une
-                                    nouvelle : elle partira à la même adresse.
+                                    nouvelle.
                                 </>
                             }
                             detail="Votre informatique en sera informée."
@@ -391,7 +391,7 @@ const FirstLoginPage: React.FC<{ token?: string }> = ({ token }) => {
                     titleClassName="font-brand text-ts-sheet leading-ts-sheet font-semibold tracking-[-0.01em]"
                 >
                     <p className="text-on-surface-variant text-ts-sub leading-ts-sub mb-4">
-                        Ce lien vous a été transmis par erreur. Rien ne s'enregistre ici.
+                        Ce lien vous a été transmis par erreur.
                     </p>
                     <div className="flex items-center gap-3 py-2">
                         <span className="font-brand bg-surface-container text-on-surface-variant text-ts-control flex h-10 w-10 shrink-0 items-center justify-center rounded-[4px] font-semibold">
@@ -427,19 +427,18 @@ const FirstLoginPage: React.FC<{ token?: string }> = ({ token }) => {
                     onSubmit={continueFromPassword}
                     className={cn(AUTH_MEASURE, 'flex flex-1 flex-col px-5 pt-7 pb-5')}
                 >
-                    <p className={TITLE_CLASSES}>Choisissez un mot de passe</p>
-                    <p className="text-on-surface-variant text-ts-sub leading-ts-sub mb-6 text-pretty">
-                        {inheritedMode && "Votre compte a été créé par l'informatique. "}
-                        {PASSWORD_MIN_LENGTH} caractères minimum. Une phrase vaut mieux qu'un mot
-                        compliqué.
-                    </p>
+                    {/* **Le titre, puis le champ** (10/10) : la phrase qui suivait — la règle
+                        de longueur et un conseil — est retirée à la demande du
+                        commanditaire. La règle se lit dans le champ vide, et revient en
+                        erreur si elle n'est pas tenue. */}
+                    <p className={cn(TITLE_CLASSES, 'mb-6')}>Choisissez un mot de passe</p>
 
                     <section className="mb-7">
                         <InputField
                             id="first-login-password"
                             type="password"
                             aria-label="Mot de passe"
-                            placeholder="Votre mot de passe"
+                            placeholder={`${PASSWORD_MIN_LENGTH} caractères minimum`}
                             value={password}
                             onChange={(e) => {
                                 setPassword(e.target.value);
@@ -480,41 +479,6 @@ const FirstLoginPage: React.FC<{ token?: string }> = ({ token }) => {
                         <PasswordMeter filled={confirmMatches ? 4 : 0} />
                     </section>
 
-                    {/* « Deux secrets, deux usages » — la seule confusion qui compte ici. */}
-                    <section className="mb-7">
-                        <p className="text-on-surface-variant mb-2 text-[0.75rem] leading-4 font-medium">
-                            Deux secrets, deux usages
-                        </p>
-                        <div className="grid grid-cols-2 gap-3">
-                            <div className="bg-surface flex flex-col gap-2.5 rounded-[4px] p-3.5">
-                                <Icon
-                                    glyph={LockSimple}
-                                    size={20}
-                                    className="text-on-surface-variant"
-                                />
-                                <span>
-                                    <span className="text-ts-sub leading-ts-sub block font-medium">
-                                        Mot de passe
-                                    </span>
-                                    <span className="text-on-surface-variant block text-[0.75rem] leading-4">
-                                        ouvre l'application, depuis tout appareil
-                                    </span>
-                                </span>
-                            </div>
-                            <div className="bg-surface flex flex-col gap-2.5 rounded-[4px] p-3.5">
-                                <Icon glyph={Key} size={20} className="text-on-surface-variant" />
-                                <span>
-                                    <span className="text-ts-sub leading-ts-sub block font-medium">
-                                        Code PIN
-                                    </span>
-                                    <span className="text-on-surface-variant block text-[0.75rem] leading-4">
-                                        prouve une remise, sur place ; il vaut signature
-                                    </span>
-                                </span>
-                            </div>
-                        </div>
-                    </section>
-
                     <div className="mt-auto flex flex-col gap-3 pt-6">
                         <Button type="submit" variant="filled" className={ACTION_CLASSES}>
                             Continuer
@@ -541,10 +505,11 @@ const FirstLoginPage: React.FC<{ token?: string }> = ({ token }) => {
                         <Icon glyph={Key} size={24} />
                     </span>
                     <p className={TITLE_CLASSES}>Votre code de remise</p>
+                    {/* Une phrase : à quoi il sert. Le reste — ce qu'il ne doit pas être, qui
+                        peut le lire — est retiré (10/10) ; un code trop simple est refusé à
+                        la saisie, avec son motif. */}
                     <p className="text-on-surface-variant text-ts-sub leading-ts-sub max-w-[300px] text-pretty">
-                        {pending.length > 0
-                            ? "Six chiffres, tapés devant la personne qui vous tend l'objet. Il vaut signature."
-                            : 'Vous en aurez besoin le jour où on vous remettra un équipement. Il vaut signature.'}
+                        Il vaut signature quand on vous remet un équipement.
                     </p>
                 </div>
 
@@ -554,12 +519,7 @@ const FirstLoginPage: React.FC<{ token?: string }> = ({ token }) => {
                     labels={{ entry: 'Code de remise', confirm: 'Confirmer le code de remise' }}
                 />
 
-                <p className="text-text-tertiary text-ts-sub leading-ts-sub mt-auto max-w-[300px] pt-6 text-pretty [&_b]:font-medium [&_b]:text-[var(--tk-color-text-muted)]">
-                    Ni <b>123456</b>, ni <b>000000</b>, ni une suite, ni votre année de naissance.{' '}
-                    <b>Personne ne peut le lire</b>, pas même l'informatique.
-                </p>
-
-                <div className="flex w-full flex-col gap-3 pt-6">
+                <div className="mt-auto flex w-full flex-col gap-3 pt-6">
                     <Button
                         variant="filled"
                         className={ACTION_CLASSES}

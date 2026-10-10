@@ -21,9 +21,11 @@ import Icon from '../../../components/ui/Icon';
 import InputField from '../../../components/ui/InputField';
 import FactRow from '../../../components/ui/FactRow';
 import GlobePointille from '../components/GlobePointille';
-import { positionDuPays } from '../lib/paysCoordonnees';
+import { codeDuPays, positionDuPays } from '../lib/paysCoordonnees';
 import CardEmptyState from '../../../components/ui/CardEmptyState';
+import BoutonDeRecherche from '../../../components/ui/BoutonDeRecherche';
 import SearchField from '../../../components/ui/SearchField';
+import { useRechercheRepliee } from '../../../hooks/useRechercheRepliee';
 import SelectField from '../../../components/ui/SelectField';
 import { MEDIA } from '../../../constants/breakpoints';
 import { GLOSSARY } from '../../../constants/glossary';
@@ -279,10 +281,14 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
 
     const kindLabel = newKind === 'country' ? 'pays' : newKind === 'local' ? 'local' : 'site';
 
+    /* Au téléphone, la recherche se déplie depuis la loupe du titre (10/10). */
+    const repli = useRechercheRepliee({ value: searchQuery, onChange: setSearchQuery });
+
     const searchField = (
         /* Au bureau, le champ cerné de la ligne d'outils (17.11), 320 × 40. */
         <SearchField
             dense={!isCompact}
+            autoFocus={isCompact && repli.parGeste}
             value={searchQuery}
             onChange={setSearchQuery}
             placeholder="Site, local, pays"
@@ -429,7 +435,14 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                 bande de filtres entre les deux. Il **reste** quand les sites défilent
                 (17.8). */}
             {isCompact ? (
-                <div className="border-outline-variant bg-surface sticky top-0 z-20 flex flex-col gap-3 border-b px-4 pt-2 pb-3">
+                <div
+                    className={cn(
+                        /* Repliée ou dépliée, la barre garde les marges de toute barre de
+                           téléphone (8 au-dessus, 12 dessous) : 69 avec le titre seul. */
+                        'border-outline-variant bg-surface sticky top-0 z-20 flex flex-col border-b px-4 pt-2 pb-3',
+                        !isReferentialEmpty && repli.ouverte && 'gap-3',
+                    )}
+                >
                     <div className="flex min-h-12 items-center gap-1">
                         {onBack && (
                             <Button
@@ -454,8 +467,15 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                                 {sites.length} site{sites.length > 1 ? 's' : ''}
                             </span>
                         )}
+                        {!isReferentialEmpty && (
+                            <BoutonDeRecherche
+                                ouverte={repli.ouverte}
+                                onBasculer={repli.basculer}
+                                className="-mr-3 ml-auto shrink-0"
+                            />
+                        )}
                     </div>
-                    {!isReferentialEmpty && searchField}
+                    {!isReferentialEmpty && repli.ouverte && searchField}
                 </div>
             ) : (
                 <div className="px-page bg-background large:max-w-[calc(63rem+2*var(--tk-space-page))] large:mx-auto sticky top-0 z-20 flex w-full flex-col gap-2 pt-5 pb-1">
@@ -546,6 +566,7 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                                                               lng: pays.position[1],
                                                               poids: pays.actifs,
                                                               detail: `${pays.actifs} actif${pays.actifs > 1 ? 's' : ''}`,
+                                                              code: codeDuPays(pays.country),
                                                           },
                                                       ]
                                                     : [],

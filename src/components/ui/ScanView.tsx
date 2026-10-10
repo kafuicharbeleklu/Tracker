@@ -229,8 +229,8 @@ const ScanView: React.FC<ScanViewProps> = ({
     const exceptions = hits.filter((h) => h.kind === 'exception').length;
     const defaultTip =
         mode === 'batch'
-            ? 'Enchaînez les équipements. La caméra reste ouverte.'
-            : 'Présentez le QR, le code-barres ou le numéro de série, à environ 20 cm.';
+            ? 'Enchaînez les équipements.'
+            : 'Présentez le QR, le code-barres ou le numéro de série.';
     const consigne =
         mode === 'simple' && hit && cameraOuverte
             ? 'Vérifiez le code lu avant de continuer.'

@@ -74,8 +74,7 @@ export const useLocauxDuSite = (siteName: string) => {
     const supprimerLocal = (local: string) =>
         requestConfirmation({
             title: `Supprimer le local « ${local} » ?`,
-            message:
-                'Le local disparaît du site. Les actifs qui le portaient restent localisés sur le site.',
+            message: 'Ses actifs restent localisés sur le site.',
             confirmText: 'Supprimer le local',
             tone: 'destructive',
             onConfirm: () => {

@@ -223,7 +223,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
             <ScreenState
                 icon={Package}
                 title="Cette fiche n’existe plus"
-                description={`L’${GLOSSARY.EQUIPMENT.toLowerCase()} que vous cherchiez a peut-être été sorti du parc. Son historique, lui, est conservé dans l’audit.`}
+                description={`L’${GLOSSARY.EQUIPMENT.toLowerCase()} que vous cherchiez a peut-être été sorti du parc.`}
                 actions={
                     <Button variant="filled" onClick={onBack}>
                         Revenir aux équipements
@@ -371,8 +371,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                 <>
                     L’objet redevient{' '}
                     <strong className="text-on-surface font-normal">disponible</strong> et sort de
-                    la file de {item.user?.name || 'la personne'}. L’attestation déjà donnée reste
-                    au journal.
+                    la file de {item.user?.name || 'la personne'}.
                 </>
             ),
             confirmText: 'Annuler la remise',
@@ -1240,11 +1239,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                             .
                                         </>
                                     ) : (
-                                        <>
-                                            La garantie a expiré le {formatDate(item.warrantyEnd)} :
-                                            une réparation s’impute désormais sur le budget du
-                                            service.
-                                        </>
+                                        <>La garantie a expiré le {formatDate(item.warrantyEnd)}.</>
                                     )
                                 }
                             />

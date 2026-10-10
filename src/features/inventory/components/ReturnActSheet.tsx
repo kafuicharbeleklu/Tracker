@@ -59,7 +59,7 @@ const CRANS: Array<{
     {
         value: 'Hors service',
         title: 'Hors service',
-        hint: 'Sortie d’inventaire — passe « Retiré », l’historique reste',
+        hint: 'Sort du parc',
         tint: 'rouge',
     },
 ];
@@ -118,8 +118,7 @@ const CONSEQUENCE: Record<
         glyph: XCircle,
         text: (
             <>
-                L’objet passe <strong>« Retiré »</strong> : il sort des disponibles, son historique
-                et ses attestations restent.
+                L’objet passe <strong>« Retiré »</strong> et sort des disponibles.
             </>
         ),
     },
@@ -302,7 +301,7 @@ const ReturnActSheet: React.FC<ReturnActSheetProps> = ({ open, onClose, initialE
             {scanOuvert && (
                 <ActScanOverlay
                     eligibles={eligibles}
-                    tip="Cadrez l’étiquette collée sur l’objet. Code-barres ou QR, le viseur s’ajuste seul."
+                    tip="Cadrez l’étiquette collée sur l’objet."
                     acceptLabel="Choisir celui-ci"
                     onClose={() => setScanOuvert(false)}
                     onPick={setObjetId}
@@ -315,7 +314,7 @@ const ReturnActSheet: React.FC<ReturnActSheetProps> = ({ open, onClose, initialE
                 subtitle={
                     reception
                         ? 'Vous constatez l’état dans lequel l’objet revient.'
-                        : 'Vous attestez rendre l’objet. L’informatique constatera son état.'
+                        : 'Vous attestez rendre l’objet.'
                 }
                 subject={
                     objet
@@ -442,9 +441,7 @@ const ReturnActSheet: React.FC<ReturnActSheetProps> = ({ open, onClose, initialE
                               glyph: Hourglass,
                               text: (
                                   <>
-                                      L’objet passe <strong>en retour à confirmer</strong> : vous
-                                      n’en répondez plus, il ne redevient pas disponible pour
-                                      autant.
+                                      L’objet passe <strong>en retour à confirmer</strong>.
                                   </>
                               ),
                           }

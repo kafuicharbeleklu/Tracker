@@ -298,7 +298,11 @@ const OutilsEnAttente: React.FC<{
     droite?: readonly string[];
 }> = ({ dense = false, filtre = false, puces = [], droite = [] }) => (
     <div
-        className={cn('mt-2 flex shrink-0 flex-wrap items-center pb-1', dense ? 'gap-2' : 'gap-3')}
+        className={cn(
+            'mt-2 flex shrink-0 flex-wrap items-center pb-1',
+            /* La ligne dense fait 44 tout compris, comme l'autre : les cartes à 140. */
+            dense ? 'expanded:min-h-11 gap-2' : 'gap-3',
+        )}
         style={retardDeRangee(1)}
     >
         <Skeleton

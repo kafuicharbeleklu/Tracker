@@ -70,7 +70,7 @@ const DepositSheet: React.FC<DepositSheetProps> = ({
                         {
                             glyph: Tray,
                             tint: 'bleu',
-                            content: 'L’objet passe au bureau informatique, à prendre en charge.',
+                            content: 'L’objet passe au bureau informatique.',
                         },
                         {
                             glyph: User,

@@ -560,7 +560,6 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                         label: droitsAjoutes.length > 1 ? 'droits en plus' : 'droit en plus',
                     },
                 ]}
-                note="Un groupe ajoute un droit à ses membres, jamais un lien hiérarchique."
             />
         );
 
@@ -945,7 +944,6 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
             <RuleGroup
                 header={titreDeCarte(Lightning, 'Ce qu’il permet')}
                 headerTrailing={`${openActions.length} sur ${ACTION_KEYS.length}`}
-                note="Valider une demande dépend du lien — manager, bénéficiaire —, pas du rôle."
             >
                 {ACTION_KEYS.filter(
                     (key) =>
@@ -992,10 +990,9 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
 
         /* **Où il s'applique**, et d'où il vient — deux rangées, une carte. */
         const portee = (
-            <RuleGroup
-                header={titreDeCarte(Crosshair, 'Où il s’applique')}
-                note="Déclarée ; le filtrage des données ne l’applique pas encore."
-            >
+            /* La rangée dit déjà « non appliquée » : la note qui le redisait est retirée
+               (10/10). */
+            <RuleGroup header={titreDeCarte(Crosshair, 'Où il s’applique')}>
                 <RuleGroup.Row
                     glyph={SCOPE_ICON[scope]}
                     className="gap-3"
@@ -1013,9 +1010,7 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                         className="gap-3"
                         title={`Hérite de ${inheritance.baseName}`}
                         subtitle={
-                            inheritance.addsNothing
-                                ? 'N’ajoute aucun droit à sa base'
-                                : 'Reprend ses droits, puis ajoute ou refuse les siens'
+                            inheritance.addsNothing ? 'N’ajoute aucun droit à sa base' : undefined
                         }
                         onOpen={() => goToRole(openRole.baseRoleId as string)}
                     />
@@ -1272,7 +1267,6 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                             className={cn(enColonnes && 'col-span-8')}
                             header="Les rôles"
                             headerTrailing="porteurs"
-                            note="Les rôles du système ne se suppriment pas. La portée d'un rôle est déclarée, pas encore appliquée."
                         >
                             {filteredRoles.map((role) => {
                                 const niveau = declaredScope(role);
@@ -1349,11 +1343,7 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                         </RuleGroup>
                     </div>
                 ) : (
-                    <RuleGroup
-                        header="Ce qu'ils ajoutent"
-                        headerTrailing="membres"
-                        note="Un groupe ajoute un droit, jamais la hiérarchie. Sa portée est déclarée, pas encore appliquée."
-                    >
+                    <RuleGroup header="Ce qu'ils ajoutent" headerTrailing="membres">
                         {filteredGroups.map((group) => (
                             <RuleGroup.Row
                                 key={group.id}

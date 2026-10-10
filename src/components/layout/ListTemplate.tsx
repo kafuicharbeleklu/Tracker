@@ -22,6 +22,8 @@ import FacetChip from '../ui/FacetChip';
 import { FabContainer } from '../ui/FabContainer';
 import FloatingActionButton from '../ui/FloatingActionButton';
 import { SkeletonList, SkeletonQueue, SkeletonTableau } from '../ui/Skeleton';
+import BoutonDeRecherche from '../ui/BoutonDeRecherche';
+import { useRechercheRepliee } from '../../hooks/useRechercheRepliee';
 import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 import { useOptionalData } from '../../context/DataContext';
 import { OfflineState } from '../ui/ScreenState';
@@ -593,6 +595,15 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
         Boolean(search || filter || (facets && facets.length > 0) || triAuTelephone) &&
         !selection?.active;
 
+    /* **Au téléphone, la bande est repliée derrière la loupe du titre** (10/10) — voir
+       `useRechercheRepliee`. Un filtre de la feuille (le compte de l'entonnoir) ou une puce
+       choisie restent posés quand on replie : la loupe porte alors un point. */
+    const repli = useRechercheRepliee(search);
+    const bandeMontree = hasSeekBand && (!isCompact || repli.ouverte);
+    const filtresPoses =
+        React.isValidElement<{ count?: number }>(filter) && Number(filter.props.count ?? 0) > 0;
+    const quelqueChoseDePose = filtresPoses || Boolean(onActiveFacetClear);
+
     /*
       **Le tableau balaye, il ne se lit pas.** §2.43 borne le contenu à 960 — « une liste
       étirée sur 1600 px n'est pas plus lisible » — et **déclare l'exception** : « un
@@ -629,6 +640,8 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                     {search && (
                         <SearchField
                             raccourci
+                            /* Dépliée par la loupe, la recherche prend le curseur. */
+                            autoFocus={isCompact && repli.parGeste}
                             value={search.value}
                             onChange={search.onChange}
                             placeholder={search.placeholder}
@@ -750,7 +763,13 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                                nue, et sa ligne de compte se collait au filet, sans les 12 que
                                la planche déclare. La barre de 56 tout compris reste pour ce
                                qu'elle vise : un titre, et rien dessous. */
-                            hasSeekBand || orderRow ? 'gap-3 pt-2 pb-3' : '',
+                            /* **Une seule hauteur de barre au téléphone** (10/10) : repliée, la
+                               barre d'une liste fait celle d'une page qui n'a que son titre
+                               (`BarreDePage` : 8 au-dessus, 48, 12 dessous — 69 avec le filet).
+                               Elle tombait à 49, et l'en-tête changeait de hauteur d'une page
+                               à l'autre. */
+                            'pt-2 pb-3',
+                            (bandeMontree || orderRow) && 'gap-3',
                         )}
                     >
                         {/* `.tt` — la rangée du titre se règle sur son geste : **48**, la
@@ -784,8 +803,17 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                                 <span className="flex-1" />
                             )}
                             {actions}
+                            {hasSeekBand && (
+                                <BoutonDeRecherche
+                                    ouverte={repli.ouverte}
+                                    onBasculer={repli.basculer}
+                                    pose={quelqueChoseDePose}
+                                    filtresSeuls={!search}
+                                    className="-mr-3 shrink-0"
+                                />
+                            )}
                         </div>
-                        {hasSeekBand && seekBand}
+                        {bandeMontree && seekBand}
                         {orderRow}
                     </div>
                 ) : (
@@ -1323,7 +1351,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                                     <CardEmptyState
                                         glyph={Checks}
                                         title={`${selection.count} dans la sélection`}
-                                        description="Les gestes de la barre s’appliquent à chacun. Échap pour en sortir."
+                                        description="Échap pour en sortir."
                                     />
                                 </div>
                             ) : (

@@ -53,10 +53,6 @@ const initiales = (nom: string): string => {
 
 const prenom = (nom: string): string => nom.trim().split(/\s+/)[0] || nom;
 
-/** « pas celui de Karim », mais « pas celui d'Alice » : l'élision se calcule. */
-const deQui = (nom: string): string =>
-    /^[aeiouyàâäéèêëîïôöûüh]/i.test(nom) ? `d’${nom}` : `de ${nom}`;
-
 interface HandoverActSheetProps {
     open: boolean;
     onClose: () => void;
@@ -388,7 +384,6 @@ const HandoverActSheet: React.FC<HandoverActSheetProps> = ({
                 open={open}
                 onClose={onClose}
                 title={`${prenom(destinataire.name)} confirme-t-il maintenant ?`}
-                subtitle="S’il est là, tendez-lui l’appareil. Sinon, la tâche l’attend."
                 subject={null}
                 preamble={
                     <div className="flex flex-col">
@@ -428,7 +423,7 @@ const HandoverActSheet: React.FC<HandoverActSheetProps> = ({
                     glyph: UserIcon,
                     text: (
                         <>
-                            L’objet passe <strong>attribué</strong>, sans attente.
+                            L’objet passe <strong>attribué</strong>.
                         </>
                     ),
                 }}
@@ -445,7 +440,7 @@ const HandoverActSheet: React.FC<HandoverActSheetProps> = ({
             {scanOuvert && (
                 <ActScanOverlay
                     eligibles={eligibles}
-                    tip="Cadrez l’étiquette collée sur l’objet. Code-barres ou QR, le viseur s’ajuste seul."
+                    tip="Cadrez l’étiquette collée sur l’objet."
                     acceptLabel="Remettre celui-ci"
                     onClose={() => setScanOuvert(false)}
                     onPick={setObjetId}
@@ -455,11 +450,6 @@ const HandoverActSheet: React.FC<HandoverActSheetProps> = ({
                 open={open}
                 onClose={onClose}
                 title="Remettre l’équipement"
-                subtitle={
-                    destinataire
-                        ? `Vous attestez votre geste, pas celui ${deQui(prenom(destinataire.name))}.`
-                        : 'Vous attestez votre geste, pas celui du bénéficiaire.'
-                }
                 subject={
                     objet
                         ? {

@@ -165,8 +165,7 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ modelId, onBack, on
             /* C2 — la conséquence, et ce qui est conservé. L'irréversibilité en
                sortait : elle a sa ligne, en rouge, sous le corps (C4). La dire deux
                fois dans deux formes différentes ne la rend pas plus lisible. */
-            message:
-                "Aucun actif n'y est rattaché. Le modèle disparaît du catalogue et de la création d'équipement.",
+            message: 'Le modèle disparaît du catalogue.',
             tone: 'destructive',
             irreversible: true,
             /* **Le dernier mot-clé à recopier du produit.** Il exigeait de taper

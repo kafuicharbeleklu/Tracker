@@ -148,12 +148,16 @@ const Attestation: React.FC<AttestationProps> = ({
         }
     };
 
+    /* **La note dit un état, pas la mécanique** (10/10, à la demande du commanditaire :
+       « retire les surinformations »). Elle expliquait que le code « vaut signature », que
+       « personne ne peut le lire », que « l'attestation le note » : rien de cela ne change ce
+       que la personne fait. Il reste ce qui vient d'arriver — un code refusé, une attestation
+       donnée —, et rien au repos. */
     const hint = useMemo(() => {
         if (method === 'signature' && !hasPin)
             return (
                 <>
-                    Pas encore de code PIN : <b className="font-medium">signez</b>. Vous pourrez en
-                    définir un dans Mon compte.
+                    Pas encore de code PIN : <b className="font-medium">signez</b>.
                 </>
             );
         if (method === 'signature' && attempts >= MAX_ATTEMPTS)
@@ -163,8 +167,7 @@ const Attestation: React.FC<AttestationProps> = ({
                     <b className="font-medium">la signature prend le relais</b>.
                 </>
             );
-        if (method === 'signature')
-            return <>Signature à la place du code — l'attestation le note.</>;
+        if (method === 'signature') return null;
         if (failed)
             return (
                 <>
@@ -175,18 +178,10 @@ const Attestation: React.FC<AttestationProps> = ({
                     avant la signature.
                 </>
             );
-        /* D3 — sans image enregistrée, le code **suffit** : le dire, plutôt que laisser
-           chercher une preuve qui n'existe pas. */
-        if (done && method === 'pin')
-            return (
-                <>
-                    Attesté par code PIN, {attestedAt}.{' '}
-                    <b className="font-medium">Sans signature enregistrée, le code suffit.</b>
-                </>
-            );
+        if (done && method === 'pin') return <>Attesté par code PIN, {attestedAt}.</>;
         if (done && method === 'pin+signature')
-            return <>Votre signature enregistrée est apposée — le code l'a autorisée.</>;
-        return <>Il vaut signature. Personne ne peut le lire, pas même l'informatique.</>;
+            return <>Votre signature enregistrée est apposée.</>;
+        return null;
     }, [method, hasPin, failed, attempts, remaining, done, attestedAt]);
 
     return (
@@ -270,15 +265,17 @@ const Attestation: React.FC<AttestationProps> = ({
                 />
             )}
 
-            <p
-                className={
-                    failed && method === 'pin'
-                        ? 'text-error text-ts-sub leading-ts-sub mt-2 text-center'
-                        : 'text-on-surface-variant text-ts-sub leading-ts-sub mt-2 text-center'
-                }
-            >
-                {hint}
-            </p>
+            {hint && (
+                <p
+                    className={
+                        failed && method === 'pin'
+                            ? 'text-error text-ts-sub leading-ts-sub mt-2 text-center'
+                            : 'text-on-surface-variant text-ts-sub leading-ts-sub mt-2 text-center'
+                    }
+                >
+                    {hint}
+                </p>
+            )}
         </div>
     );
 };

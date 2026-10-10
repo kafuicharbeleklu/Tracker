@@ -50,13 +50,13 @@ const OUTCOMES: Array<{
     {
         value: 'immobilised',
         title: 'Immobilisé, à réviser',
-        hint: 'À déposer à l’informatique, qui le fera réparer',
+        hint: 'À déposer à l’informatique',
         tint: 'orange',
     },
     {
         value: 'out_of_service',
         title: 'Hors service',
-        hint: 'Cesse de servir, la sortie du parc se décide ensuite',
+        hint: 'Cesse de servir',
         tint: 'rouge',
     },
 ];
@@ -156,8 +156,7 @@ const IncidentSheet: React.FC<IncidentSheetProps> = ({
                       tint: 'orange' as Tint,
                       content: (
                           <>
-                              <b className="font-medium">À déposer</b> à l’informatique : elle le
-                              prend en charge, avec devis s’il n’est plus garanti.
+                              <b className="font-medium">À déposer</b> à l’informatique.
                           </>
                       ),
                   }

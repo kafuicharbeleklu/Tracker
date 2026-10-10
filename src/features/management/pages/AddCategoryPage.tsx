@@ -8,13 +8,7 @@ import Toggle from '../../../components/ui/Toggle';
 import { useData } from '../../../context/DataContext';
 import SelectField from '../../../components/ui/SelectField';
 import { FullScreenFormLayout } from '../../../components/layout/FullScreenFormLayout';
-import {
-    FieldLabel,
-    FormNote,
-    FormSection,
-    GlyphTile,
-    Segmented,
-} from '../../../components/ui/FormParts';
+import { FieldLabel, FormSection, GlyphTile, Segmented } from '../../../components/ui/FormParts';
 import { CATEGORY_FAMILIES, Category, CategoryFamily } from '../../../types';
 import { CATEGORY_GLYPHS, CATEGORY_ICONS } from '../../../constants/categoryIcons';
 import { getCategoryLabel } from '../../../constants/glossary';
@@ -194,11 +188,6 @@ const AddCategoryPage: React.FC<AddCategoryPageProps> = ({
                         onChange={(assignable) => setFormData({ ...formData, assignable })}
                         label="Attribuable à une personne"
                     />
-                    <FormNote>
-                        {formData.assignable
-                            ? "Les objets de ce type apparaissent dans le sélecteur d'attribution."
-                            : 'Les objets de ce type en sont retirés — un serveur, une imprimante ou du mobilier sert un lieu, pas une personne. Les attributions déjà faites ne sont pas défaites.'}
-                    </FormNote>
                 </FormSection>
 
                 <FormSection title="Amortissement" caption="par défaut">
@@ -216,11 +205,6 @@ const AddCategoryPage: React.FC<AddCategoryPageProps> = ({
                                 { value: 'degressive' as const, label: 'Dégressif' },
                             ]}
                         />
-                        <FormNote>
-                            {formData.method === 'linear'
-                                ? 'Une charge constante sur toute la durée.'
-                                : 'Une charge plus forte au début, qui décroît ensuite.'}
-                        </FormNote>
                     </div>
 
                     <div className="expanded:grid-cols-2 grid grid-cols-1 gap-4">
@@ -250,11 +234,6 @@ const AddCategoryPage: React.FC<AddCategoryPageProps> = ({
                             supportingText="en pour-cent"
                         />
                     </div>
-
-                    <FormNote>
-                        Ces valeurs pré-remplissent la fiche d&apos;un actif de ce type ; elles y
-                        restent modifiables au cas par cas.
-                    </FormNote>
                 </FormSection>
             </div>
         </FullScreenFormLayout>

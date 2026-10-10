@@ -524,9 +524,6 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
                                 Saisir à la main
                             </Button>
                         </FormSection>
-                        <FormWarn glyph={FileText}>
-                            Le fichier est déjà gardé comme justificatif.
-                        </FormWarn>
                     </>
                 ) : (
                     <>
@@ -591,7 +588,7 @@ export const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ isOpen, onClos
                                     multiple
                                     accept=".pdf,.jpg,.jpeg,.png,.webp,.bmp,.tif,.tiff"
                                     label="Déposez vos factures ici"
-                                    subLabel="Une seule ou tout un lot : ce qui est lu franchement arrive rempli."
+                                    subLabel="Une seule ou tout un lot"
                                 />
                             )}
                         </FormSection>

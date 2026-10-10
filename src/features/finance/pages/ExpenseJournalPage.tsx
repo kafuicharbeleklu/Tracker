@@ -28,6 +28,7 @@ import { MEDIA } from '../../../constants/breakpoints';
 import { toucheSimplePourLaPage } from '../../../lib/clavier';
 import { saveExpenseSourceFile } from '../../../lib/financeFileStorage';
 import { exerciceParDefaut, formatNumber } from '../../../lib/financial';
+import { JAUGE } from '../../../lib/jauge';
 import { cn } from '../../../lib/utils';
 import type { FinanceExpense, FinanceExpenseType } from '../../../types';
 import { AddExpenseModal } from '../components/AddExpenseModal';
@@ -446,10 +447,22 @@ const ExpenseJournalPage: React.FC<ExpenseJournalPageProps> = ({ onBack }) => {
 
     const derniere = deLExercice[0];
 
+    /* Ce que le héros du téléphone et de la tablette annonce, sur l'exercice entier. */
+    const enveloppe = currentBudget?.totalAllocated ?? 0;
+    const partDeLEnveloppe = enveloppe > 0 ? (consomme / enveloppe) * 100 : 0;
+    const aPayer = useMemo(
+        () => deLExercice.filter((depense) => depense.status === 'Pending').length,
+        [deLExercice],
+    );
+    const sansJustificatif = useMemo(
+        () => deLExercice.filter((depense) => etatDuJustificatif(depense) === 'manquant').length,
+        [deLExercice],
+    );
+
     const outilsDuBureau = bureau ? (
         /* À 8 du titre, comme les outils de Tâches et de toute liste (10/10) : la ligne
            en prenait 20, et les cartes commençaient 12 px plus bas qu'ailleurs. */
-        <div className="flex flex-wrap items-center gap-2 pb-1">
+        <div className="flex min-h-11 flex-wrap items-center gap-2 pb-1">
             <SearchField
                 dense
                 raccourci
@@ -688,34 +701,125 @@ const ExpenseJournalPage: React.FC<ExpenseJournalPageProps> = ({ onBack }) => {
                 hero={
                     bureau ? undefined : (
                         /* `.hero` de 15.3 — le consommé de l'exercice, que le filtre ne
-                       touche pas : ce qu'il annonce est le fait de l'exercice. */
+                       touche pas : ce qu'il annonce est le fait de l'exercice.
+
+                       **Redessiné le 10/10** (demande : « améliorer la mise en forme du héros
+                       dépense sur mobile et tablette »). C'était un surtitre, un chiffre et
+                       une phrase qui redisait le compte du titre ; à la tablette, trois
+                       lignes à gauche d'une bande de 640 px. Il prend la grammaire du héros
+                       de Finances — l'exercice et son état, le chiffre, ce sur quoi il se
+                       compte, la jauge — et porte les deux comptes sur lesquels on agit :
+                       ce qui reste à payer, ce qui n'a pas de justificatif. Dès 576 px de
+                       large, ces deux comptes passent à droite du chiffre. */
                         <section className="bg-inverse-surface text-inverse-on-surface rounded-card @container px-5 pt-[22px] pb-5">
-                            <span className="block text-[0.75rem] leading-4 tracking-[0.07em] text-[var(--tk-color-on-dark-2)] uppercase">
-                                Consommé à ce jour
-                            </span>
-                            <div className="mt-2 flex flex-wrap items-baseline gap-2.5">
-                                <b className="font-brand text-[2.5rem] leading-[3rem] font-semibold tracking-[-0.03em] whitespace-nowrap tabular-nums">
-                                    {/* Le chiffre tient dans le héro, sa devise à côté (07/10). */}
-                                    <ChiffreAjuste
-                                        texte={formatNumber(consomme, settings.compactNotation)}
-                                        reserve="3rem"
-                                    >
-                                        <ChiffreAnime
-                                            valeur={formatNumber(
-                                                consomme,
-                                                settings.compactNotation,
-                                            )}
-                                        />
-                                    </ChiffreAjuste>
-                                </b>
-                                <span className="text-ts-sub leading-ts-sub text-[var(--tk-color-on-dark-2)]">
-                                    {settings.currency}
-                                </span>
+                            <div className="@[36rem]:grid @[36rem]:grid-cols-[minmax(0,1fr)_17rem] @[36rem]:items-end @[36rem]:gap-6">
+                                <div className="min-w-0">
+                                    <span className="text-ts-sub leading-ts-sub -mt-1.5 flex min-w-0 items-center gap-2">
+                                        <b className="font-medium whitespace-nowrap">
+                                            Exercice {exerciseYear}
+                                        </b>
+                                        {currentBudget && (
+                                            <span className="flex min-w-0 items-center gap-1.5 text-[var(--tk-color-on-dark-2)]">
+                                                <i
+                                                    className={cn(
+                                                        'h-1.5 w-1.5 shrink-0 rounded-full',
+                                                        currentBudget.status === 'En cours'
+                                                            ? 'bg-[var(--tk-color-live-vert)]'
+                                                            : 'bg-[var(--tk-color-on-dark-2)]',
+                                                    )}
+                                                />
+                                                <span className="truncate">
+                                                    {currentBudget.status.toLowerCase()}
+                                                </span>
+                                            </span>
+                                        )}
+                                    </span>
+                                    <div className="mt-2 flex flex-wrap items-baseline gap-2.5">
+                                        <b className="font-brand text-[2.5rem] leading-[3rem] font-semibold tracking-[-0.03em] whitespace-nowrap tabular-nums">
+                                            {/* Le chiffre tient dans le héro, sa devise à côté (07/10). */}
+                                            <ChiffreAjuste
+                                                texte={formatNumber(
+                                                    consomme,
+                                                    settings.compactNotation,
+                                                )}
+                                                reserve="3rem"
+                                            >
+                                                <ChiffreAnime
+                                                    valeur={formatNumber(
+                                                        consomme,
+                                                        settings.compactNotation,
+                                                    )}
+                                                />
+                                            </ChiffreAjuste>
+                                        </b>
+                                        <span className="text-ts-sub leading-ts-sub text-[var(--tk-color-on-dark-2)]">
+                                            {settings.currency}
+                                        </span>
+                                    </div>
+                                    <span className="text-ts-sub leading-ts-sub mt-1 block text-[var(--tk-color-on-dark-2)] tabular-nums">
+                                        consommés
+                                        {enveloppe > 0 &&
+                                            ` sur ${formatNumber(enveloppe, settings.compactNotation)}`}
+                                    </span>
+                                    {enveloppe > 0 && (
+                                        <>
+                                            <div
+                                                className={cn(
+                                                    'mt-5 overflow-hidden bg-white/[0.12]',
+                                                    JAUGE,
+                                                )}
+                                            >
+                                                <i
+                                                    className={cn(
+                                                        'mvt-jauge duration-medium2 ease-emphasized block h-full transition-[width]',
+                                                        partDeLEnveloppe >= 100
+                                                            ? 'bg-[var(--tk-color-st-orange)]'
+                                                            : 'bg-[var(--tk-color-live-vert)]',
+                                                    )}
+                                                    style={{
+                                                        width: `${Math.min(partDeLEnveloppe, 100)}%`,
+                                                    }}
+                                                />
+                                            </div>
+                                            <div className="mt-2 flex justify-between gap-3 text-[0.75rem] leading-4 text-[var(--tk-color-on-dark-2)] tabular-nums">
+                                                <span>
+                                                    <b className="text-inverse-on-surface font-medium">
+                                                        {Math.round(partDeLEnveloppe)} %
+                                                    </b>{' '}
+                                                    de l’enveloppe
+                                                </span>
+                                                {derniere && (
+                                                    <span className="min-w-0 truncate">
+                                                        la dernière le {jourEtMois(derniere.date)}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                                <div className="mt-5 grid grid-cols-2 gap-3 @[36rem]:mt-0">
+                                    {[
+                                        { cle: 'attente', valeur: aPayer, libelle: 'en attente' },
+                                        {
+                                            cle: 'sans',
+                                            valeur: sansJustificatif,
+                                            libelle: 'sans justificatif',
+                                        },
+                                    ].map((chiffre) => (
+                                        <div
+                                            key={chiffre.cle}
+                                            className="min-w-0 rounded-[4px] bg-white/[0.08] px-2.5 py-3"
+                                        >
+                                            <span className="font-brand text-ts-sheet leading-ts-sheet block font-semibold tracking-[-0.015em] tabular-nums">
+                                                {chiffre.valeur}
+                                            </span>
+                                            <span className="mt-0.5 block truncate text-[0.75rem] leading-4 text-[var(--tk-color-on-dark-2)]">
+                                                {chiffre.libelle}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
-                            <span className="text-ts-sub leading-ts-sub mt-1 block text-[var(--tk-color-on-dark-2)]">
-                                consommés en {deLExercice.length} écriture
-                                {deLExercice.length > 1 ? 's' : ''} · exercice {exerciseYear}
-                            </span>
                         </section>
                     )
                 }
