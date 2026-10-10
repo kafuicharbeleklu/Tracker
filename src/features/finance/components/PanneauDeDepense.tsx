@@ -12,6 +12,7 @@ import {
 import Button from '../../../components/ui/Button';
 import ChiffreAnime from '../../../components/ui/ChiffreAnime';
 import Icon from '../../../components/ui/Icon';
+import ListeDeFaits from '../../../components/ui/ListeDeFaits';
 import Menu, { type MenuItem } from '../../../components/ui/Menu';
 import Touche from '../../../components/ui/Touche';
 import { formatNumber } from '../../../lib/financial';
@@ -21,7 +22,7 @@ import { EXPENSE_TYPE_LABELS, etatDuJustificatif } from '../lib/expensePresentat
 import { JAUGE } from '../../../lib/jauge';
 
 /** Le geste d'un pied de panneau : 40 de haut, 16 d'intérieur, 14 en 500 (comme Tâches). */
-const GESTE = 'h-10 min-h-10 gap-2 rounded-md px-4 text-[0.875rem] leading-5 font-medium';
+const GESTE = 'h-10 min-h-10 gap-2 rounded-md px-4 text-ts-body leading-ts-body font-medium';
 
 const dateLongue = (iso: string): string => {
     const date = new Date(iso);
@@ -80,7 +81,7 @@ export const CorpsDeLaDepense: React.FC<CorpsDeLaDepenseProps> = ({
         poste && poste.allocated > 0 ? Math.round((poste.spent / poste.allocated) * 100) : 0;
     const reste = poste ? poste.allocated - poste.spent : 0;
     const GESTE_DE_PIECE = cn(
-        'gap-1.5 px-2.5 text-[0.8125rem]',
+        'text-ts-sub gap-1.5 px-2.5',
         auDoigt ? 'h-10 min-h-10' : 'h-8 min-h-8',
     );
 
@@ -92,17 +93,17 @@ export const CorpsDeLaDepense: React.FC<CorpsDeLaDepenseProps> = ({
                     <b className="font-brand text-on-surface text-[2.125rem] leading-10 font-semibold tracking-[-0.01em] whitespace-nowrap tabular-nums">
                         <ChiffreAnime valeur={n(depense.amount)} />
                     </b>
-                    <span className="text-text-secondary text-[0.8125rem] leading-[1.125rem]">
+                    <span className="text-text-secondary text-ts-sub leading-ts-sub">
                         {depense.currencyCode || devise}
                     </span>
                 </span>
                 {depense.status === 'Pending' && (
-                    <span className="rounded-[4px] bg-[var(--tk-color-tint-ambre)] px-2 text-[0.8125rem] leading-6 font-medium text-[var(--tk-color-on-tint-ambre)]">
+                    <span className="text-ts-sub rounded-[4px] bg-[var(--tk-color-tint-ambre)] px-2 leading-6 font-medium text-[var(--tk-color-on-tint-ambre)]">
                         En attente
                     </span>
                 )}
                 {depense.status === 'Recurring' && (
-                    <span className="text-text-secondary flex items-center gap-1 text-[0.8125rem] leading-[1.125rem]">
+                    <span className="text-text-secondary text-ts-sub leading-ts-sub flex items-center gap-1">
                         <Icon glyph={Repeat} size={18} />
                         Récurrente
                     </span>
@@ -125,10 +126,10 @@ export const CorpsDeLaDepense: React.FC<CorpsDeLaDepenseProps> = ({
                             <span className="bg-outline mt-auto block h-1 w-[18px] self-end" />
                         </span>
                         <span className="min-w-0 flex-1">
-                            <span className="text-on-surface block truncate text-[0.875rem] leading-5 font-medium">
+                            <span className="text-on-surface text-ts-body leading-ts-body block truncate font-medium">
                                 {nomDeLaPiece}
                             </span>
-                            <span className="text-text-secondary block text-[0.8125rem] leading-[1.125rem]">
+                            <span className="text-text-secondary text-ts-sub leading-ts-sub block">
                                 {sorteDePiece(nomDeLaPiece)} · justificatif joint
                             </span>
                         </span>
@@ -158,12 +159,12 @@ export const CorpsDeLaDepense: React.FC<CorpsDeLaDepenseProps> = ({
                             <Icon glyph={Paperclip} size={20} />
                         </span>
                         <span className="min-w-0 flex-1">
-                            <span className="text-on-surface block text-[0.875rem] leading-5 font-medium">
+                            <span className="text-on-surface text-ts-body leading-ts-body block font-medium">
                                 {justificatif === 'manquant'
                                     ? 'Aucun justificatif'
                                     : 'Justificatif facultatif'}
                             </span>
-                            <span className="text-text-secondary block text-[0.8125rem] leading-[1.125rem]">
+                            <span className="text-text-secondary text-ts-sub leading-ts-sub block">
                                 {justificatif === 'manquant'
                                     ? 'La facture reste à joindre.'
                                     : 'Un abonnement se justifie par son contrat.'}
@@ -181,7 +182,7 @@ export const CorpsDeLaDepense: React.FC<CorpsDeLaDepenseProps> = ({
                     </div>
                 )}
                 {lectureIncertaine && (
-                    <p className="flex items-start gap-2 rounded-md bg-[var(--tk-color-tint-ambre)] px-3.5 py-2.5 text-[0.8125rem] leading-[1.125rem] text-[var(--tk-color-on-tint-ambre)]">
+                    <p className="text-ts-sub leading-ts-sub flex items-start gap-2 rounded-md bg-[var(--tk-color-tint-ambre)] px-3.5 py-2.5 text-[var(--tk-color-on-tint-ambre)]">
                         <Icon glyph={Warning} size={18} className="mt-px shrink-0" />
                         <span>
                             <b className="font-semibold">
@@ -195,41 +196,30 @@ export const CorpsDeLaDepense: React.FC<CorpsDeLaDepenseProps> = ({
                 )}
             </div>
 
-            {/* Les faits de la facture. */}
-            <dl className="border-outline-variant grid grid-cols-[148px_minmax(0,1fr)] border-b text-[0.875rem] leading-5">
-                <dt className="border-outline-variant text-text-secondary flex h-9 items-center border-t text-[0.8125rem]">
-                    Date de la facture
-                </dt>
-                <dd className="border-outline-variant flex h-9 items-center border-t">
-                    {dateLongue(depense.date)}
-                </dd>
-                <dt className="border-outline-variant text-text-secondary flex h-9 items-center border-t text-[0.8125rem]">
-                    N° de facture
-                </dt>
-                <dd
-                    className={cn(
-                        'border-outline-variant flex h-9 min-w-0 items-center border-t tabular-nums',
-                        !depense.invoiceNumber && 'text-text-secondary',
-                    )}
-                >
-                    <span className="truncate">{depense.invoiceNumber || 'non renseigné'}</span>
-                </dd>
-                <dt className="border-outline-variant text-text-secondary flex h-9 items-center border-t text-[0.8125rem]">
-                    Nature
-                </dt>
-                <dd className="border-outline-variant flex h-9 items-center border-t">
-                    {EXPENSE_TYPE_LABELS[depense.type]}
-                </dd>
-            </dl>
+            {/* Les faits de la facture — la liste commune à tous les détails (10/10). */}
+            <ListeDeFaits
+                label="Les faits de la facture"
+                chiffres
+                faits={[
+                    ['Date de la facture', dateLongue(depense.date)],
+                    [
+                        'N° de facture',
+                        depense.invoiceNumber || (
+                            <span className="text-text-secondary">non renseigné</span>
+                        ),
+                    ],
+                    ['Nature', EXPENSE_TYPE_LABELS[depense.type]],
+                ]}
+            />
 
             {/* Le poste, et ce qu'il y reste. */}
             {poste && (
                 <section className="flex flex-col gap-2">
                     <div className="flex items-baseline justify-between gap-3">
-                        <h3 className="text-text-secondary min-w-0 truncate text-[0.8125rem] leading-[1.125rem] font-medium">
+                        <h3 className="text-text-secondary text-ts-sub leading-ts-sub min-w-0 truncate font-medium">
                             Le poste {poste.category}
                         </h3>
-                        <span className="text-text-secondary shrink-0 text-[0.8125rem] leading-[1.125rem] tabular-nums">
+                        <span className="text-text-secondary text-ts-sub leading-ts-sub shrink-0 tabular-nums">
                             <b className="text-on-surface font-semibold">{n(poste.spent)}</b> sur{' '}
                             {n(poste.allocated)}
                         </span>
@@ -245,7 +235,7 @@ export const CorpsDeLaDepense: React.FC<CorpsDeLaDepenseProps> = ({
                             style={{ width: `${Math.min(100, part)}%` }}
                         />
                     </span>
-                    <p className="text-text-secondary text-[0.8125rem] leading-[1.125rem]">
+                    <p className="text-text-secondary text-ts-sub leading-ts-sub">
                         {part} % consommés ·{' '}
                         {reste >= 0 ? (
                             <>
@@ -379,7 +369,7 @@ const PanneauDeDepense: React.FC<PanneauDeDepenseProps> = ({
                         {depense.supplier}
                     </h2>
                     {depense.description?.trim() && (
-                        <p className="text-text-secondary text-[0.875rem] leading-5">
+                        <p className="text-text-secondary text-ts-body leading-ts-body">
                             {depense.description}
                         </p>
                     )}

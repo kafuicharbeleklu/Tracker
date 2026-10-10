@@ -433,7 +433,7 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
                     >
                         {row.site}
                     </span>
-                    <span className="text-on-surface-variant block truncate text-[0.8125rem] leading-5">
+                    <span className="text-on-surface-variant text-ts-sub leading-ts-sub block truncate">
                         {row.country}
                         {(row.localCount ?? 0) > 0
                             ? ` · ${row.localCount} ${row.localCount === 1 ? 'local' : 'locaux'}`
@@ -664,7 +664,7 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
                     >
                         {row.country}
                     </span>
-                    <span className="text-on-surface-variant block truncate text-[0.8125rem] leading-5">
+                    <span className="text-on-surface-variant text-ts-sub leading-ts-sub block truncate">
                         {contenuDuPays(row)}
                     </span>
                 </div>

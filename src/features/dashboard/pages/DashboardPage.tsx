@@ -1271,7 +1271,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                                 ? `${n} en attente, voir la liste`
                                                 : `${n} hors service : ${counts.horsService.detail}. Voir la liste`
                                         }
-                                        className="text-text-secondary hover:text-on-surface h-auto min-h-8 gap-1.5 px-0 text-[0.8125rem] leading-[1.125rem] font-normal hover:bg-transparent"
+                                        className="text-text-secondary hover:text-on-surface text-ts-sub leading-ts-sub h-auto min-h-8 gap-1.5 px-0 font-normal hover:bg-transparent"
                                     >
                                         <span
                                             aria-hidden="true"

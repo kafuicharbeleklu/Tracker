@@ -60,7 +60,11 @@ const twMerge = extendTailwindMerge({
          */
         theme: {
             // Échelle de l'ADN mobile (DESIGN_BRIEF.md §3) — 10 / 14 / 16.
-            radius: ['adn-control', 'adn-card', 'adn-sheet'],
+            // `card` et `vignette` (10/10) : les deux rayons de rôle du système. Sans eux,
+            // un bouton en forme de carte gardait le `rounded-md` de la primitive à côté de
+            // `rounded-card`, et l'ordre du CSS rendait 4 px au lieu de 8 — les tuiles d'une
+            // campagne, celles du catalogue et des emplacements.
+            radius: ['adn-control', 'adn-card', 'adn-sheet', 'card', 'vignette'],
             // Diamètre du FAB de l'ADN (52 px) : doit chasser le `w-14 h-14` du size.
             spacing: ['fab'],
         },

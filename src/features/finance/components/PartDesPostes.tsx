@@ -55,7 +55,7 @@ const PartDesPostes: React.FC<PartDesPostesProps> = ({ postes, max, className })
                 return (
                     <li
                         key={poste.category}
-                        className="text-on-surface flex h-10 min-w-0 items-center gap-2 text-[0.8125rem] leading-[1.125rem]"
+                        className="text-on-surface text-ts-sub leading-ts-sub flex h-10 min-w-0 items-center gap-2"
                     >
                         <Icon
                             glyph={getPosteGlyph(poste.type)}

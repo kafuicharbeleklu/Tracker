@@ -20,7 +20,8 @@ import { MagnifyingGlass, PaperPlaneTilt } from '@phosphor-icons/react';
 import { useAccessControl } from '../../hooks/useAccessControl';
 import { useTransitionDePage } from '../../hooks/useTransitionDePage';
 import { champDeRecherche, useRaccourciRecherche } from '../../hooks/useRaccourciRecherche';
-import { SkeletonPage, type FormeDePage } from '../ui/Skeleton';
+import { SkeletonPage } from '../ui/Skeleton';
+import { formeDeLAdresse } from '../../lib/formeDePage';
 import { SelectionRegimeProvider } from '../../context/SelectionRegimeContext';
 import RequestSheet from '../../features/tasks/components/RequestSheet';
 import AvisDesTaches from '../../features/tasks/components/AvisDesTaches';
@@ -79,49 +80,6 @@ interface AppLayoutProps {
  * que la personne attend.
  */
 const PageLoadingFallback: React.FC = () => <SkeletonPage forme={formeDeLAdresse()} />;
-
-/**
- * La forme de l'écran qui arrive, lue dans l'adresse (10/10) : le squelette dessine **ses
- * cartes à lui** — la mosaïque de l'accueil, une liste et sa fiche, les tuiles de Finances,
- * la vue globale de l'inventaire, une campagne, un catalogue, des réglages —, pas une liste
- * à tout faire.
- */
-const formeDeLAdresse = (): FormeDePage => {
-    const chemin = window.location.hash.replace(/^#/, '').split('?')[0];
-    const [section, second, troisieme] = chemin.split('/').filter(Boolean);
-    switch (section) {
-        case undefined:
-        case 'dashboard':
-            return 'accueil';
-        case 'tasks':
-            return 'listeEtFiche';
-        case 'finance':
-            return !second ? 'finances' : second === 'expenses' ? 'listeEtFiche' : 'liste';
-        case 'audit':
-            return second === 'details' ? 'campagne' : second === 'lieux' ? 'liste' : 'inventaire';
-        case 'management':
-            return !second
-                ? 'tuiles'
-                : second === 'tension' || troisieme === 'import'
-                  ? 'liste'
-                  : 'fiche';
-        case 'reports':
-            return 'tuiles';
-        case 'settings':
-            return 'reglages';
-        case 'rbac':
-            return troisieme ? 'fiche' : 'reglages';
-        case 'locations':
-            return troisieme ? 'fiche' : 'liste';
-        case 'inventory':
-        case 'users':
-            return second && !['import', 'add', 'edit', 'filter'].includes(second)
-                ? 'fiche'
-                : 'liste';
-        default:
-            return 'liste';
-    }
-};
 
 /** L'objet que l'adresse d'un acte désigne — `?equipmentId=` dans le hash. */
 const lireObjetDeLAdresse = (parametre = 'equipmentId'): string | null => {

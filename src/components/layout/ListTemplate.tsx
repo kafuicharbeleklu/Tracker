@@ -21,7 +21,7 @@ import SearchField from '../ui/SearchField';
 import FacetChip from '../ui/FacetChip';
 import { FabContainer } from '../ui/FabContainer';
 import FloatingActionButton from '../ui/FloatingActionButton';
-import { SkeletonList, SkeletonQueue } from '../ui/Skeleton';
+import { SkeletonList, SkeletonQueue, SkeletonTableau } from '../ui/Skeleton';
 import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 import { useOptionalData } from '../../context/DataContext';
 import { OfflineState } from '../ui/ScreenState';
@@ -39,7 +39,7 @@ import { useEchap } from '../../hooks/useEchap';
 import { useEntree } from '../../hooks/useEntree';
 import { cn } from '../../lib/utils';
 /* Le régime du bureau : la fenêtre, les étages qui rétrécissent, le corps qui défile. */
-import { CADRE_BUREAU, CORPS_BUREAU, PAGE_BUREAU } from '../../lib/regimeBureau';
+import { CADRE_BUREAU, CORPS_BUREAU, DOUZIEMES, PAGE_BUREAU } from '../../lib/regimeBureau';
 import type { FacetTone } from '../ui/FacetChip';
 
 /**
@@ -1061,9 +1061,11 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                                           'w-[360px] shrink-0 grow-0',
                                           listeLarge && 'large:w-[400px]',
                                       )
-                                    : 'shrink grow-[8] basis-0'
+                                    : /* Les lignes de la grille de douze, pas un partage de
+                                         ce qui reste (10/10) : la liste tombe sous les tuiles
+                                         qui la surmontent. */
+                                      DOUZIEMES[panelRatio === 5 ? 7 : 8]
                                 : 'flex-1',
-                            deuxNiveaux && !listeEtFiche && panelRatio === 5 && 'grow-[7]',
                             CADRE_BUREAU,
                         )}
                     >
@@ -1148,8 +1150,17 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                                en haut laissaient le reste de la page nu. Au bureau il prend la
                                hauteur du cadre ; au téléphone, celle de l'écran. */
                             <Reading className="expanded:flex expanded:min-h-0 expanded:flex-1 expanded:flex-col">
-                                <div className="bg-surface expanded:min-h-0 expanded:flex-1 overflow-clip rounded-xl px-4">
-                                    {skeleton === 'file' ? (
+                                {/* Un tableau attend en tableau — son en-tête de 40 et ses
+                                    rangées de 48, bord à bord —, pas en rangées à vignette. */}
+                                <div
+                                    className={cn(
+                                        'bg-surface expanded:min-h-0 expanded:flex-1 overflow-clip rounded-xl',
+                                        !enTableauLarge && 'px-4',
+                                    )}
+                                >
+                                    {enTableauLarge ? (
+                                        <SkeletonTableau />
+                                    ) : skeleton === 'file' ? (
                                         <SkeletonQueue remplir />
                                     ) : (
                                         <SkeletonList remplir />
@@ -1301,8 +1312,8 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                     {deuxNiveaux && (
                         <aside
                             className={cn(
-                                'sticky top-4 min-w-0 shrink basis-0',
-                                listeEtFiche ? 'grow' : panelRatio === 4 ? 'grow-[4]' : 'grow-[5]',
+                                'sticky top-4 min-w-0',
+                                listeEtFiche ? 'shrink grow basis-0' : DOUZIEMES[panelRatio],
                                 'expanded:static expanded:min-h-0 expanded:self-stretch expanded:overflow-y-auto expanded:overscroll-contain',
                             )}
                         >

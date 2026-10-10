@@ -84,7 +84,7 @@ const Etape: React.FC<{
         <span className={cn('min-w-0 flex-1', !derniere && 'pb-2.5')}>
             <span
                 className={cn(
-                    'block text-[0.875rem] leading-5',
+                    'text-ts-body leading-ts-body block',
                     etat === 'a_venir' ? 'text-text-secondary font-medium' : 'font-medium',
                     etat === 'en_cours' && 'font-semibold text-[var(--tk-color-on-tint-bleu)]',
                     etat === 'a_vous' && 'font-semibold text-[var(--tk-color-on-tint-ambre)]',
@@ -92,7 +92,7 @@ const Etape: React.FC<{
             >
                 {titre}
             </span>
-            <span className="text-text-secondary block text-[0.75rem] leading-4">{detail}</span>
+            <span className="text-text-secondary text-ts-sub leading-ts-sub block">{detail}</span>
             {children}
         </span>
     </li>
@@ -132,11 +132,8 @@ const EtapesDeCampagne: React.FC<EtapesDeCampagneProps> = ({
             : ''
     }`;
     return (
-        <section
-            aria-label="La campagne"
-            className={cn('bg-surface rounded-xl px-[18px] py-4', className)}
-        >
-            <h2 className="text-on-surface mb-3 text-[1rem] leading-6 font-semibold">
+        <section aria-label="La campagne" className={cn('bg-surface rounded-card p-4', className)}>
+            <h2 className="text-on-surface text-ts-head leading-ts-head mb-3 font-medium">
                 La campagne
             </h2>
             <ol className="flex flex-col">
@@ -159,7 +156,7 @@ const EtapesDeCampagne: React.FC<EtapesDeCampagneProps> = ({
                     }
                 >
                     {etat === 'en_cours' && renvoi && (
-                        <span className="mt-1 flex items-start gap-1.5 text-[0.75rem] leading-4 text-[var(--tk-color-on-tint-orange)]">
+                        <span className="text-ts-sub leading-ts-sub mt-1 flex items-start gap-1.5 text-[var(--tk-color-on-tint-orange)]">
                             <Icon glyph={ArrowUUpLeft} size={18} className="-my-px shrink-0" />
                             <span>
                                 Renvoyée par {renvoi.acteur}, {renvoi.quand} : « {renvoi.motif} »
@@ -183,7 +180,7 @@ const EtapesDeCampagne: React.FC<EtapesDeCampagneProps> = ({
                             variant="outlined"
                             size="sm"
                             onClick={onCloturer}
-                            className="mt-2 h-9 min-h-9 gap-1.5 px-3 text-[0.8125rem]"
+                            className="text-ts-sub mt-2 h-9 min-h-9 gap-1.5 px-3"
                         >
                             <Icon glyph={Lock} size={18} />
                             Clôturer la campagne
@@ -214,7 +211,7 @@ const EtapesDeCampagne: React.FC<EtapesDeCampagneProps> = ({
                         <p className="text-text-secondary mb-1.5 text-[0.75rem] leading-4 font-semibold">
                             Ce que la validation fera
                         </p>
-                        <ul className="text-on-surface list-disc pl-4 text-[0.8125rem] leading-[1.1875rem]">
+                        <ul className="text-on-surface text-ts-sub leading-ts-sub list-disc pl-4">
                             <li>
                                 {manquants > 0 ? (
                                     <>
@@ -252,7 +249,7 @@ const EtapesDeCampagne: React.FC<EtapesDeCampagneProps> = ({
                             <Button
                                 variant="outlined"
                                 onClick={onRenvoyer}
-                                className="h-10 min-h-10 min-w-[7rem] flex-1 gap-1.5 px-3 text-[0.875rem]"
+                                className="text-ts-body h-10 min-h-10 min-w-[7rem] flex-1 gap-1.5 px-3"
                             >
                                 <Icon glyph={ArrowUUpLeft} size={18} />
                                 Renvoyer
@@ -260,7 +257,7 @@ const EtapesDeCampagne: React.FC<EtapesDeCampagneProps> = ({
                             <Button
                                 variant="filled"
                                 onClick={onValider}
-                                className="h-10 min-h-10 min-w-[10.5rem] flex-[1.4] gap-1.5 px-3 text-[0.875rem]"
+                                className="text-ts-body h-10 min-h-10 min-w-[10.5rem] flex-[1.4] gap-1.5 px-3"
                             >
                                 <Icon glyph={CheckCircle} size={18} />
                                 Valider l’inventaire

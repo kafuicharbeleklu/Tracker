@@ -4,7 +4,7 @@ import { Laptop } from '@phosphor-icons/react';
 import BottomSheet from '../../../components/ui/BottomSheet';
 import HandoverTrail from '../../../components/ui/HandoverTrail';
 import Icon from '../../../components/ui/Icon';
-import { cn } from '../../../lib/utils';
+import ListeDeFaits from '../../../components/ui/ListeDeFaits';
 import type { Equipment, HistoryEvent, User } from '../../../types';
 import {
     autrePartie,
@@ -235,23 +235,7 @@ const FactSheet: React.FC<FactSheetProps> = ({
                 <h3 className="text-on-surface-variant pb-1 text-[0.75rem] leading-4 font-medium">
                     Le détail
                 </h3>
-                <dl className="border-outline-variant text-ts-sub leading-ts-sub grid grid-cols-[minmax(88px,30%)_minmax(0,1fr)] border-b">
-                    {detailsDuFait(fait, objet).map(([cle, valeur]) => (
-                        <React.Fragment key={cle}>
-                            <dt className="border-outline-variant text-text-secondary border-t py-2 pr-3">
-                                {cle}
-                            </dt>
-                            <dd
-                                className={cn(
-                                    'border-outline-variant text-on-surface min-w-0 border-t py-2 break-words',
-                                    cle === 'Référence' && 'text-text-secondary tabular-nums',
-                                )}
-                            >
-                                {valeur}
-                            </dd>
-                        </React.Fragment>
-                    ))}
-                </dl>
+                <ListeDeFaits label="Le détail du fait" faits={detailsDuFait(fait, objet)} />
             </section>
 
             {(objet || (personne && !parcours)) && (

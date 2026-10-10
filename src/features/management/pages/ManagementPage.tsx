@@ -730,7 +730,10 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                             isCompact
                                 ? 'border-outline-variant bg-surface border-b px-4 pt-2 pb-3'
                                 : 'px-page pt-5',
-                            !isReferentialEmpty && 'gap-3',
+                            /* 8 du titre aux outils au bureau, comme les listes (10/10) :
+                               la colonne en mettait 12, et sa recherche tombait 4 px sous
+                               celle des autres pages. */
+                            !isReferentialEmpty && (isCompact ? 'gap-3' : 'gap-2 pb-1'),
                         )}
                     >
                         {/* `.tt` — **le titre, et rien d'autre.** 17.8 tranche : *« une seule

@@ -162,7 +162,7 @@ const FinanceKpiTiles: React.FC<FinanceKpiTilesProps> = ({
                             <ChiffreAnime valeur={tuile.valeur} />
                         </span>
                         {tuile.unite && (
-                            <span className="text-on-surface-variant text-[0.8125rem] leading-4">
+                            <span className="text-on-surface-variant text-ts-sub leading-4">
                                 {tuile.unite}
                             </span>
                         )}

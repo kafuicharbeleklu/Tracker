@@ -47,7 +47,7 @@ const PanneauDeFiche: React.FC<PanneauDeFicheProps> = ({ children, onPleinePage,
             {/* Une fiche en remplace une autre à la même place : elle arrive en fondu et de
                 6 px (`mvt-contenu`), sans que la liste bouge. */}
             <div key={cle ?? undefined} className="mvt-contenu flex min-h-0 flex-1 flex-col">
-                <Suspense fallback={<SkeletonDetail />}>{children}</Suspense>
+                <Suspense fallback={<SkeletonDetail className="pt-2" />}>{children}</Suspense>
             </div>
         </FicheEnPanneauContext.Provider>
     );

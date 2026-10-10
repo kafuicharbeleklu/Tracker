@@ -447,7 +447,9 @@ const ExpenseJournalPage: React.FC<ExpenseJournalPageProps> = ({ onBack }) => {
     const derniere = deLExercice[0];
 
     const outilsDuBureau = bureau ? (
-        <div className="flex flex-wrap items-center gap-2 pt-3 pb-1">
+        /* À 8 du titre, comme les outils de Tâches et de toute liste (10/10) : la ligne
+           en prenait 20, et les cartes commençaient 12 px plus bas qu'ailleurs. */
+        <div className="flex flex-wrap items-center gap-2 pb-1">
             <SearchField
                 dense
                 raccourci
@@ -469,7 +471,7 @@ const ExpenseJournalPage: React.FC<ExpenseJournalPageProps> = ({ onBack }) => {
                 />
             ))}
             {/* Le total de ce qui est affiché — il suit la vue et la recherche. */}
-            <p className="text-text-secondary ml-auto text-[0.8125rem] leading-[1.125rem] whitespace-nowrap">
+            <p className="text-text-secondary text-ts-sub leading-ts-sub ml-auto whitespace-nowrap">
                 <b className="text-on-surface font-semibold tabular-nums">
                     {formatNumber(totalAffiche, settings.compactNotation)} {settings.currency}
                 </b>
@@ -650,7 +652,7 @@ const ExpenseJournalPage: React.FC<ExpenseJournalPageProps> = ({ onBack }) => {
                 }
                 note={
                     bureau && vue === 'sans-justificatif' && recurrentesSansPiece > 0 ? (
-                        <p className="text-text-secondary px-1 text-[0.8125rem] leading-[1.125rem]">
+                        <p className="text-text-secondary text-ts-sub leading-ts-sub px-1">
                             Les {recurrentesSansPiece} récurrentes n’y figurent pas : leur
                             justificatif est facultatif.
                         </p>

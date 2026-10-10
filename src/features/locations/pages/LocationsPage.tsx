@@ -458,15 +458,16 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                     {!isReferentialEmpty && searchField}
                 </div>
             ) : (
-                <div className="px-page bg-background large:max-w-[calc(63rem+2*var(--tk-space-page))] large:mx-auto sticky top-0 z-20 flex w-full flex-col gap-3 pt-5">
-                    <div className="flex min-h-[52px] items-center gap-3">
-                        {onBack && (
-                            /* 8 jusqu'au titre, comme les listes : la rangée en met 12. */
-                            <FlecheDeRetour onBack={onBack} compact={false} className="-mr-1" />
-                        )}
-                        <h1 className="font-brand text-on-surface text-ts-page leading-ts-page shrink-0 font-semibold tracking-[-0.02em]">
-                            {GLOSSARY.LOCATIONS}
-                        </h1>
+                <div className="px-page bg-background large:max-w-[calc(63rem+2*var(--tk-space-page))] large:mx-auto sticky top-0 z-20 flex w-full flex-col gap-2 pt-5 pb-1">
+                    {/* La rangée des listes (10/10) : 8 de la flèche au titre, 16 entre le
+                        titre, le compte et les gestes — elle en tenait 12. */}
+                    <div className="flex min-h-[52px] items-center gap-4">
+                        <div className="flex shrink-0 items-center gap-2">
+                            {onBack && <FlecheDeRetour onBack={onBack} compact={false} />}
+                            <h1 className="font-brand text-on-surface text-ts-page leading-ts-page shrink-0 font-semibold tracking-[-0.02em]">
+                                {GLOSSARY.LOCATIONS}
+                            </h1>
+                        </div>
                         {/* Le compte à côté du titre, comme toutes les listes (24/09) : la
                             ligne de service sous la recherche est retirée au bureau. */}
                         <span className="text-text-muted min-w-0 flex-1 truncate pt-1.5 text-[0.8125rem] leading-4 tabular-nums">

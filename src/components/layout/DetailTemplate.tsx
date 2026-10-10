@@ -13,6 +13,8 @@ import { IconGestureSizeContext } from '../../hooks/useIconGestureSize';
 import { AddGesturePlacementContext } from '../../hooks/useAddGesturePlacement';
 import { useFicheEnPanneau } from '../../hooks/useFicheEnPanneau';
 import { useEntree } from '../../hooks/useEntree';
+import { ficheDeLAdresse } from '../../lib/formeDePage';
+import { DOUZIEMES } from '../../lib/regimeBureau';
 import { cn } from '../../lib/utils';
 import BarreDePage from './BarreDePage';
 
@@ -328,7 +330,20 @@ const DetailTemplate: React.FC<DetailTemplateProps> = ({
             </div>
 
             {showSkeleton ? (
-                <SkeletonDetail />
+                /* Le squelette prend la place du corps, à ses retraits et en deux colonnes
+                   dès 1000 : il tenait une colonne sans marge, et la fiche se recomposait à
+                   l'arrivée des données (10/10). */
+                <div
+                    className={cn(
+                        'flex flex-1 flex-col pb-6',
+                        panneau ? 'pt-2' : 'medium:px-page px-4 pt-4',
+                    )}
+                >
+                    <SkeletonDetail
+                        forme={panneau ? 'commune' : ficheDeLAdresse()}
+                        colonnes={!panneau}
+                    />
+                </div>
             ) : (
                 /* `.page` des fiches (04.2, 05.2, 09.2) : 16 d'écart, 16 de côté, 24 en
                    bas — remesuré le 10/09, le code portait 20 partout. Au bureau les
@@ -357,7 +372,9 @@ const DetailTemplate: React.FC<DetailTemplateProps> = ({
                             <div
                                 className={cn(
                                     'flex flex-col gap-4',
-                                    twoColumn && 'min-w-0 shrink grow-[7] basis-0',
+                                    /* Sept colonnes de la grille de douze — pas sept parts
+                                       de ce qui reste : 647 et non 644 sur 1 120 (10/10). */
+                                    twoColumn && cn('min-w-0', DOUZIEMES[7]),
                                     cascade,
                                 )}
                             >
@@ -374,7 +391,8 @@ const DetailTemplate: React.FC<DetailTemplateProps> = ({
                         {twoColumn ? (
                             <div
                                 className={cn(
-                                    'flex min-w-0 shrink grow-[5] basis-0 flex-col gap-4',
+                                    'flex min-w-0 flex-col gap-4',
+                                    hero || error || aside ? DOUZIEMES[5] : 'shrink grow basis-0',
                                     cascade,
                                 )}
                             >

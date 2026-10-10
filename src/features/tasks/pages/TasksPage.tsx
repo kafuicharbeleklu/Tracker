@@ -798,7 +798,6 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick, onBack }
                     ? () => ignorerLaMachine(openedTask.deviceId as string)
                     : undefined
             }
-            onOuvrirActif={(id) => onItemClick('equipment_details', id)}
         />
     ) : visibleTasks.length > 0 ? (
         /* **Le panneau vide tient la colonne** (23/09) : il n'arrive plus qu'après Échap. */
@@ -877,7 +876,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick, onBack }
                             size="sm"
                             onClick={() => setOrder(ORDRE_SUIVANT[order])}
                             aria-label={`Ordre : ${ORDRE_LABEL[order]} — changer`}
-                            className="text-on-surface ml-auto h-8 min-h-8 gap-1 px-1 text-[0.8125rem] leading-[1.125rem] font-medium hover:bg-transparent"
+                            className="text-on-surface text-ts-sub leading-ts-sub ml-auto h-8 min-h-8 gap-1 px-1 font-medium hover:bg-transparent"
                         >
                             <Icon glyph={SortAscending} size={18} className="text-text-muted" />
                             {ORDRE_LABEL[order]}
@@ -1410,10 +1409,6 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick, onBack }
                                   }
                                 : undefined
                         }
-                        onOuvrirActif={(id) => {
-                            setFeuille(null);
-                            onItemClick('equipment_details', id);
-                        }}
                     />
                 )}
             </BottomSheet>

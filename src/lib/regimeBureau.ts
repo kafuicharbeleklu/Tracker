@@ -69,3 +69,24 @@ export const CORPS_BUREAU =
 export const MESURE_DOUBLE = 'deux:max-w-[71rem]';
 export const COLONNES_FORMULAIRE =
     'deux:block deux:columns-2 deux:gap-4 deux:[&>*]:mb-4 deux:[&>*]:break-inside-avoid';
+
+/**
+ * **Les lignes de la grille de douze, pour une rangée en `flex`** (10/10).
+ *
+ * Deux zones posées en `grow-[8]` et `grow-[4]` se partagent ce qui reste **après** leur
+ * gouttière : 736 et 368 sur 1 120. Les huit et quatre colonnes d'une grille de douze, elles,
+ * comptent aussi les gouttières qu'elles enjambent : 741 et 363. Cinq pixels d'écart — assez
+ * pour que la liste de l'inventaire ne tombe pas sous ses tuiles, ni les deux colonnes d'une
+ * fiche sous celles de son squelette. Relevé du commanditaire : *« certaines pages bureau ne
+ * sont pas fidèles à 100 % à la grille de leurs cartes »*.
+ *
+ * `n` colonnes sur douze, gouttière de 16 : `n/12 × 100 % − 16 × (12 − n)/12`. La rangée
+ * garde son `flex` (hauteurs égales, zone à largeur fixe à côté) et tombe sur les lignes de
+ * `grid-cols-12 gap-4`.
+ */
+export const DOUZIEMES = {
+    4: 'shrink grow-0 basis-[calc(100%/3_-_32px/3)]',
+    5: 'shrink grow-0 basis-[calc(500%/12_-_28px/3)]',
+    7: 'shrink grow-0 basis-[calc(700%/12_-_20px/3)]',
+    8: 'shrink grow-0 basis-[calc(200%/3_-_16px/3)]',
+} as const;

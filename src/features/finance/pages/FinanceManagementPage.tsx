@@ -306,37 +306,45 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                                 : 'bg-background -mt-page pt-5',
                         )}
                     >
+                        {/* **La rangée des listes** (10/10) : 16 entre le titre et ses gestes,
+                            8 de la flèche au titre, le dernier geste au bord des cartes.
+                            Elle tenait tout à 4 — « Changer d'exercice » collé au bouton
+                            jaune —, et le ⋮ masqué du bureau gardait sa gouttière : la
+                            rangée s'arrêtait 4 px avant le bord. */}
                         <div
                             className={cn(
-                                'flex items-center gap-1',
-                                isCompact ? 'min-h-12' : 'min-h-[52px]',
+                                'flex items-center',
+                                isCompact ? 'min-h-12 gap-1' : 'min-h-[52px] gap-4',
                             )}
                         >
-                            {/* `.tt` de 15.1 ouvre sur `.tb` — **la flèche de retour**, que la
+                            <div
+                                className={cn(
+                                    'flex min-w-0 flex-1 items-center',
+                                    isCompact ? 'gap-1' : 'gap-2',
+                                )}
+                            >
+                                {/* `.tt` de 15.1 ouvre sur `.tb` — **la flèche de retour**, que la
                                 page n'avait pas : atteinte depuis « Plus », elle ne se
                                 quittait que par la barre du bas. Au bureau, 15.1 n'en dessine
                                 pas : la barre latérale mène déjà partout. */}
-                            {onBack && (
-                                <FlecheDeRetour
-                                    onBack={onBack}
-                                    compact={isCompact}
-                                    /* 8 jusqu'au titre, comme les listes : la rangée n'en met que 4. */
-                                    className={isCompact ? undefined : 'mr-1'}
-                                />
-                            )}
-                            {/* `.tt2` de 15.1 au bureau — **le titre et, sous lui, l'exercice
+                                {onBack && <FlecheDeRetour onBack={onBack} compact={isCompact} />}
+                                {/* `.tt2` de 15.1 au bureau — **le titre et, sous lui, l'exercice
                                 que l'on regarde** : *« Exercice 2026 · en cours · au 3
                                 septembre »*. La page ne disait nulle part, au bureau, de quel
                                 exercice elle parlait ; le sélecteur pleine largeur le portait
                                 pour elle. */}
-                            <div className="min-w-0 flex-1">
-                                <h1 className="font-brand text-on-surface text-ts-page leading-ts-page font-semibold tracking-[-0.02em]">
-                                    Finances
-                                </h1>
-                                <p className="text-on-surface-variant text-ts-body leading-ts-body deux:block mt-0.5 hidden">
-                                    Exercice {selectedYear} · {currentBudget.status.toLowerCase()} ·
-                                    au {currentFrenchDate}
-                                </p>
+                                <div className="min-w-0 flex-1">
+                                    <h1 className="font-brand text-on-surface text-ts-page leading-ts-page font-semibold tracking-[-0.02em]">
+                                        Finances
+                                    </h1>
+                                    {/* Le sous-titre d'une page, à la taille des autres (une
+                                    campagne, les lignes du budget) : le secondaire. */}
+                                    <p className="text-on-surface-variant text-ts-sub leading-ts-sub deux:block hidden">
+                                        Exercice {selectedYear} ·{' '}
+                                        {currentBudget.status.toLowerCase()} · au{' '}
+                                        {currentFrenchDate}
+                                    </p>
+                                </div>
                             </div>
 
                             {/* **Les deux gestes passent dans l'en-tête au bureau** (15.1) :
@@ -369,6 +377,7 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                                 dépense » reste le bouton flottant : il n'est pas redit ici. */}
                             <Menu
                                 align="end"
+                                rootClassName="deux:hidden"
                                 title={`Exercice ${selectedYear}`}
                                 items={[
                                     {
@@ -686,8 +695,8 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                                                         « XOF » par rangée, trente-trois sur
                                                         l'écran, et une ligne qui touchait
                                                         son libellé. */}
-                                                        <span className="text-on-surface-variant deux:col-start-3 deux:row-span-2 deux:row-start-1 deux:text-right deux:text-[0.8125rem] text-ts-sub leading-ts-sub whitespace-nowrap tabular-nums">
-                                                            <b className="text-on-surface deux:text-[0.875rem] deux:leading-5 text-ts-body font-medium">
+                                                        <span className="text-on-surface-variant deux:col-start-3 deux:row-span-2 deux:row-start-1 deux:text-right text-ts-sub leading-ts-sub whitespace-nowrap tabular-nums">
+                                                            <b className="text-on-surface text-ts-body leading-ts-body font-medium">
                                                                 {formatNumber(
                                                                     item.spent,
                                                                     settings.compactNotation,

@@ -5842,3 +5842,57 @@ l'historique ; l'accueil quand la base ne répond pas. Non vérifié : le scan s
 téléphone ; le squelette de l'accueil pendant une lecture réelle des données (elle est trop
 brève au banc pour être saisie) ; les squelettes de Rapports et d'Emplacements, qui prennent
 la forme « tuiles » ou « liste » sans avoir été mesurés.
+
+### Une échelle, une grille, un squelette par page (10/10, suite)
+
+Relevé du commanditaire : *« harmoniser le design system des composants sur les différentes
+versions »* — la campagne du téléphone, le détail d'une dépense, le détail d'une collecte —,
+*« je vois toujours des manquements sur certaines cartes pendant le squelette, surtout au
+niveau des en-têtes ; certaines pages bureau ne sont pas fidèles à 100 % à la grille de leurs
+cartes »*.
+
+**Un détail s'écrit d'une seule façon.** `ListeDeFaits` (composant partagé) porte les faits
+d'une facture, ce qu'une machine dit d'elle-même et le détail d'un fait de l'historique :
+l'étiquette à l'encre secondaire, la valeur à gauche, sans graisse, le secondaire de l'échelle
+(13 sur 18 au bureau, 14 sur 20 au doigt). Ils avaient trois écritures. Le détail d'une
+collecte perd sa section « Les actifs qui lui ressemblent » (jugée de trop) : la ressemblance
+se lit dans la sous-ligne et se tranche à l'import. **03.3 et 14.1 sont à mettre à jour.**
+
+**La campagne a les mêmes pièces aux trois formats.** Sous 1 000 px elle gardait sa mise en
+page d'avant le 28/09 — une jauge et des puces dans l'en-tête. Elle porte désormais les quatre
+tuiles (deux par deux sous 624 px de colonne, « Corrigées » quand la tuile est étroite), la
+liste, puis les étapes et l'activité. Le chiffre d'une tuile prend le titre de l'échelle,
+comme les tuiles de Finances ; les phrases, le secondaire. **16.2 est à mettre à jour.**
+
+**Les tailles en dur quittent les composants partagés** : dépense, tâche, liste des dépenses,
+part des postes, tuiles de Finances, vue globale de l'inventaire. `rounded-card` et
+`rounded-vignette` sont déclarés à la fusion de classes : un bouton en forme de carte gardait
+le rayon de la primitive (4 px au lieu de 8 — les tuiles d'une campagne, du catalogue, des
+emplacements).
+
+**Les pages tombent sur la grille de douze.** Deux zones en `grow-[8]` / `grow-[4]` se
+partageaient ce qui reste après leur gouttière : 736 et 368 sur 1 120, quand huit et quatre
+colonnes font 741 et 363. `DOUZIEMES` (regimeBureau) pose les vraies largeurs : la liste de
+l'inventaire tombe sous ses tuiles, les fiches font 647 et 457. Les en-têtes de bureau
+prennent la mesure des listes — 20 au-dessus, une rangée de 52, 8 de la flèche au titre, 16
+entre les gestes, les outils à 8 : Finances (ses gestes tenaient 4, à 4 px du bord), les lignes
+du budget (titre à 332 au lieu de 318), une campagne (cartes à 96 au lieu de 88), les dépenses
+(outils 12 px trop bas), le catalogue et les emplacements (4 px). La liste d'une campagne
+revient à 16 d'intérieur.
+
+**Un squelette par page.** `SkeletonPage` tenait neuf formes pour une vingtaine d'écrans. Il
+en a une par page, composée des mêmes pièces qu'elle : l'en-tête (flèche, titre, compte ou
+sous-titre, gestes, ⋮), la ligne d'outils, et des cartes qui ont leur titre, ce qu'elles
+portent à droite et leur pied. Le héros d'une fiche et la file de l'accueil sont sombres ; une
+liste en tableau attend en tableau (`SkeletonTableau`) ; une fiche attend en deux colonnes,
+à ses hauteurs. `lib/formeDePage` lit la forme dans l'adresse. **17.3 est à mettre à jour**
+(elle compte trois formes).
+
+Vérifié au banc, sur l'émulateur, à 1440 × 900 : squelette et page mesurés rectangle par
+rectangle sur 21 écrans — écart nul sur 19, 3 px sur la carte des groupes (Accès) et 5 px sur
+les cartes des emplacements avant leur correction. À 1366 × 657 : écart nul hors hauteurs
+dictées par les données. Campagne, collecte et dépense relues à 1440, 768 et 393. La suite
+e2e `squelettes` garde la forme, la première ligne et les colonnes de quatorze pages. Non
+vérifié : les squelettes au téléphone et à la tablette au-delà de la campagne (ils reprennent
+les formes d'avant) ; la fiche d'un rôle, qui prend la forme commune.
+

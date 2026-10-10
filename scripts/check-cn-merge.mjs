@@ -116,6 +116,19 @@ for (const name of adnRadii) {
     { keeps: [`rounded-${name}`], drops: ['rounded-xl'] }
   );
 }
+// Les deux rayons de rôle (carte, vignette) : posés sur un bouton en forme de carte, ils
+// doivent chasser le `rounded-md` de la primitive — sinon l'ordre du CSS rend 4 px.
+const rayonsDeRole = ['card', 'vignette'];
+for (const name of rayonsDeRole) {
+  if (!new RegExp(`'${name}'\\s*:`).test(tailwindConfig)) {
+    failures.push(`rayon de rôle « ${name} » : absent de tailwind.config.js`);
+  }
+  check(
+    `rounded-${name} : doit chasser le rayon d'une primitive (groupe rounded)`,
+    cn('rounded-md', `rounded-${name}`),
+    { keeps: [`rounded-${name}`], drops: ['rounded-md'] }
+  );
+}
 check(
   'w-fab / h-fab : doivent chasser le gabarit du FAB (groupes w et h)',
   cn('w-14 h-14', 'w-fab h-fab'),
@@ -186,7 +199,7 @@ check(
 );
 
 // --- Verdict ------------------------------------------------------------------------------
-const total = typescale.length * 2 + elevations.length + spacings.length + adnRadii.length + echelle.length * 3 + 1 + 7;
+const total = typescale.length * 2 + elevations.length + spacings.length + adnRadii.length + rayonsDeRole.length + echelle.length * 3 + 1 + 7;
 if (failures.length > 0) {
   console.error(`✗ Sonde cn()/tailwind-merge : ${failures.length} échec(s) sur ${total} vérifications\n`);
   for (const failure of failures) {
