@@ -42,6 +42,7 @@ import QuoteDecisionSheet from '../components/QuoteDecisionSheet';
 import { phraseEtape, presentationEtat, seuilDevis } from '../reparation';
 import { useFinanceData } from '../../../context/FinanceDataContext';
 import { getExpenseSourceFile, saveExpenseSourceFile } from '../../../lib/financeFileStorage';
+import { imageDeLActif } from '../../../lib/imageDeModele';
 import ActSheet from '../../../components/ui/ActSheet';
 import ClosureBanner, { type ClosureBannerProps } from '../../../components/ui/ClosureBanner';
 import RetireSheet from '../components/RetireSheet';
@@ -928,6 +929,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                     menuItems.length > 0 ? (
                         <Menu
                             align="end"
+                            title={item.model || item.name}
                             items={menuItems}
                             trigger={
                                 <Button variant="text" iconOnly aria-label="Autres actions">
@@ -954,9 +956,14 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                         subject={item.model || item.name}
                         /* **La photo se regarde à part** (23/09) : elle tapissait le héro,
                            floue sous son voile ; l'œil l'ouvre en plein écran, à sa taille. */
+                        /* L'image d'un actif est la sienne, sinon celle de son modèle : une
+                           image importée ne se recopie pas dans chaque actif (10/10). */
                         corner={
-                            item.image ? (
-                                <ImagePreview src={item.image} subject={item.model || item.name} />
+                            imageDeLActif(item, models) ? (
+                                <ImagePreview
+                                    src={imageDeLActif(item, models)}
+                                    subject={item.model || item.name}
+                                />
                             ) : undefined
                         }
                         relation={
@@ -1098,13 +1105,10 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                             onClick={() => navigate('/history')}
                                             className="border-outline-variant text-on-surface text-ts-body leading-ts-body mt-5 flex min-h-12 w-full cursor-pointer items-center gap-2.5 border-t text-left"
                                         >
-                                            <span>
+                                            <span className="flex-1 text-left">
                                                 {history.length > 1
                                                     ? `Les ${history.length} événements`
                                                     : 'L’événement'}
-                                            </span>
-                                            <span className="text-text-secondary flex-1 text-right text-[0.75rem] leading-4 whitespace-nowrap">
-                                                dans l’Historique
                                             </span>
                                             <Icon
                                                 glyph={CaretDown}
@@ -1302,10 +1306,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                         pas « Prix d'achat et amortissement » : la phrase
                                         longue ne laissait plus la place à sa destination,
                                         qui passait à la ligne sous le chevron. */}
-                                    <span>Amortissement</span>
-                                    <span className="text-text-secondary flex-1 text-right text-[0.75rem] leading-4 whitespace-nowrap">
-                                        dans Finances
-                                    </span>
+                                    <span className="flex-1 text-left">Amortissement</span>
                                     <Icon
                                         glyph={CaretDown}
                                         size={20}

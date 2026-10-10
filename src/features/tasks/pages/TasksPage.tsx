@@ -1042,6 +1042,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick, onBack }
                         */}
                         <SelectableRow
                             id={`tache-${task.id}`}
+                            nature={task.nature}
                             onOpen={() => openTask(task)}
                             selectionActive={selection.isActive}
                             selected={selection.isSelected(task.id)}
@@ -1051,10 +1052,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick, onBack }
                                 'group/rangee border-outline-variant hover:bg-surface-container/50 relative -mx-4 flex cursor-pointer gap-3 border-t px-4 transition-colors first:border-t-0',
                                 enPanneau
                                     ? 'items-start py-2.5'
-                                    : cn(
-                                          'min-h-14 rounded-md py-2',
-                                          task.quote ? 'items-start' : 'items-center',
-                                      ),
+                                    : 'min-h-14 items-center rounded-md py-2',
                                 entete && 'border-t-0',
                                 ouverte &&
                                     (enPanneau
@@ -1074,7 +1072,6 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick, onBack }
                                                 ? 'h-9 w-9 text-[0.75rem] leading-4'
                                                 : 'text-ts-control leading-ts-control h-10 w-10',
                                             VIG_TINT[teinte],
-                                            !enPanneau && task.quote && 'mt-0.5',
                                         )}
                                     >
                                         {task.initials ? (
@@ -1100,87 +1097,49 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick, onBack }
                                 </span>
                             )}
 
+                            {/*
+                              **Deux lignes, et rien d'autre** (10/10 : « la liste de tâches est
+                              trop chargée »). La rangée portait un badge de nature, deux lignes
+                              de motif, la citation d'un refus en italique, l'âge en rouge et
+                              « Urgent » dessous. Elle garde ce qui sert à choisir : l'objet, puis
+                              **qui et où en est la tâche** — « Cheikh Ouattara · remise »,
+                              comme la file de l'accueil. Le motif et la citation se lisent en
+                              ouvrant la tâche ; la recherche les trouve toujours.
+                            */}
                             <div className="min-w-0 flex-1">
-                                <span className="flex min-w-0 items-center gap-2">
-                                    <span
-                                        title={infobulle(task.title)}
-                                        className={cn(
-                                            'text-on-surface',
-                                            enPanneau
-                                                ? 'text-ts-body leading-ts-body font-medium'
-                                                : 'text-ts-head leading-ts-head tracking-[-0.01em]',
-                                            NOM_SUR_UNE_LIGNE,
-                                        )}
-                                    >
-                                        {task.title}
-                                    </span>
-                                    {/* La nature écrite : la couleur seule ne se lit pas
-                                        d'une rangée à l'autre (26/09) — au téléphone aussi
-                                        (08/10). */}
-                                    <span className="bg-surface-container text-text-secondary shrink-0 rounded-[4px] px-1.5 py-px text-[0.75rem] leading-4 font-medium">
-                                        {NATURE_MOT[task.nature]}
-                                    </span>
+                                <span
+                                    title={infobulle(task.title)}
+                                    className={cn(
+                                        'text-on-surface block',
+                                        enPanneau
+                                            ? 'text-ts-body leading-ts-body font-medium'
+                                            : 'text-ts-head leading-ts-head tracking-[-0.01em]',
+                                        NOM_SUR_UNE_LIGNE,
+                                    )}
+                                >
+                                    {task.title}
                                 </span>
-                                {enPanneau ? (
-                                    /* La sous-ligne de la maquette, sur une ligne : qui et
-                                       pourquoi ; « , par … » quand un autre a déposé ; dans
-                                       « À suivre », qui a la main et depuis quand. */
-                                    <p className="text-text-secondary text-ts-sub leading-ts-sub flex min-w-0 items-center gap-1">
-                                        {task.scope === 'following' && task.aLaMain ? (
-                                            <>
-                                                <Icon
-                                                    glyph={Pause}
-                                                    size={18}
-                                                    className="text-text-tertiary -my-px shrink-0"
-                                                />
-                                                <span className="truncate">
-                                                    chez {task.aLaMain}
-                                                    {jours !== null && ` depuis ${jours} j`}
-                                                </span>
-                                            </>
-                                        ) : (
+                                <p className="text-text-secondary text-ts-sub leading-ts-sub flex min-w-0 items-center gap-1">
+                                    {task.scope === 'following' && task.aLaMain ? (
+                                        <>
+                                            <Icon
+                                                glyph={Pause}
+                                                size={18}
+                                                className="text-text-tertiary -my-px shrink-0"
+                                            />
                                             <span className="truncate">
-                                                {task.who && task.deposePar
-                                                    ? `${task.who}, par ${task.deposePar}`
-                                                    : [
-                                                          task.who,
-                                                          task.approvalId && task.reason
-                                                              ? task.reason
-                                                              : task.context,
-                                                      ]
-                                                          .filter(Boolean)
-                                                          .join(' · ')}
+                                                chez {task.aLaMain}
+                                                {jours !== null && ` depuis ${jours} j`}
                                             </span>
-                                        )}
-                                    </p>
-                                ) : (
-                                    /* **La sous-ligne du bureau** (08/10) : qui et pourquoi ;
-                                       dans « À suivre », qui a la main et depuis quand. Le
-                                       badge dit déjà la nature — « Elom Akakpo · validation »
-                                       la répétait. Deux lignes au plus. */
-                                    <p className="text-on-surface-variant text-ts-sub leading-ts-sub mt-0.5 line-clamp-2">
-                                        {task.scope === 'following' && task.aLaMain ? (
-                                            `chez ${task.aLaMain}${jours !== null ? ` depuis ${jours} j` : ''}`
-                                        ) : task.who ? (
-                                            <>
-                                                <b className="text-on-surface font-medium">
-                                                    {task.who}
-                                                </b>
-                                                {task.deposePar
-                                                    ? `, par ${task.deposePar}`
-                                                    : ` · ${task.approvalId && task.reason ? task.reason : task.context}`}
-                                            </>
-                                        ) : (
-                                            task.context
-                                        )}
-                                    </p>
-                                )}
-                                {/* Le motif d'un refus, cité tel quel et en italique (`.tt .q`). */}
-                                {task.quote && (
-                                    <p className="text-on-surface text-ts-sub leading-ts-sub mt-1.5 italic">
-                                        «&nbsp;{task.quote}&nbsp;»
-                                    </p>
-                                )}
+                                        </>
+                                    ) : (
+                                        <span className="truncate">
+                                            {[task.who, task.context || NATURE_MOT[task.nature]]
+                                                .filter(Boolean)
+                                                .join(' · ')}
+                                        </span>
+                                    )}
+                                </p>
                             </div>
 
                             {/*
@@ -1203,18 +1162,28 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick, onBack }
                                 </Button>
                             ) : (
                                 <span
-                                    className={cn(
-                                        'flex shrink-0 items-center gap-1',
-                                        task.remind ? 'self-center' : 'self-start',
-                                        !enPanneau && !task.remind && 'mt-1',
-                                    )}
+                                    className="flex shrink-0 items-center gap-1 self-center"
                                     onClick={task.remind ? (e) => e.stopPropagation() : undefined}
                                 >
-                                    <span className="flex min-w-8 flex-col items-end gap-1">
+                                    {/* **L'âge, et un point quand c'est urgent.** Le groupe dit
+                                        déjà « En retard » en rouge : trente-trois âges rouges
+                                        dessous le répétaient. L'âge ne se colore plus que dans
+                                        une file sans groupes ; « Urgent » tient en un point. */}
+                                    <span className="flex min-w-8 items-center justify-end gap-1.5">
+                                        {task.urgent && task.scope === 'todo' && (
+                                            <span
+                                                role="img"
+                                                aria-label="Urgent"
+                                                title="Urgent"
+                                                className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--tk-color-st-rouge)]"
+                                            />
+                                        )}
                                         <span
                                             className={cn(
                                                 'text-right text-[0.75rem] leading-4 whitespace-nowrap tabular-nums',
-                                                AGE_TON[palierDe(task.since)],
+                                                groupe !== null
+                                                    ? 'text-text-secondary'
+                                                    : AGE_TON[palierDe(task.since)],
                                             )}
                                         >
                                             {enPanneau
@@ -1223,15 +1192,6 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick, onBack }
                                                     : ''
                                                 : ageLabel(task.since)}
                                         </span>
-                                        {task.urgent && task.scope === 'todo' && (
-                                            <span className="flex items-center gap-1 text-[0.6875rem] leading-4 font-semibold whitespace-nowrap text-[var(--tk-color-st-rouge)]">
-                                                <span
-                                                    aria-hidden="true"
-                                                    className="h-1.5 w-1.5 rounded-full bg-[var(--tk-color-st-rouge)]"
-                                                />
-                                                Urgent
-                                            </span>
-                                        )}
                                     </span>
                                     {/* `.rt.bell` — la relance au téléphone, seul acte de
                                         « À suivre », au-delà du délai (planche 03.3). */}

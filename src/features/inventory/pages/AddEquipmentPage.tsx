@@ -35,6 +35,7 @@ import {
 import FilePicker from '../../../components/ui/FilePicker';
 import { useScanPossible } from '../../../hooks/useScanPossible';
 import { codeDeLaLecture } from '../../../lib/lectureDeCode';
+import { imageARecopier } from '../../../lib/imageDeModele';
 import ListRow from '../../../components/ui/ListRow';
 
 interface AddEquipmentPageProps {
@@ -335,7 +336,8 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
             site: formData.site,
             warrantyEnd: formData.warrantyEnd,
             documents,
-            image: selectedModel?.image || existing?.image || '',
+            /* Une image importée reste dans la fiche du modèle : l'actif la lit là. */
+            image: imageARecopier(selectedModel?.image) || imageARecopier(existing?.image),
             financial: {
                 purchasePrice: parseFloat(formData.purchasePrice) || 0,
                 purchaseDate: formData.purchaseDate,

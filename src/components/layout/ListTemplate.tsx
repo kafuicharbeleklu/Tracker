@@ -1144,12 +1144,15 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                         )}
 
                         {showSkeleton ? (
-                            <Reading>
-                                <div className="bg-surface rounded-xl px-4">
+                            /* **Le squelette couvre la liste entière** (10/10) : cinq rangées
+                               en haut laissaient le reste de la page nu. Au bureau il prend la
+                               hauteur du cadre ; au téléphone, celle de l'écran. */
+                            <Reading className="expanded:flex expanded:min-h-0 expanded:flex-1 expanded:flex-col">
+                                <div className="bg-surface expanded:min-h-0 expanded:flex-1 overflow-clip rounded-xl px-4">
                                     {skeleton === 'file' ? (
-                                        <SkeletonQueue rows={5} />
+                                        <SkeletonQueue remplir />
                                     ) : (
-                                        <SkeletonList />
+                                        <SkeletonList remplir />
                                     )}
                                 </div>
                             </Reading>

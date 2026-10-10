@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+    Calculator,
     CalendarBlank,
     CalendarPlus,
-    Calculator,
     CaretRight,
     DotsThreeVertical,
     Export,
@@ -362,30 +362,39 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                             >
                                 Enregistrer une dépense
                             </Button>
+                            {/* **Le ⋮ du téléphone et de la tablette porte les destinations**
+                                (10/10) : la carte « Aller à » et le bouton « Changer » du héro
+                                y sont rangés, à la demande du commanditaire — la page gagne une
+                                carte de hauteur et le héro n'a plus de geste. « Enregistrer une
+                                dépense » reste le bouton flottant : il n'est pas redit ici. */}
                             <Menu
                                 align="end"
-                                /* Le ⋮ du téléphone : au bureau, ses deux verbes sont des
-                                   boutons. */
+                                title={`Exercice ${selectedYear}`}
                                 items={[
-                                    /* 15.2 : ajuster les lignes a sa page ; la boîte ne sert
-                                       plus qu'à ouvrir un exercice (saisi ou importé). */
                                     {
                                         id: 'lignes',
-                                        label: 'Ajuster les enveloppes',
-                                        description: 'les lignes du budget de l’exercice',
+                                        label: 'Les lignes du budget',
+                                        description: 'les enveloppes de l’exercice',
                                         onSelect: ouvrirLesLignes,
                                     },
                                     {
-                                        id: 'exercices',
-                                        label: 'Les exercices',
-                                        description: 'changer d’année, ouvrir la suivante',
-                                        onSelect: ouvrirLesExercices,
+                                        id: 'depenses',
+                                        label: 'Les dépenses',
+                                        description: 'le journal des écritures',
+                                        onSelect: () => onViewChange('finance_expenses'),
                                     },
                                     {
-                                        id: 'expense',
-                                        label: 'Enregistrer une dépense',
-                                        description: 'une écriture sur un poste',
-                                        onSelect: () => setIsAddExpenseModalOpen(true),
+                                        id: 'rapports',
+                                        label: 'Les rapports',
+                                        description: 'les exports',
+                                        onSelect: () => onViewChange('reports'),
+                                    },
+                                    {
+                                        id: 'exercices',
+                                        label: 'Changer d’exercice',
+                                        description: 'une autre année, ou ouvrir la suivante',
+                                        dividerBefore: true,
+                                        onSelect: ouvrirLesExercices,
                                     },
                                 ]}
                                 trigger={
@@ -430,7 +439,8 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                                     en capitales espacées « EXERCICE 2026 · EN COURS › » mêlait
                                     l'étiquette et l'acte : on ne savait pas si elle se lisait ou
                                     se touchait. L'exercice s'écrit en casse de phrase avec son
-                                    statut en point de couleur ; « Changer » est un bouton. */}
+                                    statut en point de couleur. « Changer » a quitté le héro le
+                                    10/10 : il est dans le ⋮ de l'en-tête. */}
                                 <div className="-mt-1.5 flex items-center justify-between gap-3">
                                     <span className="text-ts-sub leading-ts-sub flex min-w-0 items-center gap-2">
                                         <b className="text-inverse-on-surface font-medium whitespace-nowrap">
@@ -453,18 +463,6 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                                             </span>
                                         </span>
                                     </span>
-                                    <Button
-                                        variant="text"
-                                        onClick={ouvrirLesExercices}
-                                        aria-label={`Changer d'exercice — ${selectedYear}`}
-                                        icon={<Icon glyph={CalendarBlank} size={18} />}
-                                        className="text-inverse-on-surface hover:text-inverse-on-surface h-8 min-h-8 shrink-0 gap-1.5 rounded-md bg-white/10 px-2.5 text-[0.8125rem] leading-4 font-medium hover:bg-white/15"
-                                    >
-                                        {/* Sous 360 px, le calendrier seul : le mot prenait la
-                                            place du statut de l'exercice. Le nom du geste
-                                            reste dit par `aria-label`. */}
-                                        <span className="exigu:sr-only">Changer</span>
-                                    </Button>
                                 </div>
                                 {/* `.big` — **le nombre, puis l'unité à côté** : Archivo 44
                                     sur 48 pour l'un, 14 sur 20 en encre estompée pour
@@ -807,8 +805,10 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                                 types de dépense et leur part de l'enveloppe (`PartDesPostes`). Elle
                                 occupe la place que « Aller à » laissait vide à côté de
                                 l'histogramme. Au bureau seulement. */}
-                            <div className="deux:order-none deux:col-span-4 deux:row-start-1 order-1 flex flex-col gap-4">
-                                <section className="rounded-card bg-surface deux:pt-1 deux:pb-2 px-4 py-2">
+                            <div className="deux:order-none deux:col-span-4 deux:row-start-1 expanded:flex order-1 hidden flex-col gap-4">
+                                {/* **Au bureau seulement** (10/10) : sous 1000, ses destinations
+                                    sont dans le ⋮ de l'en-tête. */}
+                                <section className="rounded-card bg-surface deux:block deux:pt-1 deux:pb-2 hidden px-4 py-2">
                                     <div className="flex min-h-12 items-center pt-2 pb-1">
                                         <h3 className="text-on-surface text-ts-head leading-ts-head font-medium">
                                             Aller à

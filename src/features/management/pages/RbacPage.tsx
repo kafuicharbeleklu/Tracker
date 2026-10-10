@@ -14,7 +14,6 @@ import {
     PencilSimple,
     Prohibit,
     ShieldPlus,
-    Trash,
     User as UserGlyph,
     UserPlus,
     Users,
@@ -602,12 +601,6 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                         )}
                     </>
                 )}
-                <RuleGroup.Row
-                    glyph={UserPlus}
-                    className="gap-3"
-                    title="Ajouter ou retirer des membres"
-                    onOpen={() => setMembresOuvert(true)}
-                />
             </RuleGroup>
         );
 
@@ -682,22 +675,36 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                     fil="Groupe"
                     retourLabel="Retour aux groupes"
                     onRetour={() => navigate(cheminPrecedent() ?? '/rbac/groups')}
+                    /* **Les actes d'un groupe sont dans son en-tête** (10/10). « Ajouter ou
+                       retirer des membres » était une rangée de la carte — la seule porte
+                       au bureau, et un doublon du ⋮ au téléphone. */
                     gestesDuBureau={
-                        <Button variant="text" onClick={supprimerLeGroupe} className="text-error">
-                            Supprimer
-                        </Button>
+                        <>
+                            <Button
+                                variant="text"
+                                onClick={supprimerLeGroupe}
+                                className="text-error"
+                            >
+                                Supprimer
+                            </Button>
+                            <Button
+                                variant="outlined"
+                                onClick={() => setMembresOuvert(true)}
+                                icon={<Icon glyph={UserPlus} size={20} />}
+                            >
+                                Gérer les membres
+                            </Button>
+                        </>
                     }
                     menu={[
                         {
                             id: 'membres',
                             label: 'Ajouter ou retirer des membres',
-                            glyph: UserPlus,
                             onSelect: () => setMembresOuvert(true),
                         },
                         {
                             id: 'supprimer',
                             label: 'Supprimer le groupe',
-                            glyph: Trash,
                             destructive: true,
                             dividerBefore: true,
                             onSelect: supprimerLeGroupe,
@@ -1066,7 +1073,6 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                                   {
                                       id: 'modifier',
                                       label: 'Modifier le rôle',
-                                      glyph: PencilSimple,
                                       onSelect: () => setEditing(true),
                                   },
                                   ...(supprimable
@@ -1074,7 +1080,6 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                                             {
                                                 id: 'supprimer',
                                                 label: 'Supprimer le rôle',
-                                                glyph: Trash,
                                                 destructive: true,
                                                 dividerBefore: true,
                                                 onSelect: () => removeRole(openRole),
@@ -1731,6 +1736,9 @@ const EnTeteDeFiche: React.FC<{
                 menu && menu.length > 0 ? (
                     <Menu
                         align="end"
+                        /* La légende du menu du compte dit qui l'on est ; celle-ci dit
+                           sur quoi l'on agit. */
+                        title={`${fil} · ${titre}`}
                         items={menu}
                         trigger={
                             <Button variant="text" iconOnly aria-label="Autres actes">

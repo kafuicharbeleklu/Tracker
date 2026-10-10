@@ -1,5 +1,7 @@
 import React, { useMemo } from 'react';
+import { ChartPieSlice } from '@phosphor-icons/react';
 
+import CardEmptyState from '../../../components/ui/CardEmptyState';
 import Icon from '../../../components/ui/Icon';
 import { cn } from '../../../lib/utils';
 import type { FinanceBudgetItem } from '../../../types';
@@ -37,9 +39,11 @@ const PartDesPostes: React.FC<PartDesPostesProps> = ({ postes, max, className })
 
     if (postes.length === 0) {
         return (
-            <p className="text-text-secondary text-[0.8125rem] leading-[1.125rem]">
-                Aucun poste sur l’exercice.
-            </p>
+            <CardEmptyState
+                glyph={ChartPieSlice}
+                title="Aucun poste"
+                description="Les enveloppes de l’exercice se posent dans les lignes du budget."
+            />
         );
     }
 

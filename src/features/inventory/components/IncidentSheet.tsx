@@ -10,6 +10,7 @@ import Icon from '../../../components/ui/Icon';
 import { TextArea } from '../../../components/ui/TextArea';
 import { cn } from '../../../lib/utils';
 import type { Equipment, IncidentOutcome } from '../../../types';
+import { oublierLesSignatures } from '../../../lib/signatureDeLActe';
 
 import {
     Consequences,
@@ -107,6 +108,11 @@ const IncidentSheet: React.FC<IncidentSheetProps> = ({
     const [signature, setSignature] = useState<Blob | null>(null);
     /* Le récapitulatif, puis l'attestation seule — l'étape de 17.4 (arbitrage du 22/09). */
     const [etape, setEtape] = useState<'recap' | 'attester'>('recap');
+
+    /* Une feuille qui s'ouvre commence un acte : ce qui a été signé avant ne la concerne pas. */
+    useEffect(() => {
+        if (open) oublierLesSignatures();
+    }, [open]);
 
     useEffect(() => {
         let vivant = true;
@@ -269,7 +275,7 @@ const IncidentSheet: React.FC<IncidentSheetProps> = ({
                     <Consequences label="Ce que cela déclenche" lines={consequences} />
 
                     {/* `.sfoot` — deux colonnes égales, filet au-dessus. */}
-                    <div className="border-outline-variant -mx-5 duo-de-pied gap-3 border-t px-5 pt-4 pb-1">
+                    <div className="border-outline-variant duo-de-pied -mx-5 gap-3 border-t px-5 pt-4 pb-1">
                         <Button variant="ghost" onClick={close}>
                             Annuler
                         </Button>
@@ -289,7 +295,7 @@ const IncidentSheet: React.FC<IncidentSheetProps> = ({
                         onChange={setAttestation}
                     />
 
-                    <div className="border-outline-variant -mx-5 duo-de-pied gap-3 border-t px-5 pt-4 pb-1">
+                    <div className="border-outline-variant duo-de-pied -mx-5 gap-3 border-t px-5 pt-4 pb-1">
                         <Button variant="ghost" onClick={retour}>
                             Retour
                         </Button>

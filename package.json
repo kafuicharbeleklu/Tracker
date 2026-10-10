@@ -29,6 +29,7 @@
     "@phosphor-icons/react": "^2.1.10",
     "firebase": "^12.18.0",
     "firebase-admin": "^14.3.0",
+    "jsqr": "^1.4.0",
     "jspdf": "2.5.1",
     "jspdf-autotable": "3.8.1",
     "pdfjs-dist": "^5.4.624",

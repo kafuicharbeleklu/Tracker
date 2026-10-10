@@ -13,6 +13,7 @@ import { useScanPossible } from '../../hooks/useScanPossible';
 import { usePresence } from '../../hooks/usePresence';
 import { MEDIA } from '../../constants/breakpoints';
 import { NOM_SUR_UNE_LIGNE, infobulle } from '../../lib/nomLong';
+import { oublierLesSignatures } from '../../lib/signatureDeLActe';
 
 /**
  * **La feuille d'acte** — composant partagé **17.4**, neuf actes.
@@ -198,6 +199,11 @@ const ActSheet: React.FC<ActSheetProps> = ({
      * image : il trace, et c'est ce qui fait la valeur de sa preuve.
      */
     const [signature, setSignature] = useState<Blob | null>(null);
+
+    /* Une feuille qui s'ouvre commence un acte : ce qui a été signé avant ne la concerne pas. */
+    useEffect(() => {
+        if (open) oublierLesSignatures();
+    }, [open]);
     useEffect(() => {
         let vivant = true;
         if (!open || !signer.pin || !signer.id) {

@@ -1,5 +1,7 @@
 import React from 'react';
+import { ClockCounterClockwise } from '@phosphor-icons/react';
 
+import CardEmptyState from '../../../components/ui/CardEmptyState';
 import { HAUTEUR_DU_PIED, PiedDeCarte, ToutVoir } from '../../../components/ui/ToutVoir';
 import { useCeQuiTient } from '../../../hooks/useCeQuiTient';
 import { cn } from '../../../lib/utils';
@@ -74,9 +76,11 @@ const ActiviteDeCampagne: React.FC<{
                     </span>
                 </div>
                 {faits.length === 0 ? (
-                    <p className="text-text-secondary text-[0.8125rem] leading-[1.125rem]">
-                        Rien encore : le premier comptage paraîtra ici.
-                    </p>
+                    <CardEmptyState
+                        glyph={ClockCounterClockwise}
+                        title="Aucune activité"
+                        description="Le premier comptage paraîtra ici."
+                    />
                 ) : (
                     <ul className="flex flex-col gap-3 text-[0.8125rem] leading-[1.125rem]">
                         {faits.map((fait) => (
@@ -95,9 +99,13 @@ const ActiviteDeCampagne: React.FC<{
         >
             <h2 className="text-on-surface mb-2 text-[1rem] leading-6 font-semibold">Activité</h2>
             {faits.length === 0 ? (
-                <p className="text-text-secondary text-[0.8125rem] leading-[1.125rem]">
-                    Rien encore : le premier comptage paraîtra ici.
-                </p>
+                /* Le vide de la carte, à sa forme (10/10) : c'était une ligne de 13 en haut
+                   d'une carte de 300 px. */
+                <CardEmptyState
+                    glyph={ClockCounterClockwise}
+                    title="Aucune activité"
+                    description="Le premier comptage paraîtra ici."
+                />
             ) : (
                 <>
                     <ul

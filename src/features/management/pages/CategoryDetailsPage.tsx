@@ -146,6 +146,7 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({
             menu={
                 <Menu
                     align="end"
+                    title={displayName}
                     items={[
                         {
                             id: 'edit',

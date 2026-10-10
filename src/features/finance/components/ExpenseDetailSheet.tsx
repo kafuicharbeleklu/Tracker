@@ -1,45 +1,54 @@
-import React, { useMemo, useState } from 'react';
-import { Receipt, Warning } from '@phosphor-icons/react';
+import React, { useMemo, useRef, useState } from 'react';
 
-import Badge from '../../../components/ui/Badge';
+import BottomSheet from '../../../components/ui/BottomSheet';
 import Button from '../../../components/ui/Button';
-import Icon from '../../../components/ui/Icon';
-import SideSheet from '../../../components/ui/SideSheet';
+import FilePicker from '../../../components/ui/FilePicker';
 import { useData } from '../../../context/DataContext';
 import { useFinanceData } from '../../../context/FinanceDataContext';
-import { formatCurrency } from '../../../lib/financial';
+import { useToast } from '../../../context/ToastContext';
+import { useDerniereValeur } from '../../../hooks/useDerniereValeur';
+import { saveExpenseSourceFile } from '../../../lib/financeFileStorage';
 import { cn } from '../../../lib/utils';
 import { FinanceBudgetItem } from '../../../types';
 import { useExpenseActions } from '../hooks/useExpenseActions';
 import {
     EXPENSE_TYPE_LABELS,
-    formatExpenseAmount,
-    formatExpenseDate,
-    getExpenseStatusLabel,
-    getExpenseStatusVariant,
+    etatDuJustificatif,
     posteDeLaDepense,
 } from '../lib/expensePresentation';
 import ExpenseEditModal from './ExpenseEditModal';
+import { CorpsDeLaDepense } from './PanneauDeDepense';
 
 interface ExpenseDetailSheetProps {
-    /** L'identifiant de la dépense ouverte, `null` quand le panneau est fermé. */
+    /** L'identifiant de la dépense ouverte, `null` quand la feuille est fermée. */
     expenseId: string | null;
     onClose: () => void;
     /** Les postes de l'exercice, pour dire sur lequel la dépense s'impute. */
     budgetItems: FinanceBudgetItem[];
 }
 
+/** Un acte secondaire de la feuille — une rangée de 48, sous un filet. */
+const ACTE =
+    'border-outline-variant text-ts-body leading-ts-body -mx-5 h-12 min-h-12 w-[calc(100%+2.5rem)] justify-start rounded-none border-t px-5 font-normal';
+
 /**
- * Le détail d'une dépense — **colonne 2 de la planche 15.1**, en panneau latéral.
+ * **La dépense ouverte, au téléphone et à la tablette** (10/10) — la feuille de 15.1.
  *
- * Il s'ouvre depuis les deux écrans qui listent des dépenses : « Dernières
- * dépenses » sur la page Finances, et le journal. Il lit la dépense **dans la
- * donnée, par son identifiant** plutôt que sur une copie passée en prop : une
- * modification faite dans le panneau se voit donc immédiatement dans le panneau,
- * sans qu'un écran ait à recoudre son état.
+ * Sous 840, la dépense s'ouvrait encore dans l'ancienne feuille : trois cartes encadrées
+ * (le fichier lu, « Ce que la machine a lu », l'imputation sous un triangle d'alerte), un
+ * titre « Détail · … » et « Supprimer » en rouge au pied. Le bureau avait reçu son panneau le
+ * 27/09 ; la feuille rend désormais **le même corps** (`CorpsDeLaDepense`) : le montant et
+ * son état, la pièce et ses gestes, les faits de la facture, le poste et ce qu'il y reste.
  *
- * Il porte les trois cartes de la planche : le fichier lu (`.fread`), ce que la
- * machine en a tiré (`.xrow`), et l'imputation budgétaire (`.warn`).
+ * - **Le titre est le fournisseur**, le poste et l'objet dessous — comme le panneau.
+ * - **Le pied porte ce qu'on fait d'une dépense qu'on relit** : « Modifier », et « Marquer
+ *   payée » sur une dépense en attente. « Supprimer » quitte le pied : c'est le dernier des
+ *   actes secondaires, détaché, comme dans tout menu.
+ * - À la tablette, la feuille se centre en dialogue (`BottomSheet`, dès 600) au lieu de
+ *   s'étirer sur 768 px.
+ *
+ * Elle lit la dépense **dans la donnée, par son identifiant** : une modification faite d'ici
+ * se voit aussitôt, sans qu'un écran ait à recoudre son état.
  */
 export const ExpenseDetailSheet: React.FC<ExpenseDetailSheetProps> = ({
     expenseId,
@@ -47,234 +56,149 @@ export const ExpenseDetailSheet: React.FC<ExpenseDetailSheetProps> = ({
     budgetItems,
 }) => {
     const { settings } = useData();
-    const { financeExpenses } = useFinanceData();
+    const { financeExpenses, updateFinanceExpense } = useFinanceData();
+    const { showToast } = useToast();
     const { requestExpenseDeletion, previewSourceFile, downloadSourceFile } = useExpenseActions();
 
     const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
+    const selecteurDePiece = useRef<HTMLInputElement>(null);
 
-    const expense = useMemo(
+    const ouverte = useMemo(
         () => (expenseId ? (financeExpenses.find((item) => item.id === expenseId) ?? null) : null),
         [financeExpenses, expenseId],
     );
-
-    const closeExpenseEditor = () => setEditingExpenseId(null);
+    /* La feuille garde ce qu'elle montrait le temps de redescendre. */
+    const depense = useDerniereValeur(ouverte);
 
     /* Le poste qui a compté la dépense — la règle d'imputation, pas une ressemblance. */
-    const matchingBudgetItem = useMemo(
-        () => (expense ? posteDeLaDepense(expense, budgetItems) : null),
-        [budgetItems, expense],
+    const poste = useMemo(
+        () => (depense ? posteDeLaDepense(depense, budgetItems) : null),
+        [budgetItems, depense],
     );
+
+    const recevoirLaPiece = async (fichier: File | undefined) => {
+        if (!depense || !fichier) return;
+        let sourceFileId: string | undefined;
+        try {
+            sourceFileId = await saveExpenseSourceFile(fichier);
+        } catch {
+            sourceFileId = undefined;
+        }
+        if (!sourceFileId) {
+            showToast('Le justificatif n’a pas pu être enregistré sur cet appareil.', 'error');
+            return;
+        }
+        const joint = updateFinanceExpense(depense.id, {
+            sourceFileId,
+            sourceFileName: fichier.name,
+        });
+        showToast(
+            joint ? 'Justificatif joint.' : 'Modification refusée.',
+            joint ? 'success' : 'error',
+        );
+    };
+
+    const marquerPayee = () => {
+        if (!depense) return;
+        const fait = updateFinanceExpense(depense.id, { status: 'Paid' });
+        showToast(
+            fait ? 'Dépense marquée payée.' : 'Modification refusée.',
+            fait ? 'success' : 'error',
+        );
+    };
+
+    const sousTitre = depense
+        ? [poste?.category ?? EXPENSE_TYPE_LABELS[depense.type], depense.description?.trim()]
+              .filter(Boolean)
+              .join(' · ')
+        : undefined;
 
     return (
         <>
-            <ExpenseEditModal expenseId={editingExpenseId} onClose={closeExpenseEditor} />
+            <ExpenseEditModal
+                expenseId={editingExpenseId}
+                onClose={() => setEditingExpenseId(null)}
+            />
+            {/* Le sélecteur du système de design : il refuse de lui-même un fichier trop lourd. */}
+            <FilePicker
+                ref={selecteurDePiece}
+                accept="application/pdf,image/*"
+                onFiles={(_noms, fichiers) => void recevoirLaPiece(fichiers[0])}
+                onReject={(message) => showToast(message, 'error')}
+            />
 
-            <SideSheet
-                open={!!expense}
+            <BottomSheet
+                id="feuille-de-depense"
+                open={Boolean(ouverte)}
                 onClose={onClose}
-                title={expense ? `Détail · ${expense.supplier}` : 'Détail de la dépense'}
-                width="standard"
-                className="rounded-none"
-                footer={
-                    expense ? (
-                        <div className="flex w-full items-center justify-end gap-3">
+                title={depense?.supplier ?? ''}
+                subtitle={sousTitre}
+            >
+                {depense && (
+                    <div className="flex flex-col gap-5">
+                        <CorpsDeLaDepense
+                            depense={depense}
+                            poste={poste}
+                            devise={settings.currency}
+                            notationCompacte={settings.compactNotation}
+                            auDoigt
+                            onJoindre={() => selecteurDePiece.current?.click()}
+                            onVoir={() => void previewSourceFile(depense)}
+                            onTelecharger={() => void downloadSourceFile(depense)}
+                        />
+
+                        {/* Les actes secondaires — l'irréversible en dernier, à l'encre du danger. */}
+                        <div className="flex flex-col">
+                            {etatDuJustificatif(depense) === 'joint' && (
+                                <Button
+                                    variant="text"
+                                    onClick={() => selecteurDePiece.current?.click()}
+                                    className={cn(ACTE, 'text-on-surface')}
+                                >
+                                    Remplacer le justificatif
+                                </Button>
+                            )}
                             <Button
-                                variant="outlined"
-                                onClick={() => setEditingExpenseId(expense.id)}
-                            >
-                                Modifier
-                            </Button>
-                            <Button
-                                variant="danger"
+                                variant="text"
                                 onClick={() =>
-                                    requestExpenseDeletion(expense, () => {
-                                        closeExpenseEditor();
+                                    requestExpenseDeletion(depense, () => {
+                                        setEditingExpenseId(null);
                                         onClose();
                                     })
                                 }
+                                className={cn(
+                                    ACTE,
+                                    'text-on-tint-danger hover:text-on-tint-danger',
+                                )}
                             >
-                                Supprimer
+                                Supprimer la dépense
                             </Button>
                         </div>
-                    ) : undefined
-                }
-            >
-                {expense && (
-                    <div className="space-y-4">
-                        {/* CARTE 1 : FICHIER SOURCE LU (PLANCHE 15.1 .fread) */}
-                        <div className="bg-surface border-outline-variant rounded-lg border p-4">
-                            <div className="flex min-h-[48px] items-center gap-3">
-                                <div className="bg-surface-container text-on-surface-variant flex h-10 w-10 shrink-0 items-center justify-center rounded-md">
-                                    <Icon glyph={Receipt} size={20} />
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                    <b className="text-on-surface text-ts-sub block truncate font-medium">
-                                        {expense.sourceFileName ||
-                                            `facture-${expense.supplier.toLowerCase().replace(/\s+/g, '-')}.pdf`}
-                                    </b>
-                                    <span className="text-on-surface-variant block text-[0.75rem]">
-                                        lue le {formatExpenseDate(expense.date)}
-                                    </span>
-                                </div>
-                                {(expense.sourceFileName ||
-                                    expense.sourceFileId ||
-                                    expense.sourceFileUrl) && (
-                                    <div className="flex shrink-0 items-center gap-1.5">
-                                        <Button
-                                            variant="text"
-                                            size="sm"
-                                            onClick={() => {
-                                                void previewSourceFile(expense);
-                                            }}
-                                            className="h-8 px-2 text-[0.8125rem]"
-                                        >
-                                            Voir
-                                        </Button>
-                                        <Button
-                                            variant="text"
-                                            size="sm"
-                                            onClick={() => {
-                                                void downloadSourceFile(expense);
-                                            }}
-                                            className="h-8 px-2 text-[0.8125rem]"
-                                        >
-                                            Télécharger
-                                        </Button>
-                                    </div>
-                                )}
-                            </div>
+
+                        <div
+                            data-pied
+                            className="border-outline-variant duo-de-pied -mx-5 -mt-5 gap-3 border-t px-5 pt-4 pb-1"
+                        >
+                            <Button
+                                variant="outlined"
+                                className="justify-center"
+                                onClick={() => setEditingExpenseId(depense.id)}
+                            >
+                                Modifier
+                            </Button>
+                            {depense.status === 'Pending' && (
+                                <Button
+                                    variant="filled"
+                                    className="justify-center"
+                                    onClick={marquerPayee}
+                                >
+                                    Marquer payée
+                                </Button>
+                            )}
                         </div>
-
-                        {/* CARTE 2 : CE QUE LA MACHINE A LU (PLANCHE 15.1 .xrow) */}
-                        <div className="bg-surface border-outline-variant rounded-lg border p-4">
-                            <div className="mb-2 flex items-baseline justify-between gap-3">
-                                <h3 className="text-on-surface text-[0.8125rem] font-medium">
-                                    Ce que la machine a lu
-                                </h3>
-                                {expense.extractionConfidence && (
-                                    <span className="text-on-surface-variant text-[0.6875rem] font-medium tracking-wide">
-                                        Confiance{' '}
-                                        {expense.extractionConfidence === 'high'
-                                            ? 'élevée'
-                                            : expense.extractionConfidence === 'medium'
-                                              ? 'moyenne'
-                                              : 'faible'}
-                                    </span>
-                                )}
-                            </div>
-                            <div className="divide-outline-variant divide-y">
-                                <div className="flex items-baseline gap-2.5 py-[9px] text-[0.8125rem]">
-                                    <span className="text-on-surface-variant w-[106px] shrink-0">
-                                        Fournisseur
-                                    </span>
-                                    <span className="text-on-surface flex-1 truncate font-medium">
-                                        {expense.supplier}
-                                    </span>
-                                </div>
-                                <div className="flex items-baseline gap-2.5 py-[9px] text-[0.8125rem]">
-                                    <span className="text-on-surface-variant w-[106px] shrink-0">
-                                        Montant
-                                    </span>
-                                    <span className="text-on-surface flex-1 font-medium tabular-nums">
-                                        {formatExpenseAmount(
-                                            expense.amount,
-                                            expense.currencyCode || settings.currency,
-                                        )}
-                                    </span>
-                                </div>
-                                <div className="flex items-baseline gap-2.5 py-[9px] text-[0.8125rem]">
-                                    <span className="text-on-surface-variant w-[106px] shrink-0">
-                                        Date
-                                    </span>
-                                    <span className="text-on-surface flex-1 font-medium">
-                                        {formatExpenseDate(expense.date)}
-                                    </span>
-                                </div>
-                                <div className="flex items-baseline gap-2.5 py-[9px] text-[0.8125rem]">
-                                    <span className="text-on-surface-variant w-[106px] shrink-0">
-                                        N° de facture
-                                    </span>
-                                    <span
-                                        className={cn(
-                                            'flex-1 font-medium tabular-nums',
-                                            !expense.invoiceNumber && 'text-text-muted font-normal',
-                                        )}
-                                    >
-                                        {expense.invoiceNumber || 'non renseigné'}
-                                    </span>
-                                </div>
-                                <div className="flex items-baseline gap-2.5 py-[9px] text-[0.8125rem]">
-                                    <span className="text-on-surface-variant w-[106px] shrink-0">
-                                        Type
-                                    </span>
-                                    <span className="text-on-surface flex-1 font-medium">
-                                        {EXPENSE_TYPE_LABELS[expense.type]}
-                                    </span>
-                                </div>
-                                <div className="flex items-baseline gap-2.5 py-[9px] text-[0.8125rem]">
-                                    <span className="text-on-surface-variant w-[106px] shrink-0">
-                                        Statut
-                                    </span>
-                                    <div className="flex-1">
-                                        <Badge variant={getExpenseStatusVariant(expense.status)}>
-                                            {getExpenseStatusLabel(expense.status)}
-                                        </Badge>
-                                    </div>
-                                </div>
-                                {expense.description && (
-                                    <div className="flex items-baseline gap-2.5 py-[9px] text-[0.8125rem]">
-                                        <span className="text-on-surface-variant w-[106px] shrink-0">
-                                            Description
-                                        </span>
-                                        <span className="text-on-surface flex-1 font-normal">
-                                            {expense.description}
-                                        </span>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* IMPUTATION BUDGETAIRE (PLANCHE 15.1 .warn) */}
-                        {matchingBudgetItem &&
-                            (() => {
-                                const itemSpentPct =
-                                    matchingBudgetItem.allocated > 0
-                                        ? (matchingBudgetItem.spent /
-                                              matchingBudgetItem.allocated) *
-                                          100
-                                        : 0;
-                                const remaining =
-                                    matchingBudgetItem.allocated - matchingBudgetItem.spent;
-
-                                return (
-                                    <div className="bg-surface-container text-on-surface-variant border-outline-variant text-ts-sub leading-ts-sub flex gap-2.5 rounded-md border p-[11px_12px]">
-                                        <Icon
-                                            glyph={Warning}
-                                            size={18}
-                                            className="text-on-surface-variant mt-[1px] shrink-0"
-                                        />
-                                        <span>
-                                            <b className="text-on-surface font-medium">
-                                                Cette dépense s'impute sur «&nbsp;
-                                                {matchingBudgetItem.category}&nbsp;»
-                                            </b>
-                                            , qui est consommé à {itemSpentPct.toFixed(0)} %. Il
-                                            reste{' '}
-                                            <b className="text-on-surface font-medium">
-                                                {formatCurrency(
-                                                    remaining,
-                                                    settings.currency,
-                                                    settings.compactNotation,
-                                                )}
-                                            </b>{' '}
-                                            sur le poste.
-                                        </span>
-                                    </div>
-                                );
-                            })()}
                     </div>
                 )}
-            </SideSheet>
+            </BottomSheet>
         </>
     );
 };

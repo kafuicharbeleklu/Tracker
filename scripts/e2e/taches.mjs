@@ -162,12 +162,9 @@ export default async function taches(navigateur, baseUrl, ok) {
         const { contexte, page, erreurs } = await ouvrirSession(navigateur, baseUrl, {
             role: 'Super admin',
         });
-        // L'ordre de la file bouge avec les âges : on ouvre une remise nommément.
-        await page
-            .locator('main [data-rangee]')
-            .filter({ has: page.locator('span', { hasText: /^Remise$/ }) })
-            .first()
-            .click();
+        // L'ordre de la file bouge avec les âges : on ouvre une remise nommément — par sa
+        // clé, la rangée n'écrit plus sa nature en badge (10/10).
+        await page.locator('main [data-rangee][data-nature="remise"]').first().click();
         await page.waitForTimeout(600);
         let e = await etat(page);
         const avant = e.ouverte;

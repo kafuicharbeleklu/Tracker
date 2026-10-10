@@ -31,6 +31,8 @@ import { ViewType } from '../../../types';
 import { countryCodeOf } from '../lib/siteCode';
 import { remplacerAdresseCourante } from '../../../lib/cheminParcouru';
 import Menu from '../../../components/ui/Menu';
+import ListActionFab from '../../../components/ui/ListActionFab';
+import CardEmptyState from '../../../components/ui/CardEmptyState';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { MEDIA } from '../../../constants/breakpoints';
 import {
@@ -465,6 +467,7 @@ const SiteDetailsPage: React.FC<SiteDetailsPageProps> = ({
                 menu={
                     <Menu
                         align="end"
+                        title={siteName}
                         items={[
                             {
                                 id: 'rename',
@@ -499,6 +502,23 @@ const SiteDetailsPage: React.FC<SiteDetailsPageProps> = ({
                         }
                     />
                 }
+                /* **« Ajouter un local » est un acte de la fiche** (10/10) : il vivait dans la
+                   carte — une tuile au bureau, un pied au téléphone —, à côté d'un en-tête
+                   qui porte déjà les actes du site. Il prend la place que 17.6 lui donne :
+                   le bouton de l'en-tête au bureau, le bouton flottant au téléphone. */
+                fab={
+                    <ListActionFab
+                        label="local"
+                        actions={[
+                            {
+                                id: 'add-local',
+                                label: 'Ajouter un local',
+                                icon: 'add',
+                                onSelect: () => setIsAddLocalOpen(true),
+                            },
+                        ]}
+                    />
+                }
                 hero={hero}
             >
                 {/* LES LOCAUX — le quatrième niveau, facultatif, et le seul endroit du
@@ -525,13 +545,20 @@ const SiteDetailsPage: React.FC<SiteDetailsPageProps> = ({
                             deux rangs de tuiles et renvoie au reste, comme « Derniers
                             événements » à l'accueil. */}
                         <div className="mt-1">
-                            <TuilesDeLocaux
-                                rangees={rangees
-                                    .filter((rangee) => rangee.local)
-                                    .slice(0, TUILES_SUR_LA_FICHE)}
-                                onAjouter={() => setIsAddLocalOpen(true)}
-                                onSupprimer={supprimerLocal}
-                            />
+                            {locals.length > 0 ? (
+                                <TuilesDeLocaux
+                                    rangees={rangees
+                                        .filter((rangee) => rangee.local)
+                                        .slice(0, TUILES_SUR_LA_FICHE)}
+                                    onSupprimer={supprimerLocal}
+                                />
+                            ) : (
+                                <CardEmptyState
+                                    glyph={DoorOpen}
+                                    title="Aucun local"
+                                    description="Les actifs de ce site ne sont rangés dans aucune salle."
+                                />
+                            )}
                         </div>
                         {locals.length > TUILES_SUR_LA_FICHE && (
                             <div className="mt-3 -mb-4">
@@ -567,15 +594,9 @@ const SiteDetailsPage: React.FC<SiteDetailsPageProps> = ({
                                     onSupprimer={supprimerLocal}
                                 />
                             )}
-                            <PiedDesLocaux
-                                onAjouter={() => setIsAddLocalOpen(true)}
-                                total={locals.length}
-                                onTous={
-                                    locals.length > LOCAUX_SUR_LA_FICHE - (sansLocal > 0 ? 1 : 0)
-                                        ? versLesLocaux
-                                        : undefined
-                                }
-                            />
+                            {locals.length > LOCAUX_SUR_LA_FICHE - (sansLocal > 0 ? 1 : 0) && (
+                                <PiedDesLocaux total={locals.length} onTous={versLesLocaux} />
+                            )}
                         </section>
                     )
                 )}

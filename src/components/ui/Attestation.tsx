@@ -6,6 +6,7 @@ import SignaturePad, { SIGNATURE_BOX } from './SignaturePad';
 import { cn } from '../../lib/utils';
 import { FieldLabel } from './FormParts';
 import { PIN_LENGTH, PIN_MAX_ATTEMPTS } from '../../lib/security';
+import { poserLaSignatureDeLActe, signatureDeLImage } from '../../lib/signatureDeLActe';
 import type { AttestationMethod } from '../../types';
 
 /**
@@ -111,6 +112,8 @@ const Attestation: React.FC<AttestationProps> = ({
 
     const settle = (nextMethod: AttestationMethod, nextDone: boolean) => {
         setDone(nextDone);
+        /* Une attestation défaite, ou faite par le code seul, ne laisse aucune signature. */
+        if (!nextDone || nextMethod === 'pin') poserLaSignatureDeLActe(signerName, null);
         onChange({ method: nextMethod, done: nextDone });
     };
 
@@ -126,6 +129,12 @@ const Attestation: React.FC<AttestationProps> = ({
             const retenue: AttestationMethod = signature ? 'pin+signature' : 'pin';
             setMethod(retenue);
             settle(retenue, true);
+            /* La signature enregistrée s'appose : elle est gardée avec le fait, à la mesure
+               du journal — tous les postes la reliront, pas seulement celui-ci (10/10). */
+            if (signature)
+                void signatureDeLImage(signature).then((image) =>
+                    poserLaSignatureDeLActe(signerName, image),
+                );
             return;
         }
         const used = attempts + 1;
@@ -256,6 +265,8 @@ const Attestation: React.FC<AttestationProps> = ({
                 <SignaturePad
                     signerName={signerName}
                     onChange={(signed) => settle('signature', signed)}
+                    /* Le tracé est gardé avec le fait que l'acte écrira (10/10). */
+                    onTrace={(image) => poserLaSignatureDeLActe(signerName, image)}
                 />
             )}
 

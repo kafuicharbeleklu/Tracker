@@ -5782,3 +5782,63 @@ l'essai. Suite `cartes` ajoutée à `qa:e2e` (17 vérifications sur le jeu de d�
 
 **À reporter sur les planches** : 09.1 (Modèles), 14.1 (amortissement), 16.1 et 16.2 (panneau,
 colonne de campagne), 03.1 (accueil), 17.x pour le pied commun.
+
+### Un acte, une porte ; menus, squelettes, accueil, signatures (10/10)
+
+Une série de demandes du commanditaire, le même jour, toutes mesurées au banc.
+
+**Un acte n'a qu'une porte.** « Modifier » s'ouvrait de trois endroits sur la fiche d'un modèle
+(héro, ⋮, pied de la carte « Référence ») ; « Ajouter un local » vivait dans la carte d'un site.
+Les actes d'une page sont dans son en-tête — bouton nommé au bureau, bouton flottant au
+téléphone (`fab`), ⋮ pour le reste — et une carte ne les redit pas. Repris : modèle, site, page
+des locaux, groupe d'accès (« Gérer les membres »), personne (le ⋮ omet ce que le héro porte).
+
+**Tous les ⋮ à la forme du menu du compte** (`Menu`) : une légende qui dit sur quoi l'on agit,
+pas de pictogramme, un filet avant le seul acte irréversible, 16 px du bord, la raison d'un acte
+impossible **sous** son libellé (elle élargissait le menu à 361 px). Finances, sous 1000 : le ⋮
+porte les destinations de la carte « Aller à » et « Changer d'exercice » ; la carte ne paraît
+plus qu'au bureau, le héro du téléphone n'a plus de geste.
+
+**Plus sobre.** Un pied de carte ne porte qu'une désignation (« Tout l'historique », sans
+« Historique » à droite). Une rangée de tâche tient en deux lignes — l'objet, puis « qui ·
+étape » —, l'âge à droite, un point rouge pour l'urgence ; le badge, le motif et la citation se
+lisent dans le détail.
+
+**Le squelette a la forme de la page.** `SkeletonPage` dessine l'en-tête (retour, titre, compte,
+geste) et une forme par écran — accueil, liste, liste et fiche, fiche, Finances, inventaire,
+campagne, catalogue, réglages —, choisie par l'adresse ; il remplit la fenêtre. L'accueil pose
+`SkeletonAccueil`, calé sur sa grille, tant que les données se lisent, et dit « Les données ne
+sont pas arrivées » quand la base n'a pas répondu, au lieu d'annoncer « 0 actif ». **17.3 est à
+mettre à jour** (elle compte trois formes).
+
+**La grille de l'accueil au bureau** : 8 / 4 à chaque rangée (une seule gouttière verticale),
+448 pour la file et les événements, puis des rangées à la hauteur de leur contenu (216 au
+moins) au lieu de 320 — le budget laissait 116 px nus, l'état du parc 176. La file et les
+événements reçoivent de quoi remplir leur carte ; la carte « Inventaire » est toujours là.
+Mesuré à 1440 et 1366 : 12, 18, 48 et 0 px de vide dans les quatre cartes du bas. **03.1 est à
+mettre à jour.**
+
+**Le détail d'une dépense, sous 840** : la feuille rend le corps du panneau du bureau
+(`CorpsDeLaDepense`) — le montant, la pièce, les faits, le poste —, se centre en dialogue à la
+tablette, et « Supprimer » quitte le pied.
+
+**Une image s'importe sur la fiche d'un modèle, une signature se garde avec son fait.** Le
+produit n'a pas de réserve de fichiers partagée : l'une et l'autre sont réduites dans le
+navigateur et rangées dans la donnée (`lib/imageDeModele`, `lib/signatureDeLActe`). Une image
+importée ne se recopie pas dans les actifs. Le détail d'un fait de l'historique gagne un bloc
+« Le détail », ligne à ligne. **18.1 et 17.4 sont à mettre à jour** (la signature se relit de
+tous les postes).
+
+**Le viseur lit un QR partout** : sans décodeur du navigateur (iPhone, Firefox), `jsqr` prend
+le relais ; le cadre vient entourer le code vu. **Le chargement LIVE** : les quatre triangles ne
+tournent plus, ils se replient et se déplient en cascade.
+
+Vérifié : `qa:e2e` 106 / 106 en un passage (deux vérifications de plus au scan — un vrai QR
+devant une caméra sans décodeur) ; typage, lint et contrôles du système de design. Au banc, sur
+l'émulateur : gestes en double, menus, file et image importée au téléphone et à 1440 ; accueil,
+Finances, feuille de dépense et squelettes à 1440, 1366, 768 et au téléphone, squelette et page
+mesurés rectangle par rectangle ; la signature tracée, gardée (4,9 Ko) et relue dans
+l'historique ; l'accueil quand la base ne répond pas. Non vérifié : le scan sur un vrai
+téléphone ; le squelette de l'accueil pendant une lecture réelle des données (elle est trop
+brève au banc pour être saisie) ; les squelettes de Rapports et d'Emplacements, qui prennent
+la forme « tuiles » ou « liste » sans avoir été mesurés.

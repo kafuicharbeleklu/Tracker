@@ -11,6 +11,7 @@ import { lireDate, lireMontant, normaliserNom, plusProche } from '../../../lib/t
 import { useData } from '../../../context/DataContext';
 import { useToast } from '../../../context/ToastContext';
 import { Equipment } from '../../../types';
+import { imageARecopier } from '../../../lib/imageDeModele';
 import { deducedAssetName, nextInternalCode, proposeReadableId } from '../lib/assetCode';
 
 interface ImportEquipmentPageProps {
@@ -359,7 +360,7 @@ const ImportEquipmentPage: React.FC<ImportEquipmentPageProps> = ({ onCancel, onS
                 os: draft.os || undefined,
                 warrantyEnd: draft.warrantyEnd || undefined,
                 notes: draft.notes || undefined,
-                image: models.find((item) => item.name === draft.model)?.image || '',
+                image: imageARecopier(models.find((item) => item.name === draft.model)?.image),
                 financial: {
                     purchasePrice: draft.purchasePrice,
                     purchaseDate: draft.purchaseDate || new Date().toISOString().split('T')[0],

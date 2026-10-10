@@ -4,6 +4,7 @@ import { Eraser } from '@phosphor-icons/react';
 import Button from './Button';
 import Icon from './Icon';
 import { cn } from '../../lib/utils';
+import { signatureDuCanevas } from '../../lib/signatureDeLActe';
 
 /**
  * **La zone d'attestation** — `.att` de la planche 06.2, colonne 4.
@@ -37,6 +38,11 @@ interface SignaturePadProps {
     signerName: string;
     /** Appelé au premier trait, puis à l'effacement. */
     onChange: (signed: boolean) => void;
+    /**
+     * Le tracé, à la fin de chaque trait — réduit, prêt à être gardé avec le fait
+     * (`lib/signatureDeLActe`) ; `null` quand la case est effacée.
+     */
+    onTrace?: (image: string | null) => void;
     className?: string;
 }
 
@@ -46,16 +52,23 @@ interface SignaturePadProps {
  */
 export const SIGNATURE_BOX = 'aspect-[4/3] max-h-[min(320px,42dvh)] w-full';
 
-const SignaturePad: React.FC<SignaturePadProps> = ({ signerName, onChange, className }) => {
+const SignaturePad: React.FC<SignaturePadProps> = ({
+    signerName,
+    onChange,
+    onTrace,
+    className,
+}) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const drawing = useRef(false);
     const [hasInk, setHasInk] = useState(false);
     /* L'appelant passe une fonction neuve à chaque rendu, et le réglage du canevas ne
        doit pas repartir pour autant : il lit les deux par référence. */
     const onChangeRef = useRef(onChange);
+    const onTraceRef = useRef(onTrace);
     const hasInkRef = useRef(false);
     useEffect(() => {
         onChangeRef.current = onChange;
+        onTraceRef.current = onTrace;
         hasInkRef.current = hasInk;
     });
 
@@ -85,6 +98,7 @@ const SignaturePad: React.FC<SignaturePadProps> = ({ signerName, onChange, class
                 hasInkRef.current = false;
                 setHasInk(false);
                 onChangeRef.current(false);
+                onTraceRef.current?.(null);
             }
         };
         regler();
@@ -123,6 +137,7 @@ const SignaturePad: React.FC<SignaturePadProps> = ({ signerName, onChange, class
     };
 
     const end = () => {
+        if (drawing.current && canvasRef.current) onTrace?.(signatureDuCanevas(canvasRef.current));
         drawing.current = false;
     };
 
@@ -136,6 +151,7 @@ const SignaturePad: React.FC<SignaturePadProps> = ({ signerName, onChange, class
         context.restore();
         setHasInk(false);
         onChange(false);
+        onTrace?.(null);
     };
 
     return (

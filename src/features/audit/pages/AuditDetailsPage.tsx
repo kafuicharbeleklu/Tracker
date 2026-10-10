@@ -2057,7 +2057,6 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                 id: 'export-releve',
                 label: 'Exporter le relevé',
                 description: 'le parc, son état et l’heure de chaque lecture',
-                icon: 'download',
                 onSelect: exportRelevé,
             });
         }
@@ -2066,8 +2065,6 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                 id: 'finalize-session',
                 label: 'Clôturer la campagne',
                 description: 'le relevé est remis à un responsable, qui le valide',
-                icon: 'lock',
-                destructive: true,
                 onSelect: handleFinalizeAudit,
             });
         }
@@ -2076,7 +2073,6 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                 id: 'relance',
                 label: 'Lancer une nouvelle campagne',
                 description: 'le lieu se recompte depuis zéro',
-                icon: 'restart_alt',
                 onSelect: relancerLaCampagne,
             });
         }
@@ -2085,8 +2081,10 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                 id: 'abandon-session',
                 label: 'Abandonner la campagne',
                 description: 'jette les comptages en cours ; aucun actif modifié',
-                icon: 'restart_alt',
                 destructive: true,
+                /* Le seul acte qui jette : détaché des autres, comme la sortie du menu du
+                   compte. */
+                dividerBefore: items.length > 0,
                 onSelect: abandonAuditSession,
             });
         }
@@ -2664,6 +2662,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                         {overflowAffiche.length > 0 && (
                             <Menu
                                 align="end"
+                                title={lieuDansLeSite || selectedSite || undefined}
                                 items={overflowAffiche}
                                 trigger={
                                     <Button
@@ -2738,6 +2737,9 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                             overflowItems.length > 0 && (
                                                 <Menu
                                                     align="end"
+                                                    title={
+                                                        lieuDansLeSite || selectedSite || undefined
+                                                    }
                                                     items={overflowItems}
                                                     trigger={
                                                         <Button

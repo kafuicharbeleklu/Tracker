@@ -2221,8 +2221,9 @@ body {
 /* ==========================================================================
    Le chargement LIVE (24/09) — les quatre signes de la marque s'animent à tour de
    rôle, dans le sens des aiguilles d'une montre : les angles se tracent, le losange
-   pivote d'un quart de tour, les triangles tournent en moulin, les cercles émettent
-   une onde. Cycle de 2,4 s ; chaque signe tient son quart. Voir `LiveLoader.tsx`.
+   pivote d'un quart de tour, les triangles se replient puis se déplient l'un après
+   l'autre, les cercles émettent une onde. Cycle de 2,4 s ; chaque signe tient son
+   quart. Voir `LiveLoader.tsx`.
    ========================================================================== */
 .live-loader {
     --live-cycle: 2.4s;
@@ -2249,17 +2250,22 @@ body {
     animation: live-trace var(--live-cycle) linear infinite;
     animation-delay: calc(var(--live-depart, 0s) + var(--live-retard, 0s) + var(--live-pas, 0s));
 }
-.live-loader .live-tourne,
-.live-loader .live-moulin {
+.live-loader .live-tourne {
     transform-box: fill-box;
     transform-origin: center;
     animation: live-quart var(--live-cycle) cubic-bezier(0.2, 0, 0, 1) infinite;
     animation-delay: calc(var(--live-depart, 0s) + var(--live-retard, 0s));
 }
-/* **Le moulin fait un tour entier** (08/10) : ses quatre triangles ne se superposent pas à
-   un quart de tour, et le retour à zéro du cycle suivant se voyait comme un saut. */
-.live-loader .live-moulin {
-    animation-name: live-tour;
+/* **Les triangles ne tournent plus** (10/10 : « l'effet rotation des quatre triangles n'est
+   pas élégant »). Le moulin faisait un tour entier d'un bloc. Chaque triangle se replie
+   maintenant dans son angle droit, puis se déplie, l'un après l'autre en montant la
+   diagonale — la grammaire des angles, qui se retracent du plus petit au plus grand. Au
+   repos les quatre sont posés ; d'un cycle à l'autre, rien ne saute. */
+.live-loader .live-triangle {
+    transform-box: fill-box;
+    transform-origin: 100% 100%;
+    animation: live-pose var(--live-cycle) linear infinite;
+    animation-delay: calc(var(--live-depart, 0s) + var(--live-retard, 0s) + var(--live-pas, 0s));
 }
 .live-loader .live-coeur {
     transform-box: fill-box;
@@ -2316,14 +2322,22 @@ body {
         transform: rotate(90deg);
     }
 }
-@keyframes live-tour {
-    0%,
-    4% {
-        transform: rotate(0deg);
+@keyframes live-pose {
+    /* Posé → replié dans son angle droit, en s'effaçant → déplié. */
+    0% {
+        transform: scale(1);
+        opacity: 1;
+        animation-timing-function: cubic-bezier(0.3, 0, 1, 1);
     }
-    36%,
+    5% {
+        transform: scale(0.3);
+        opacity: 0;
+        animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
+    }
+    18%,
     100% {
-        transform: rotate(360deg);
+        transform: scale(1);
+        opacity: 1;
     }
 }
 @keyframes live-bat {
@@ -2368,7 +2382,7 @@ body {
         stroke-dashoffset: 0;
     }
     .live-loader .live-tourne,
-    .live-loader .live-moulin,
+    .live-loader .live-triangle,
     .live-loader .live-coeur,
     .live-loader .live-onde {
         animation: none;

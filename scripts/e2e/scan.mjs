@@ -42,6 +42,63 @@ const simulerLaCamera = (refusee = false) => {
     };
 };
 
+/** Le QR de « ASSET-10001 », module par module — ce que l'objectif verra (10/10). */
+const QR_ASSET_10001 = [
+    '111111100100101111111',
+    '100000101011101000001',
+    '101110101011001011101',
+    '101110101110001011101',
+    '101110100000101011101',
+    '100000100101001000001',
+    '111111101010101111111',
+    '000000001000000000000',
+    '100000101011011001110',
+    '001111011101101100111',
+    '011100100110100101010',
+    '101111010101100101110',
+    '010000111101100110111',
+    '000000001000100110100',
+    '111111100011000101010',
+    '100000100100001111110',
+    '101110100111011010101',
+    '101110100010100011100',
+    '101110100001111110111',
+    '100000100111100001100',
+    '111111101010111001110',
+];
+
+/**
+ * Un navigateur **sans décodeur** (iPhone, Firefox), devant un vrai QR : la caméra montre le
+ * code dessiné, et rien d'autre que notre lecteur ne peut le lire.
+ */
+const simulerUnQrSansDecodeur = (rangs) => {
+    delete window.BarcodeDetector;
+    navigator.mediaDevices.getUserMedia = () => {
+        const canevas = document.createElement('canvas');
+        canevas.width = 640;
+        canevas.height = 480;
+        const ctx = canevas.getContext('2d');
+        const module = 9;
+        const cote = rangs.length * module;
+        const x0 = Math.round((640 - cote) / 2);
+        const y0 = Math.round((480 - cote) / 2);
+        let n = 0;
+        window.__peintre = setInterval(() => {
+            /* Un fond qui change d'un rien : sans cela, le flux n'émet aucune trame. */
+            ctx.fillStyle = n++ % 2 ? '#ffffff' : '#fdfdfd';
+            ctx.fillRect(0, 0, 640, 480);
+            ctx.fillStyle = '#000000';
+            rangs.forEach((rang, r) =>
+                [...rang].forEach((bit, c) => {
+                    if (bit === '1') ctx.fillRect(x0 + c * module, y0 + r * module, module, module);
+                }),
+            );
+        }, 100);
+        window.__flux = canevas.captureStream(10);
+        return Promise.resolve(window.__flux);
+    };
+};
+
 const ouvrirLeViseur = async (page) => {
     await page
         .getByRole('button', { name: /^Ajouter/ })
@@ -169,6 +226,67 @@ export default async function scan(navigateur, baseUrl, ok) {
     await page.getByRole('button', { name: 'Ouvrir la fiche' }).waitFor({ timeout: 10_000 });
     p = await pied(page);
     verifier('la saisie à la main retrouve le même actif', p.includes('LPT-HQ-01'), p);
+
+    // ── Sans décodeur du navigateur : un QR se lit quand même, et le cadre vient sur lui
+    /* Le viseur de l'essai précédent est encore ouvert, sur la liste : on le referme. */
+    await page.getByRole('button', { name: 'Fermer le scan' }).click();
+    await page.waitForTimeout(800);
+    await page.evaluate(() => clearInterval(window.__peintre));
+    await page.evaluate(simulerUnQrSansDecodeur, QR_ASSET_10001);
+    await ouvrirLeViseur(page);
+    const auRepos = await page.evaluate(() => {
+        const r = document.querySelector('[data-cadre-mobile]')?.getBoundingClientRect();
+        return r ? { l: Math.round(r.width), h: Math.round(r.height) } : null;
+    });
+    const luSansDecodeur = await page
+        .getByRole('button', { name: 'Ouvrir la fiche' })
+        .waitFor({ timeout: 20_000 })
+        .then(() => true)
+        .catch(() => false);
+    p = await pied(page);
+    verifier(
+        'sans décodeur du navigateur, un QR se lit quand même',
+        luSansDecodeur && p.includes('ASSET-10001') && p.includes('LPT-HQ-01'),
+        p,
+    );
+    await page.waitForTimeout(500);
+    const surLeCode = await page.evaluate(() => {
+        const cadre = document.querySelector('[data-cadre-mobile]')?.getBoundingClientRect();
+        const video = document.querySelector('video');
+        const rv = video?.getBoundingClientRect();
+        if (!cadre || !video || !rv) return null;
+        /* Où le QR est à l'écran : la vidéo couvre l'écran, agrandie et rognée. */
+        const agr = Math.max(rv.width / video.videoWidth, rv.height / video.videoHeight);
+        const cote = 21 * 9 * agr;
+        const cx = rv.left + rv.width / 2;
+        const cy = rv.top + rv.height / 2;
+        return {
+            l: Math.round(cadre.width),
+            h: Math.round(cadre.height),
+            code: Math.round(cote),
+            /* Ce que le cadre laisse autour du code, du côté où il en laisse le moins. */
+            air: Math.round(
+                Math.min(
+                    cx - cote / 2 - cadre.left,
+                    cadre.right - (cx + cote / 2),
+                    cy - cote / 2 - cadre.top,
+                    cadre.bottom - (cy + cote / 2),
+                ),
+            ),
+        };
+    });
+    verifier(
+        'le cadre se pose sur le code vu, à sa forme',
+        Boolean(surLeCode && auRepos) &&
+            /* carré, comme le QR… */
+            Math.abs(surLeCode.l - surLeCode.h) <= 10 &&
+            /* …il le contient en entier, sans le noyer… */
+            surLeCode.air >= 0 &&
+            surLeCode.l <= surLeCode.code + 64 &&
+            /* …et n'a plus sa forme de repos. */
+            (surLeCode.l !== auRepos.l || surLeCode.h !== auRepos.h),
+        { auRepos, surLeCode },
+    );
 
     verifier('aucune erreur de page', erreurs.length === 0, erreurs.slice(0, 3));
     if (erreurs.length) await capturer(page, 'scan-erreur');

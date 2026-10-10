@@ -4,7 +4,9 @@ import {
     ArrowUUpLeft,
     CaretRight,
     Check,
+    ClipboardText,
     ClockCounterClockwise,
+    CloudSlash,
     Coins,
     Handshake,
     Laptop,
@@ -24,6 +26,8 @@ import { NATURE_MOT } from '../../tasks/lib/file';
 import { useCurrentCampaign, type CurrentCampaign } from '../../../hooks/useCurrentCampaign';
 import { useAccountMenu } from '../../../hooks/useAccountMenu';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
+import { useDelayedPending } from '../../../hooks/useDelayedPending';
+import { SkeletonAccueil } from '../../../components/ui/Skeleton';
 import { useCeQuiTient } from '../../../hooks/useCeQuiTient';
 import { typesEnTension as releverLaTension } from '../../../lib/tensionDesTypes';
 import { MEDIA } from '../../../constants/breakpoints';
@@ -178,6 +182,8 @@ const TODO_SATURATION_THRESHOLD = 250;
 
 /** `.hv-forte` — la planche en dessine **quatre**, et le bureau (§2.43 bis) aussi. */
 const TODO_SHOWN = 4;
+/** Au bureau, ce que la file donne à mesurer : la carte en montre ce qui tient. */
+const TODO_AU_BUREAU = 8;
 
 /** Ce que la carte « Types en tension » donne à mesurer : elle n'en montre jamais plus. */
 const TENSION_SUR_LA_CARTE = 5;
@@ -415,17 +421,16 @@ const Card: React.FC<{
 );
 
 /**
- * `.more` — la rangée d'orientation : 48 px, un filet au-dessus, le libellé à 16 px,
- * la **destination seule** à droite en 12 px, et le chevron **droit** de 18. Le code
+ * `.more` — la rangée d'orientation : 48 px, un filet au-dessus, le libellé à 16 px
+ * et le chevron **droit** de 18. La destination en 12 à droite est retirée (10/10). Le code
  * portait un chevron bas pivoté et un libellé de 14 : ni l'un ni l'autre n'est dans
  * la planche.
  */
 const DashboardMoreAction: React.FC<{
     label: React.ReactNode;
-    destination: React.ReactNode;
     onClick: () => void;
     tone?: 'surface' | 'inverse';
-}> = ({ label, destination, onClick, tone = 'surface' }) => {
+}> = ({ label, onClick, tone = 'surface' }) => {
     const isInverse = tone === 'inverse';
 
     return (
@@ -449,21 +454,10 @@ const DashboardMoreAction: React.FC<{
                       'border-outline-variant text-on-surface hover:text-on-surface mt-5',
             )}
         >
-            <span className="min-w-0 truncate">{label}</span>
-            {/* **La destination cède, elle ne se réduit pas à trois lettres** (07/10) : à 320,
-                « Inventaire » devenait « Inv… » et « Finances », « Fi… ». Elle demande 56 px ;
-                en deçà elle passe sur une seconde ligne que la rangée ne montre pas — le
-                chevron dit déjà qu'on part. Le témoin de largeur nulle tient la première
-                ligne : sans lui, un enfant seul ne passe jamais à la ligne. */}
-            <span
-                className={cn(
-                    'ml-auto flex h-4 min-w-0 flex-1 flex-wrap justify-end overflow-hidden text-[0.75rem] leading-4 font-normal',
-                    isInverse ? 'text-on-nav-surface-variant' : 'text-on-surface-variant',
-                )}
-            >
-                <span aria-hidden="true" className="h-4 w-0" />
-                <span className="min-w-0 flex-[1_1_3.5rem] truncate text-right">{destination}</span>
-            </span>
+            {/* **Une seule désignation** (10/10) : la rangée portait son libellé et, à droite,
+                le nom de l'écran d'arrivée — « Tout l'historique … Historique ». Deux fois
+                le même mot ; le libellé et le chevron suffisent. */}
+            <span className="min-w-0 flex-1 truncate text-left">{label}</span>
             <Icon
                 glyph={CaretRight}
                 size={20}
@@ -551,7 +545,22 @@ const Gauge: React.FC<{
 const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate }) => {
     /* L'accueil s'assemble à son arrivée : ses cartes entrent en cascade (26/09). */
     const entree = useEntree();
-    const { equipment: allEquipment, users, approvals } = useData();
+    const { equipment: allEquipment, users, approvals, isHydrating, remoteUnavailable } = useData();
+    /**
+     * **Tant que les données se lisent, les cartes attendent** (10/10). L'accueil s'affichait
+     * dès la session ouverte, sur des collections encore vides : « 0 actif », « Rien à
+     * traiter », « Aucun type en tension » — des états vides annoncés avant d'avoir rien lu.
+     * Les cartes cèdent la place à leur squelette, dans leur grille ; l'état vide ne paraît
+     * que sur une donnée lue.
+     */
+    const enAttente = useDelayedPending(isHydrating);
+    /**
+     * **Un vide n'est vrai que sur une donnée lue.** Quand la base n'a pas répondu et que
+     * rien n'est en mémoire, le parc n'est pas vide : il est **inconnu**. Les cartes
+     * annonçaient pourtant « 0 actif », « Vous êtes à jour », « Aucun type en tension ».
+     * L'accueil le dit à leur place, une fois, avec le geste qui relance.
+     */
+    const sansDonnees = !isHydrating && remoteUnavailable && allEquipment.length === 0;
     const { filterEquipment, permissions, user: currentUser } = useAccessControl();
     const { getRecentActivity } = useHistory();
 
@@ -685,7 +694,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
         const { enTension, calmes } = releverLaTension(equipment);
         return { stressed: enTension, calm: calmes };
     }, [equipment]);
-    const partDeTension = useCeQuiTient(tension.stressed.length, 61);
+    const partDeTension = useCeQuiTient(tension.stressed.length, 41);
 
     const fleet = useMemo(() => {
         const active = equipment.filter((item) => item.operationalStatus !== 'Retiré');
@@ -755,7 +764,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
     /* Trois lignes au téléphone, **quatre au bureau** : la colonne des événements y est
        bornée à la hauteur de la file, et la planche l'y dessine à quatre. */
     const recentEvents = useMemo(
-        () => getRecentActivity(bureau ? 4 : 3),
+        () => getRecentActivity(bureau ? 8 : 3),
         [bureau, getRecentActivity],
     );
     const partDesEvenements = useCeQuiTient(recentEvents.length);
@@ -855,8 +864,12 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
 
     /** Quatre rangées au plus dans la zone : au-delà, c'est la file qui prend. */
     const isTodoSaturated = todo.length >= TODO_SATURATION_THRESHOLD;
-    const shown = todo.slice(0, TODO_SHOWN);
-    const rest = todo.length - shown.length;
+    /* **La carte se remplit** (10/10). Elle montrait quatre tâches, toujours, et renvoyait
+       aux trente autres avec la place d'en lire deux de plus. Au bureau elle reçoit de quoi
+       remplir sa hauteur et montre ce qui tient (`useCeQuiTient`) ; le pied compte le reste. */
+    const shown = todo.slice(0, enGrille ? TODO_AU_BUREAU : TODO_SHOWN);
+    const partDeLaFile = useCeQuiTient(shown.length);
+    const rest = todo.length - Math.min(partDeLaFile.visibles, shown.length);
 
     /**
      * `.sub` — la sous-ligne dit **la charge**, dans la grammaire des quatre régimes de
@@ -871,6 +884,8 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                 ? 'Rien à confirmer'
                 : `${mine.receipts} réception${mine.receipts > 1 ? 's' : ''} à confirmer`;
         }
+        if (enAttente) return 'Lecture de vos données…';
+        if (sansDonnees) return 'Les données ne sont pas arrivées';
         if (todo.length === 0) return `Rien à traiter · ${counts.total} actifs`;
         if (isTodoSaturated) return `${todo.length} demandes en attente`;
         return `${todo.length} chose${todo.length > 1 ? 's' : ''} vous attend${todo.length > 1 ? 'ent' : ''}`;
@@ -1044,13 +1059,17 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                     /* Régimes `normale` et `forte` — `.trow` : 68 px, filet au-dessus
                        (le premier compris), et l'attente à droite. */
                     <>
-                        {shown.map((entry) => {
-                            const age = formatAge(daysSince(entry.since));
-                            /* La nature, en un mot : « validation », « réception »,
+                        <div
+                            ref={partDeLaFile.zone}
+                            className="relative min-h-0 flex-1 overflow-clip"
+                        >
+                            {shown.map((entry) => {
+                                const age = formatAge(daysSince(entry.since));
+                                /* La nature, en un mot : « validation », « réception »,
                                « retour » — la sous-ligne d'une file dit la personne
                                et la nature, rien d'autre (R15). */
-                            const nature = NATURE_MOT[entry.nature].toLowerCase();
-                            /*
+                                const nature = NATURE_MOT[entry.nature].toLowerCase();
+                                /*
                               **Une rangée ne vous nomme pas à vous.** La colonne
                               du porteur l'écrit sans détour : sa réception se lit
                               « Écran Dell U2722 · livré le 24 juillet », pas
@@ -1058,17 +1077,17 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                               on attend quelque chose ; quand c'est de vous, le
                               nom est du bruit et la nature suffit.
                             */
-                            const pourMoi =
-                                Boolean(currentUser?.name) && entry.who === currentUser?.name;
-                            const initials = entry.who
-                                .split(' ')
-                                .map((part) => part[0])
-                                .filter(Boolean)
-                                .slice(0, 2)
-                                .join('')
-                                .toUpperCase();
+                                const pourMoi =
+                                    Boolean(currentUser?.name) && entry.who === currentUser?.name;
+                                const initials = entry.who
+                                    .split(' ')
+                                    .map((part) => part[0])
+                                    .filter(Boolean)
+                                    .slice(0, 2)
+                                    .join('')
+                                    .toUpperCase();
 
-                            /*
+                                /*
                               `.trow` — **une rangée de file ne porte ni verbe ni ⋮**
                               (R15) : elle est le sujet, l'objet en titre, la personne
                               et la nature en sous-ligne, l'âge à droite en 12
@@ -1077,67 +1096,71 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                               « Confirmer », « Réceptionner » que l'accueil portait
                               passaient par le pavé administrateur : ils partent.
                             */
-                            return (
-                                <Button
-                                    key={entry.id}
-                                    variant="text"
-                                    layout="card"
-                                    onClick={openTasks}
-                                    className="text-inverse-on-surface hover:text-inverse-on-surface focus-visible:ring-primary min-h-14 w-full items-center gap-3 rounded-none border-t border-white/[0.14] px-0 py-2 font-normal whitespace-normal first-of-type:mt-2 hover:bg-transparent active:scale-100"
-                                >
-                                    {/* `.vig` — initiales quand une personne est
+                                return (
+                                    <Button
+                                        key={entry.id}
+                                        variant="text"
+                                        layout="card"
+                                        onClick={openTasks}
+                                        className="text-inverse-on-surface hover:text-inverse-on-surface focus-visible:ring-primary min-h-14 w-full items-center gap-3 rounded-none border-t border-white/[0.14] px-0 py-2 font-normal whitespace-normal first-of-type:mt-2 hover:bg-transparent active:scale-100"
+                                    >
+                                        {/* `.vig` — initiales quand une personne est
                                         nommée, le glyphe de l'objet sinon ; la teinte
                                         dit la nature. */}
-                                    <span
-                                        className="rounded-vignette font-brand text-ts-control flex h-10 w-10 shrink-0 items-center justify-center font-semibold"
-                                        style={TASK_VIGNETTE[entry.nature]}
-                                    >
-                                        {initials ? initials : <Icon glyph={Package} size={20} />}
-                                    </span>
-                                    <span className="min-w-0 flex-1">
                                         <span
-                                            title={infobulle(entry.what)}
-                                            className={cn(
-                                                'text-ts-head leading-ts-head tracking-[-0.01em]',
-                                                NOM_SUR_UNE_LIGNE,
-                                            )}
+                                            className="rounded-vignette font-brand text-ts-control flex h-10 w-10 shrink-0 items-center justify-center font-semibold"
+                                            style={TASK_VIGNETTE[entry.nature]}
                                         >
-                                            {entry.what}
+                                            {initials ? (
+                                                initials
+                                            ) : (
+                                                <Icon glyph={Package} size={20} />
+                                            )}
                                         </span>
-                                        {/* Une ligne, comme le titre : un nom de cinquante
+                                        <span className="min-w-0 flex-1">
+                                            <span
+                                                title={infobulle(entry.what)}
+                                                className={cn(
+                                                    'text-ts-head leading-ts-head tracking-[-0.01em]',
+                                                    NOM_SUR_UNE_LIGNE,
+                                                )}
+                                            >
+                                                {entry.what}
+                                            </span>
+                                            {/* Une ligne, comme le titre : un nom de cinquante
                                             signes en prenait quatre à 320, et la rangée
                                             doublait de hauteur. **Le nom se coupe, la nature
                                             reste** — c'est elle qui dit quoi faire (07/10). */}
-                                        <span className="text-ts-sub leading-ts-sub mt-0.5 flex min-w-0 text-[var(--tk-color-on-dark-2)]">
-                                            {!pourMoi && entry.who && (
-                                                <span
-                                                    title={infobulle(entry.who)}
-                                                    className="min-w-0 truncate"
-                                                >
-                                                    {entry.who}
-                                                </span>
-                                            )}
-                                            {nature && (
-                                                <span className="shrink-0 whitespace-pre">
-                                                    {!pourMoi && entry.who ? ' · ' : ''}
-                                                    {nature}
-                                                </span>
-                                            )}
+                                            <span className="text-ts-sub leading-ts-sub mt-0.5 flex min-w-0 text-[var(--tk-color-on-dark-2)]">
+                                                {!pourMoi && entry.who && (
+                                                    <span
+                                                        title={infobulle(entry.who)}
+                                                        className="min-w-0 truncate"
+                                                    >
+                                                        {entry.who}
+                                                    </span>
+                                                )}
+                                                {nature && (
+                                                    <span className="shrink-0 whitespace-pre">
+                                                        {!pourMoi && entry.who ? ' · ' : ''}
+                                                        {nature}
+                                                    </span>
+                                                )}
+                                            </span>
                                         </span>
-                                    </span>
-                                    {age && (
-                                        <span className="mt-1 shrink-0 self-start text-[0.75rem] leading-4 text-[var(--tk-color-on-dark-2)] tabular-nums">
-                                            {age}
-                                        </span>
-                                    )}
-                                </Button>
-                            );
-                        })}
+                                        {age && (
+                                            <span className="mt-1 shrink-0 self-start text-[0.75rem] leading-4 text-[var(--tk-color-on-dark-2)] tabular-nums">
+                                                {age}
+                                            </span>
+                                        )}
+                                    </Button>
+                                );
+                            })}
+                        </div>
 
                         {rest > 0 && (
                             <DashboardMoreAction
                                 label={`Voir ${rest > 1 ? `les ${rest} autres` : "l'autre"}`}
-                                destination="Tâches, ce qui presse d’abord"
                                 onClick={() => openTasks()}
                                 tone="inverse"
                             />
@@ -1295,7 +1318,11 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
       évaluée à chaque rendu — et `campagne.site` sur un `null` faisait tomber tout
       l'écran. Le garde ne peut donc pas rester au point d'appel : il vient ici.
     */
-    const inventaire = campagne && (
+    /* **La carte d'inventaire est toujours là** (10/10). Elle n'existait que pendant une
+       campagne : en naissant, elle changeait la grille — trois cartes d'un tiers devenaient
+       quatre, en 8 / 4. La mosaïque garde désormais ses quatre cases ; sans campagne, celle-ci
+       le dit et mène à l'inventaire. */
+    const inventaire = campagne ? (
         <>
             <Card title="Inventaire en cours" meta={campagne.site}>
                 <Gauge
@@ -1308,8 +1335,22 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                 />
                 <DashboardMoreAction
                     label="Reprendre la campagne"
-                    destination="Inventaire"
                     onClick={() => reprendreCampagne(campagne)}
+                />
+            </Card>
+        </>
+    ) : (
+        <>
+            <Card title="Inventaire">
+                <CardEmptyState
+                    glyph={ClipboardText}
+                    title="Aucune campagne en cours"
+                    description="Le prochain comptage se lance depuis l’inventaire."
+                    className="min-h-0 py-2"
+                />
+                <DashboardMoreAction
+                    label="Ouvrir l’inventaire"
+                    onClick={() => onViewChange('audit')}
                 />
             </Card>
         </>
@@ -1323,9 +1364,12 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
             >
                 {tension.stressed.length > 0 ? (
                     <>
+                        {/* Dans la grille, la liste ne dicte pas la hauteur de sa rangée
+                            (`contain: size`) : elle prend ce que la carte voisine laisse, et
+                            montre ce qui tient. */}
                         <div
                             ref={partDeTension.zone}
-                            className="relative min-h-0 flex-1 overflow-clip"
+                            className="deux:[contain:size] relative min-h-0 flex-1 overflow-clip"
                         >
                             {tension.stressed.slice(0, TENSION_SUR_LA_CARTE).map((entry) => (
                                 /* `.brow` — 48 px, filet au-dessus, pastille carrée
@@ -1346,7 +1390,9 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                 </div>
                             ))}
                         </div>
-                        {tension.calm > 0 && (
+                        {/* La note cède la place au renvoi quand la carte ne montre pas tout :
+                            sa page la redit. */}
+                        {tension.calm > 0 && !(partDeTension.tronque && voitLeCatalogue) && (
                             <p className="text-on-surface-variant text-ts-sub leading-ts-sub mt-3">
                                 {tension.calm === 1
                                     ? 'L’autre type a au moins une unité.'
@@ -1356,7 +1402,6 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                         {partDeTension.tronque && voitLeCatalogue && (
                             <DashboardMoreAction
                                 label={`Les ${tension.stressed.length} types en tension`}
-                                destination="Catalogue"
                                 onClick={() => onNavigate?.('/management/tension')}
                             />
                         )}
@@ -1411,7 +1456,6 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                 </div>
                 <DashboardMoreAction
                     label="Valeur et amortissement"
-                    destination="Finances"
                     onClick={() => onViewChange('finance')}
                 />
             </Card>
@@ -1503,7 +1547,6 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                         </div>
                         <DashboardMoreAction
                             label="Détail par enveloppe"
-                            destination="Finances"
                             onClick={() => onViewChange('finance')}
                         />
                     </>
@@ -1665,14 +1708,12 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                             ? permissions.canViewReports && (
                                   <DashboardMoreAction
                                       label="Tout l’historique"
-                                      destination="Historique"
                                       onClick={() => onViewChange('history')}
                                   />
                               )
                             : currentUser?.id && (
                                   <DashboardMoreAction
                                       label="Tout mon historique"
-                                      destination="Mon profil"
                                       onClick={() => onNavigate?.(`/users/${currentUser.id}`)}
                                   />
                               )}
@@ -1848,18 +1889,14 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
               { cle: 'mes', span: 'col-span-4', contenu: mesEquipements },
               { cle: 'garantie', span: 'col-span-4', contenu: garantie },
           ]
-        : campagne
-          ? [
-                { cle: 'budget', span: 'col-span-8', contenu: budget },
-                { cle: 'inventaire', span: 'col-span-4', contenu: inventaire },
-                { cle: 'etat', span: 'col-span-8', contenu: etatDuParc },
-                { cle: 'tension', span: 'col-span-4', contenu: typesEnTension },
-            ]
-          : [
-                { cle: 'budget', span: 'col-span-4', contenu: budget },
-                { cle: 'etat', span: 'col-span-4', contenu: etatDuParc },
-                { cle: 'tension', span: 'col-span-4', contenu: typesEnTension },
-            ];
+        : /* **Quatre cases, toujours les mêmes, sur la ligne de la file** (10/10) : 8 / 4 à
+             chaque rangée — la gouttière de la file et des événements descend d'un trait. */
+          [
+              { cle: 'budget', span: 'col-span-8', contenu: budget },
+              { cle: 'inventaire', span: 'col-span-4', contenu: inventaire },
+              { cle: 'etat', span: 'col-span-8', contenu: etatDuParc },
+              { cle: 'tension', span: 'col-span-4', contenu: typesEnTension },
+          ];
 
     /** Les cartes d'une rangée vont **à même hauteur** : leur pied se cale en bas. */
     const CASE_GRILLE =
@@ -1882,20 +1919,40 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                         {large ? enTeteBureau : enTete}
                     </div>
                     {!large && gestes}
-                    {large && isManager && bande}
+                    {enAttente && <SkeletonAccueil />}
+                    {sansDonnees && (
+                        <section className="rounded-card bg-surface flex min-h-[20rem] flex-col p-4">
+                            <CardEmptyState
+                                glyph={CloudSlash}
+                                title="Les données ne sont pas arrivées"
+                                description="La base n’a pas répondu : le parc n’est pas vide, il n’a pas été lu. Vérifiez la connexion, puis rechargez."
+                                action={
+                                    <Button
+                                        variant="outlined"
+                                        onClick={() => window.location.reload()}
+                                    >
+                                        Recharger
+                                    </Button>
+                                }
+                            />
+                        </section>
+                    )}
+                    {!enAttente && !sansDonnees && large && isManager && bande}
 
-                    {enGrille ? (
+                    {enAttente || sansDonnees ? null : enGrille ? (
                         /*
-                          **Des rangées de hauteur fixe** — arbitrage du commanditaire,
-                          22/09 : **448** pour la file et les événements, **320** pour la
-                          mosaïque ; une liste plus longue défile dans sa carte, une carte
-                          vide centre son état. Une seule grille porte les deux, pour que
+                          **448 pour la file et les événements ; la mosaïque à la hauteur
+                          de son contenu** (10/10). Elle tenait 320 par rangée (22/09) :
+                          le budget y laissait 116 px nus, l'état du parc 176. Une rangée
+                          prend maintenant la hauteur de sa carte la plus haute, 216 au
+                          moins ; une liste y montre ce qui tient, une carte vide centre
+                          son état. Une seule grille porte les deux, pour que
                           la gouttière entre la file et les événements soit **la même
                           ligne** que celle des cartes du dessous.
                         */
                         <div
                             className={cn(
-                                'grid auto-rows-[20rem] grid-cols-12 grid-rows-[28rem] gap-4',
+                                'grid auto-rows-[minmax(13.5rem,auto)] grid-cols-12 grid-rows-[28rem] gap-4',
                                 entree && 'mvt-cascade-cartes',
                             )}
                         >
@@ -1915,7 +1972,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                             {!(large && isManager) && leParc}
                             {isManager ? (
                                 <>
-                                    {campagne && inventaire}
+                                    {inventaire}
                                     {typesEnTension}
                                     {etatDuParc}
                                     {budget}

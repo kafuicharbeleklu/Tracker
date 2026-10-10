@@ -4,6 +4,7 @@ import { Laptop } from '@phosphor-icons/react';
 import BottomSheet from '../../../components/ui/BottomSheet';
 import HandoverTrail from '../../../components/ui/HandoverTrail';
 import Icon from '../../../components/ui/Icon';
+import { cn } from '../../../lib/utils';
 import type { Equipment, HistoryEvent, User } from '../../../types';
 import {
     autrePartie,
@@ -11,6 +12,7 @@ import {
     filDe,
     lieuDe,
     lire,
+    methodeDe,
     parcoursDeLaDemande,
     partieDe,
     quandDe,
@@ -21,6 +23,86 @@ import Renvoi, { initiales } from './Renvoi';
 
 /** « Vendredi 4 septembre à 19:32 » — le sous-titre commence une ligne. */
 const capitale = (texte: string) => texte.charAt(0).toUpperCase() + texte.slice(1);
+
+/** « vendredi 4 septembre 2026 à 19:32:08 » — l'instant exact, pour qui vérifie. */
+const instantExact = (iso: string): string => {
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return iso;
+    const jour = new Intl.DateTimeFormat('fr-FR', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+    }).format(date);
+    const heure = new Intl.DateTimeFormat('fr-FR', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+    }).format(date);
+    return `${jour} à ${heure}`;
+};
+
+const ROLE_EN_MOTS: Record<string, string> = {
+    SuperAdmin: 'super administrateur',
+    Admin: 'administrateur',
+    Manager: 'manager',
+    User: 'utilisateur',
+};
+
+/**
+ * **Ce que le journal sait du fait, ligne à ligne** (10/10 : « des vues de détail plus
+ * détaillées »). La feuille disait le fait et sa preuve en une phrase ; qui relit un
+ * mouvement veut l'instant exact, par qui et à quel titre, sur quoi, où, par quelle
+ * attestation, pour quel motif, et la référence du fait. Une ligne ne paraît que si le
+ * journal l'a notée — pas de « non renseigné ».
+ */
+const detailsDuFait = (fait: HistoryEvent, objet?: Equipment): Array<[string, string]> => {
+    const lignes: Array<[string, string | undefined]> = [
+        ['Date', instantExact(fait.timestamp)],
+        [
+            'Par',
+            fait.isSystem || fait.actorId === 'system'
+                ? 'Automatique'
+                : [fait.actorName, ROLE_EN_MOTS[fait.actorRole] ?? undefined]
+                      .filter(Boolean)
+                      .join(' · '),
+        ],
+        [
+            'Objet',
+            objet
+                ? [objet.assetId, objet.model || objet.name].filter(Boolean).join(' · ')
+                : fait.targetType === 'EQUIPMENT'
+                  ? fait.targetName
+                  : undefined,
+        ],
+        [
+            'Lieu',
+            lieuDe(fait) ??
+                ([lire(fait, 'scopeSite'), lire(fait, 'scopeLocal')].filter(Boolean).join(' · ') ||
+                    undefined),
+        ],
+        ['Attestation', methodeDe(fait)],
+        [
+            'État',
+            lire(fait, 'fromStatus') && lire(fait, 'toStatus')
+                ? `${lire(fait, 'fromStatus')} → ${lire(fait, 'toStatus')}`
+                : lire(fait, 'toStatus'),
+        ],
+        [
+            'Changement',
+            lire(fait, 'from') && lire(fait, 'to')
+                ? `${lire(fait, 'from')} → ${lire(fait, 'to')}`
+                : undefined,
+        ],
+        ['État de l’objet', lire(fait, 'condition')],
+        ['Motif', lire(fait, 'reason') ?? lire(fait, 'comment') ?? lire(fait, 'note')],
+        ['Fournisseur', lire(fait, 'supplier')],
+        ['Facture', lire(fait, 'invoiceNumber')],
+        ['Ce que le journal a écrit', fait.description?.trim() || undefined],
+        ['Référence', fait.id],
+    ];
+    return lignes.filter((ligne): ligne is [string, string] => Boolean(ligne[1]));
+};
 
 interface FactSheetProps {
     fait: HistoryEvent | null;
@@ -147,6 +229,30 @@ const FactSheet: React.FC<FactSheetProps> = ({
                     <SignaturesDeLaDemande etapes={fil} registres={registres} />
                 </>
             )}
+
+            {/* Le détail du fait — ce que le journal en a noté, sans rien d'inventé. */}
+            <section aria-label="Le détail du fait">
+                <h3 className="text-on-surface-variant pb-1 text-[0.75rem] leading-4 font-medium">
+                    Le détail
+                </h3>
+                <dl className="border-outline-variant text-ts-sub leading-ts-sub grid grid-cols-[minmax(88px,30%)_minmax(0,1fr)] border-b">
+                    {detailsDuFait(fait, objet).map(([cle, valeur]) => (
+                        <React.Fragment key={cle}>
+                            <dt className="border-outline-variant text-text-secondary border-t py-2 pr-3">
+                                {cle}
+                            </dt>
+                            <dd
+                                className={cn(
+                                    'border-outline-variant text-on-surface min-w-0 border-t py-2 break-words',
+                                    cle === 'Référence' && 'text-text-secondary tabular-nums',
+                                )}
+                            >
+                                {valeur}
+                            </dd>
+                        </React.Fragment>
+                    ))}
+                </dl>
+            </section>
 
             {(objet || (personne && !parcours)) && (
                 <div>

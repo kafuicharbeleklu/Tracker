@@ -53,6 +53,11 @@ interface SelectableRowProps {
     className?: string;
     /** L'ancre de la rangée — une file qui avance au clavier la fait venir à l'écran. */
     id?: string;
+    /**
+     * Ce que la rangée est, en clé (`data-nature`) — pour qui la cherche sans la lire : une
+     * rangée sobre n'écrit plus forcément sa nature.
+     */
+    nature?: string;
     children: React.ReactNode;
 }
 
@@ -64,6 +69,7 @@ const SelectableRow: React.FC<SelectableRowProps> = ({
     onLongPress,
     className,
     id,
+    nature,
     children,
 }) => {
     const appuiLong = useLongPress(selectionActive ? undefined : onLongPress);
@@ -73,6 +79,7 @@ const SelectableRow: React.FC<SelectableRowProps> = ({
     return (
         <div
             id={id}
+            data-nature={nature}
             data-rangee
             role={selectionActive ? 'checkbox' : 'button'}
             aria-checked={selectionActive ? selected : undefined}

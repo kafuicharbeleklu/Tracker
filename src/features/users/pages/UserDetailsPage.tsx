@@ -772,7 +772,10 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
             dividerBefore: !authUser,
             onSelect: openDeparture,
         },
-        ...(held > 0
+        /* **Ce que le héro porte, le menu ne le redit pas** (10/10) : « Organiser la
+           restitution » et « Réactiver le compte » y étaient en double quand le héro en
+           faisait son geste. */
+        ...(held > 0 && !(departure && !isSuspended)
             ? [
                   {
                       id: 'restitution',
@@ -782,30 +785,19 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                   },
               ]
             : []),
-        ...(!isSelf
+        ...(!isSelf && !isSuspended
             ? [
-                  isSuspended
-                      ? {
-                            id: 'toggle-status',
-                            label: 'Réactiver le compte',
-                            description:
-                                held > 0
-                                    ? 'Rétablit l’accès et lève le signal sur ses objets.'
-                                    : 'Rétablit l’accès.',
-                            dividerBefore: true,
-                            onSelect: handleReactivate,
-                        }
-                      : {
-                            id: 'toggle-status',
-                            label: 'Suspendre le compte',
-                            description: hasActiveApprovals
-                                ? 'Bloqué : une demande est en cours à son nom.'
-                                : held > 0
-                                  ? 'L’accès est coupé ; ce qu’elle détient est signalé.'
-                                  : 'L’accès est coupé, rien d’autre.',
-                            dividerBefore: true,
-                            onSelect: openSuspend,
-                        },
+                  {
+                      id: 'toggle-status',
+                      label: 'Suspendre le compte',
+                      description: hasActiveApprovals
+                          ? 'Bloqué : une demande est en cours à son nom.'
+                          : held > 0
+                            ? 'L’accès est coupé ; ce qu’elle détient est signalé.'
+                            : 'L’accès est coupé, rien d’autre.',
+                      dividerBefore: true,
+                      onSelect: openSuspend,
+                  },
               ]
             : []),
         ...(canDelete
@@ -860,6 +852,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
             menu={
                 <Menu
                     align="end"
+                    title={roleLabel}
                     items={menuItems}
                     trigger={
                         <Button variant="text" iconOnly aria-label="Options de la personne">

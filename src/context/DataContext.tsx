@@ -67,6 +67,7 @@ import { waitForPendingWrites } from 'firebase/firestore';
 import { DEMO_RESEED_DISABLED, isDemoSeedEquipment, isDemoSeedUser } from '../lib/demoSeed';
 import { normalizeEquipmentStatus } from '../lib/equipmentStatus';
 import { setImportLimitMb } from '../lib/fileImport';
+import { attesteParSignature, prendreLesSignaturesDeLActe } from '../lib/signatureDeLActe';
 import {
     buildRbacAssignmentFromUser,
     DEFAULT_RBAC_GROUPS,
@@ -2183,8 +2184,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, []);
 
     const logEvent = useCallback((eventData: Omit<HistoryEvent, 'id' | 'timestamp'>) => {
+        /* **La signature de l'acte entre dans le fait** (10/10) : l'attestation l'a posée,
+           le premier fait attesté par une signature la prend (`lib/signatureDeLActe`). */
+        const signatures = attesteParSignature(eventData.metadata)
+            ? prendreLesSignaturesDeLActe()
+            : [];
         const newEvent: HistoryEvent = {
             ...eventData,
+            ...(signatures.length > 0 ? { metadata: { ...eventData.metadata, signatures } } : {}),
             id: `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             timestamp: new Date().toISOString(),
         };
