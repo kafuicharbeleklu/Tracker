@@ -585,7 +585,7 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ onBack }) => {
 
                         {!canExport && (
                             <FormWarn glyph={Warning}>
-                                L’export est réservé aux gestionnaires : l’aperçu reste lisible.
+                                L’export est réservé aux gestionnaires.
                             </FormWarn>
                         )}
                     </div>

@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 
 import Button from '../../../components/ui/Button';
 import { cn } from '../../../lib/utils';
+import type { Anneau } from '../lib/contours';
 import { pointsDeTerre } from '../lib/terres';
 
 /**
@@ -19,6 +20,13 @@ import { pointsDeTerre } from '../lib/terres';
  * Pas de bibliothèque : une projection orthographique en canvas 2D, ~5 400 points. Les
  * couleurs sont lues sur les jetons (`--tk-color-live-*`) au montage — un canvas ne sait
  * pas lire `var()`.
+ *
+ * **Les pays du référentiel sont remplis** (10/10, à la demande : « afficher la cartographie
+ * avec un fond de couleur rempli des pays enregistrés »). Un nœud disait où est un pays, pas
+ * ce qu'il couvre : le Togo et le Bénin, à 1,4° l'un de l'autre, étaient deux points sur une
+ * trame. Chaque pays porté prend son contour (`lib/contours`, chargé à l'ouverture de la
+ * carte), rempli à l'orange de son nœud sous la trame des terres ; le pays choisi passe au
+ * jaune, cerné d'encre. Un contour qui passe derrière l'horizon est coupé au bord du globe.
  */
 export interface NoeudDuGlobe {
     id: string;
@@ -29,6 +37,8 @@ export interface NoeudDuGlobe {
     poids: number;
     /** Ce que dit l'étiquette sous le nom : « 8 actifs ». */
     detail: string;
+    /** Le code ISO du pays, quand il est reconnu : il donne son contour à remplir. */
+    code?: string | null;
 }
 
 interface GlobePointilleProps {
@@ -61,6 +71,18 @@ const GlobePointille: React.FC<GlobePointilleProps> = ({
     });
     const donnees = useRef({ noeuds, selection });
     donnees.current = { noeuds, selection };
+    /* Les contours arrivent après le globe : il tourne d'abord, les pays se remplissent
+       ensuite. Leur module (41 Ko) n'entre pas dans le code de la page. */
+    const contours = useRef<((code: string) => Anneau[] | null) | null>(null);
+    useEffect(() => {
+        let vivant = true;
+        void import('../lib/contours').then((module) => {
+            if (vivant) contours.current = module.contoursDuPays;
+        });
+        return () => {
+            vivant = false;
+        };
+    }, []);
 
     /* Choisir un pays : la vue vise son centre (latitude bornée, pour garder les pôles). */
     useEffect(() => {
@@ -132,6 +154,80 @@ const GlobePointille: React.FC<GlobePointilleProps> = ({
             return [c + x, c - y, cosc] as const;
         };
 
+        /**
+         * Trace un anneau de pays dans le chemin courant, **coupé à l'horizon** : ce qui
+         * passe derrière le globe est remplacé par l'arc du bord entre le point de sortie et
+         * le point de retour. Rend `false` si rien de l'anneau n'est sur la face visible.
+         */
+        const tracerLAnneau = (anneau: Anneau, R: number, c: number): boolean => {
+            const n = anneau.length / 2;
+            /* Chaque sommet sur la sphère unité, dans le repère de la vue : x vers la droite,
+               y vers le haut, z vers l'œil. */
+            const sx = new Float32Array(n);
+            const sy = new Float32Array(n);
+            const sz = new Float32Array(n);
+            let devant = 0;
+            for (let i = 0; i < n; i += 1) {
+                const [x, y, z] = projeter(anneau[i * 2 + 1], anneau[i * 2], 1, 0);
+                sx[i] = x;
+                sy[i] = -y;
+                sz[i] = z;
+                if (z >= 0) devant += 1;
+            }
+            if (devant === 0) return false;
+            /* On part d'un sommet caché quand il y en a un : le premier point tracé est alors
+               une entrée sur la face visible, et chaque sortie trouve son retour. */
+            let depart = 0;
+            if (devant < n) while (sz[depart] >= 0) depart += 1;
+            let ouvert = false;
+            let sortie: number | null = null;
+            let premiereEntree: number | null = null;
+            /* Le long du bord, par le plus court : un pays ne fait pas le tour du globe. */
+            const longerLeBord = (de: number, vers: number) => {
+                const ecart = ((vers - de + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
+                ctx.arc(c, c, R, de, vers, ecart < 0);
+            };
+            const auBord = (a: number, b: number): [number, number] => {
+                const t = sz[a] / (sz[a] - sz[b]);
+                const x = sx[a] + t * (sx[b] - sx[a]);
+                const y = sy[a] + t * (sy[b] - sy[a]);
+                const norme = Math.hypot(x, y) || 1;
+                return [x / norme, y / norme];
+            };
+            for (let k = 0; k < n; k += 1) {
+                const a = (depart + k) % n;
+                const b = (depart + k + 1) % n;
+                if (sz[a] >= 0) {
+                    const px = c + R * sx[a];
+                    const py = c - R * sy[a];
+                    if (ouvert) ctx.lineTo(px, py);
+                    else {
+                        ctx.moveTo(px, py);
+                        ouvert = true;
+                    }
+                }
+                if (sz[a] >= 0 !== sz[b] >= 0) {
+                    const [bx, by] = auBord(a, b);
+                    const angle = Math.atan2(-by, bx);
+                    if (sz[a] >= 0) {
+                        ctx.lineTo(c + R * bx, c - R * by);
+                        sortie = angle;
+                    } else if (sortie !== null) {
+                        longerLeBord(sortie, angle);
+                        sortie = null;
+                    } else {
+                        ctx.moveTo(c + R * bx, c - R * by);
+                        ouvert = true;
+                        premiereEntree = angle;
+                    }
+                }
+            }
+            /* La dernière sortie rejoint la première entrée par le bord, pas par une corde. */
+            if (sortie !== null && premiereEntree !== null) longerLeBord(sortie, premiereEntree);
+            ctx.closePath();
+            return true;
+        };
+
         let precedent = performance.now();
         let image = 0;
         const dessiner = (maintenant: number) => {
@@ -188,6 +284,32 @@ const GlobePointille: React.FC<GlobePointilleProps> = ({
                     ctx.fillRect(x - 0.6, y - 0.6, 1.2, 1.2);
                 }
             }
+            /* **Les pays du référentiel, remplis** — sous la trame des terres, qui garde ainsi
+               sa texture. Le pays choisi se dessine en dernier, par-dessus ses voisins. */
+            const lire = contours.current;
+            if (lire) {
+                const remplis = liste.filter((n) => n.code);
+                remplis.sort((a, b) => Number(a.id === choisi) - Number(b.id === choisi));
+                for (const n of remplis) {
+                    const anneaux = lire(n.code as string);
+                    if (!anneaux) continue;
+                    const estChoisi = n.id === choisi;
+                    ctx.beginPath();
+                    let trace = false;
+                    for (const anneau of anneaux) trace = tracerLAnneau(anneau, R, c) || trace;
+                    if (!trace) continue;
+                    ctx.globalAlpha = estChoisi ? 0.55 : 0.3;
+                    ctx.fillStyle = estChoisi ? couleurs.choisi : couleurs.noeud;
+                    ctx.fill();
+                    ctx.globalAlpha = estChoisi ? 0.6 : 0.75;
+                    ctx.strokeStyle = estChoisi ? couleurs.encre : couleurs.noeud;
+                    ctx.lineWidth = 1;
+                    ctx.lineJoin = 'round';
+                    ctx.stroke();
+                }
+                ctx.globalAlpha = 1;
+            }
+
             ctx.fillStyle = couleurs.terre;
             for (const [lat, lng] of terres) {
                 const [x, y, z] = projeter(lat, lng, R, c);

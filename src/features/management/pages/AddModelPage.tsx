@@ -7,6 +7,10 @@ import { useToast } from '../../../context/ToastContext';
 import { useData } from '../../../context/DataContext';
 import SelectField from '../../../components/ui/SelectField';
 import InputField from '../../../components/ui/InputField';
+import Button from '../../../components/ui/Button';
+import { FileDropzone } from '../../../components/ui/FileDropzone';
+import { formatFileSize } from '../../../lib/fileImport';
+import { estUneImageImportee, poidsDeLImage, reduireLImage } from '../../../lib/imageDeModele';
 import { TextArea } from '../../../components/ui/TextArea';
 import { FullScreenFormLayout } from '../../../components/layout/FullScreenFormLayout';
 import { FieldLabel, FormNote, FormSection, FormWarn } from '../../../components/ui/FormParts';
@@ -65,8 +69,27 @@ const AddModelPage: React.FC<AddModelPageProps> = ({
         image: '',
     });
 
+    /** L'image choisie est en cours de réduction. */
+    const [reduction, setReduction] = useState(false);
+    /** Le fichier choisi n'est pas une image lisible : dit sous la zone, là où il a été posé. */
+    const [refusDImage, setRefusDImage] = useState<string | null>(null);
+
+    const importerLImage = async (fichier: File) => {
+        setRefusDImage(null);
+        setReduction(true);
+        try {
+            const image = await reduireLImage(fichier);
+            setFormData((actuel) => ({ ...actuel, image }));
+        } catch {
+            setRefusDImage(`« ${fichier.name} » n'est pas une image lisible.`);
+        } finally {
+            setReduction(false);
+        }
+    };
+
     useEffect(() => {
         if (isOpen) {
+            setRefusDImage(null);
             if (modelToEdit) {
                 setFormData({
                     name: modelToEdit.name,
@@ -217,22 +240,62 @@ const AddModelPage: React.FC<AddModelPageProps> = ({
                     />
                 </FormSection>
 
-                <FormSection title="Image">
-                    {/* La zone « Télécharger l'image » n'avait ni `input`, ni `onClick`, ni
-                        gestionnaire : elle prenait le curseur en main, l'état de survol, et ne
-                        faisait rien — d'où la photo posée d'office à l'enregistrement. Le
-                        modèle porte une **adresse** d'image dans la donnée : le champ la
-                        demande, ce qui marche aujourd'hui sans réserve de fichiers. Un vrai
-                        dépôt suppose un magasin comme celui des factures de dépense
-                        (`financeFileStorage`) ; il n'est pas simulé en attendant. */}
-                    <InputField
-                        label="Adresse de l'image"
-                        name="image"
-                        type="url"
-                        value={formData.image}
-                        onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                        placeholder="https://…"
-                    />
+                <FormSection title="Image" caption="facultatif">
+                    {/* **Une image s'importe** (10/10). Le champ ne prenait qu'une adresse :
+                        on ne pouvait pas joindre la photo qu'on venait de prendre. Elle est
+                        réduite dans le navigateur et rangée dans la fiche du modèle
+                        (`lib/imageDeModele`) — tous les postes la voient. L'adresse reste
+                        possible, pour une image déjà en ligne. */}
+                    {formData.image ? (
+                        <div className="flex items-center gap-3">
+                            <img
+                                src={formData.image}
+                                alt=""
+                                className="bg-surface-container h-20 w-20 shrink-0 rounded-md object-contain"
+                            />
+                            <div className="min-w-0 flex-1">
+                                <span className="text-on-surface text-ts-body leading-ts-body block truncate">
+                                    {estUneImageImportee(formData.image)
+                                        ? 'Image importée'
+                                        : 'Image en ligne'}
+                                </span>
+                                <span className="text-on-surface-variant text-ts-sub leading-ts-sub block truncate">
+                                    {estUneImageImportee(formData.image)
+                                        ? formatFileSize(poidsDeLImage(formData.image))
+                                        : formData.image}
+                                </span>
+                            </div>
+                            <Button
+                                variant="text"
+                                onClick={() => setFormData({ ...formData, image: '' })}
+                                className="shrink-0"
+                            >
+                                Retirer
+                            </Button>
+                        </div>
+                    ) : (
+                        <>
+                            <FileDropzone
+                                accept=".jpg,.jpeg,.png,.webp"
+                                label="Glisser-déposer une image"
+                                subLabel="ou cliquez pour parcourir"
+                                pickLabel="Choisir une image"
+                                isProcessing={reduction}
+                                onFileSelect={(fichier) => void importerLImage(fichier)}
+                            />
+                            {refusDImage && <FormWarn glyph={Info}>{refusDImage}</FormWarn>}
+                            <InputField
+                                label="Ou l'adresse d'une image en ligne"
+                                name="image"
+                                type="url"
+                                value={formData.image}
+                                onChange={(e) =>
+                                    setFormData({ ...formData, image: e.target.value })
+                                }
+                                placeholder="https://…"
+                            />
+                        </>
+                    )}
                     <FormNote>Sans image, la rangée porte l&apos;initiale de la marque.</FormNote>
                 </FormSection>
 

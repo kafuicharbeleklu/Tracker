@@ -1,5 +1,7 @@
 import React from 'react';
+import { ClockCounterClockwise } from '@phosphor-icons/react';
 
+import CardEmptyState from '../../../components/ui/CardEmptyState';
 import { HAUTEUR_DU_PIED, PiedDeCarte, ToutVoir } from '../../../components/ui/ToutVoir';
 import { useCeQuiTient } from '../../../hooks/useCeQuiTient';
 import { cn } from '../../../lib/utils';
@@ -63,10 +65,10 @@ const ActiviteDeCampagne: React.FC<{
         return (
             <section
                 aria-label="Toute l’activité de la campagne"
-                className={cn('bg-surface rounded-xl px-[18px] py-4', className)}
+                className={cn('bg-surface rounded-card p-4', className)}
             >
                 <div className="mb-3 flex items-baseline justify-between gap-3">
-                    <h2 className="text-on-surface text-[1rem] leading-6 font-semibold">
+                    <h2 className="text-on-surface text-ts-head leading-ts-head font-medium">
                         Activité
                     </h2>
                     <span className="text-text-secondary text-[0.75rem] leading-4 tabular-nums">
@@ -74,11 +76,13 @@ const ActiviteDeCampagne: React.FC<{
                     </span>
                 </div>
                 {faits.length === 0 ? (
-                    <p className="text-text-secondary text-[0.8125rem] leading-[1.125rem]">
-                        Rien encore : le premier comptage paraîtra ici.
-                    </p>
+                    <CardEmptyState
+                        glyph={ClockCounterClockwise}
+                        title="Aucune activité"
+                        description="Le premier comptage paraîtra ici."
+                    />
                 ) : (
-                    <ul className="flex flex-col gap-3 text-[0.8125rem] leading-[1.125rem]">
+                    <ul className="text-ts-sub leading-ts-sub flex flex-col gap-3">
                         {faits.map((fait) => (
                             <Fait key={fait.id} fait={fait} />
                         ))}
@@ -91,18 +95,24 @@ const ActiviteDeCampagne: React.FC<{
     return (
         <section
             aria-label="L’activité de la campagne"
-            className={cn('bg-surface flex flex-col rounded-xl px-[18px] py-4', className)}
+            className={cn('bg-surface rounded-card flex flex-col p-4', className)}
         >
-            <h2 className="text-on-surface mb-2 text-[1rem] leading-6 font-semibold">Activité</h2>
+            <h2 className="text-on-surface text-ts-head leading-ts-head mb-2 font-medium">
+                Activité
+            </h2>
             {faits.length === 0 ? (
-                <p className="text-text-secondary text-[0.8125rem] leading-[1.125rem]">
-                    Rien encore : le premier comptage paraîtra ici.
-                </p>
+                /* Le vide de la carte, à sa forme (10/10) : c'était une ligne de 13 en haut
+                   d'une carte de 300 px. */
+                <CardEmptyState
+                    glyph={ClockCounterClockwise}
+                    title="Aucune activité"
+                    description="Le premier comptage paraîtra ici."
+                />
             ) : (
                 <>
                     <ul
                         ref={part.zone}
-                        className="relative flex min-h-0 flex-1 flex-col gap-3 overflow-clip text-[0.8125rem] leading-[1.125rem]"
+                        className="text-ts-sub leading-ts-sub relative flex min-h-0 flex-1 flex-col gap-3 overflow-clip"
                     >
                         {faits.slice(0, FAITS_SUR_LA_CARTE).map((fait) => (
                             <Fait key={fait.id} fait={fait} />

@@ -1521,7 +1521,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                         <ScanView
                             mode="simple"
                             onClose={() => setIsScanning(false)}
-                            tip="Cadrez l’étiquette collée sur l’objet. Code-barres ou QR, le viseur s’ajuste seul."
+                            tip="Cadrez l’étiquette collée sur l’objet."
                             hit={scanHit}
                             acceptLabel="Ouvrir la fiche"
                             onAccept={(hit) => {

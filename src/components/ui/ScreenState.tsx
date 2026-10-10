@@ -131,7 +131,7 @@ export const OfflineState: React.FC<{ depuis?: string | null; className?: string
     <ScreenState
         icon={WifiSlash}
         title="Hors ligne"
-        description="Ce qui est déjà chargé reste lisible. Créer, attribuer et déclarer reviendront avec le réseau."
+        description="Ce qui est déjà chargé reste lisible."
         footnote={depuis ? `Dernière mise à jour ${depuisQuand(depuis)}.` : undefined}
         className={className}
     />

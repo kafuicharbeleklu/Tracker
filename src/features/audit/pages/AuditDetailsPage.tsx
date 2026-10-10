@@ -12,10 +12,8 @@ import {
     DotsThreeVertical,
     Export,
     Hourglass,
-    Info,
     Funnel,
     LockSimple,
-    MagnifyingGlass,
     MapPin,
     Package,
     PencilSimple,
@@ -31,7 +29,7 @@ import Button from '../../../components/ui/Button';
 import Icon from '../../../components/ui/Icon';
 import Menu, { type MenuItem } from '../../../components/ui/Menu';
 import { useData } from '../../../context/DataContext';
-import FacetChip from '../../../components/ui/FacetChip';
+import BoutonDeRecherche from '../../../components/ui/BoutonDeRecherche';
 import SearchField from '../../../components/ui/SearchField';
 import ScreenState from '../../../components/ui/ScreenState';
 import CardEmptyState from '../../../components/ui/CardEmptyState';
@@ -52,6 +50,7 @@ import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { useCeQuiTient } from '../../../hooks/useCeQuiTient';
 import { useScanPossible } from '../../../hooks/useScanPossible';
 import { useEntree } from '../../../hooks/useEntree';
+import { useRechercheRepliee } from '../../../hooks/useRechercheRepliee';
 import { MEDIA } from '../../../constants/breakpoints';
 import SideSheet from '../../../components/ui/SideSheet';
 import Modal from '../../../components/ui/Modal';
@@ -72,7 +71,6 @@ import { useConfirmation } from '../../../context/ConfirmationContext';
 import { cn } from '../../../lib/utils';
 import { CADRE_BUREAU } from '../../../lib/regimeBureau';
 import { NOM_SUR_UNE_LIGNE, infobulle } from '../../../lib/nomLong';
-import { JAUGE } from '../../../lib/jauge';
 
 /* Le formulaire d'une fiche ne se charge que si l'on en complète une. */
 const AddEquipmentPage = lazy(() => import('../../inventory/pages/AddEquipmentPage'));
@@ -396,7 +394,8 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
      */
     const [recherche, setRecherche] = useState('');
     /** Au téléphone, la recherche s'ouvre à la loupe : la bande porte la jauge et les puces. */
-    const [rechercheOuverte, setRechercheOuverte] = useState(false);
+    /* La loupe du téléphone — la même que sur toutes les listes (10/10). */
+    const repliDeRecherche = useRechercheRepliee({ value: recherche, onChange: setRecherche });
     /** La carte des écarts, dans la colonne de droite — la tuile « Écarts » y mène. */
     const carteDesEcarts = useRef<HTMLElement>(null);
     const [scanOpen, setScanOpen] = useState(false);
@@ -1215,10 +1214,9 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
             title: `Clôturer l'audit de ${selectedPlace} ?`,
             message: (
                 <>
-                    Le relevé est figé et remis à un responsable d’inventaire. À la validation,{' '}
+                    Le relevé est figé et remis à un responsable. À la validation,{' '}
                     <strong>{missingSnapshot.length} actif(s) jamais scanné(s)</strong> seront
-                    marqués manquants et retirés du lieu ; s’il renvoie la campagne, le comptage
-                    reprend.
+                    marqués manquants.
                 </>
             ),
             confirmText: 'Clôturer',
@@ -1356,12 +1354,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
         const label = item?.name || 'la fiche créée';
         requestConfirmation({
             title: `Écarter ${label} ?`,
-            message: (
-                <>
-                    Le scan avait créé une fiche à partir du seul code lu. L'écarter la retire du
-                    parc. Le code pourra être rescanné plus tard s'il correspond à un vrai actif.
-                </>
-            ),
+            message: <>La fiche créée par le scan est retirée du parc.</>,
             tone: 'destructive',
             irreversible: true,
             confirmText: 'Écarter',
@@ -1632,7 +1625,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                         layout="card"
                         aria-pressed={coche}
                         onClick={() => selection.toggle(item.id)}
-                        className="border-outline-variant hover:bg-surface-container deux:-mx-5 deux:w-[calc(100%+2.5rem)] deux:px-5 -mx-4 flex min-h-16 w-[calc(100%+2rem)] items-center gap-3 rounded-none border-t px-4 py-2 text-left font-normal whitespace-normal first:border-t-0 active:scale-100"
+                        className="border-outline-variant hover:bg-surface-container -mx-4 flex min-h-16 w-[calc(100%+2rem)] items-center gap-3 rounded-none border-t px-4 py-2 text-left font-normal whitespace-normal first:border-t-0 active:scale-100"
                     >
                         <SelectionBox selected={coche} />
                         <span className="min-w-0 flex-1">
@@ -1720,7 +1713,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                         variant="outlined"
                                         size="sm"
                                         onClick={() => retrouveEnUnGeste(item)}
-                                        className="hover:bg-surface hover:border-on-surface-variant active:bg-surface-container-high h-9 min-h-9 gap-1.5 px-3 text-[0.8125rem]"
+                                        className="hover:bg-surface hover:border-on-surface-variant active:bg-surface-container-high text-ts-sub h-9 min-h-9 gap-1.5 px-3"
                                     >
                                         <Icon glyph={Check} size={18} />
                                         Retrouvé
@@ -1831,14 +1824,10 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
     /** « Sélectionner plusieurs » : pendant la campagne, sur ce qui reste à scanner. */
     const selectionPossible =
         ongletAffiche === 'todo' && peutCompter && !auditFinalized && todoItems.length > 0;
-    const listeCorrigeable =
-        (ongletAffiche === 'scanned' || ongletAffiche === 'corrigees') &&
-        peutCorriger &&
-        !auditFinalized &&
-        listeAffichee.length > 0;
 
-    /* Les indices de la planche : ils ne paraissent que quand ils s'appliquent. Une
-       explication permanente devient du décor. */
+    /* Les indices de la planche : ils ne paraissent que quand ils s'appliquent, et ne disent
+       que le fait (10/10). Chacun traînait trois lignes d'explication — jusqu'à une dette
+       interne, « D3 », écrite à l'écran. */
     const indicesDeLaListe = (
         <>
             {ongletAffiche === 'todo' &&
@@ -1846,29 +1835,21 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                     <p className="text-body-small text-on-surface-variant pt-[7px] pb-4">
                         <strong className="text-on-surface font-medium">
                             L'actif en réparation reste à scanner.
-                        </strong>{' '}
-                        Il est attendu dans le lieu : c'est le relevé qui dit s'il y est, pas son
-                        statut. À la clôture, ne pas l'avoir vu ne le rendra pas manquant — son
-                        absence est justifiée.
+                        </strong>
                     </p>
                 )}
             {ongletAffiche === 'missing' && horsSiteItems.length > 0 && (
                 <p className="text-body-small text-on-surface-variant pt-[7px] pb-4">
                     <strong className="text-on-surface font-medium">
                         Hors site : ni retrouvés, ni manquants.
-                    </strong>{' '}
-                    Ces actifs sont chez le réparateur : leur absence du lieu s'explique, et la
-                    validation ne les accuse pas.
+                    </strong>
                 </p>
             )}
             {ongletAffiche === 'missing' && auditFinalized && assignedMissingCount > 0 && (
                 <p className="text-body-small text-on-surface-variant pt-[7px] pb-4">
                     <strong className="text-on-surface font-medium">
                         {assignedMissingCount} des {missingItems.length} jamais vus sont attribués.
-                    </strong>{' '}
-                    Leur porteur reste responsable : le manquant devrait ouvrir une tâche chez lui,
-                    et il ne s'efface pas avec la campagne. La file ne le fait pas encore — dette
-                    D3.
+                    </strong>
                 </p>
             )}
         </>
@@ -2016,10 +1997,12 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
             onClick:
                 exceptionsDisplay.length > 0
                     ? () =>
-                          carteDesEcarts.current?.scrollIntoView({
-                              behavior: 'smooth',
-                              block: 'nearest',
-                          })
+                          enDeuxNiveaux
+                              ? carteDesEcarts.current?.scrollIntoView({
+                                    behavior: 'smooth',
+                                    block: 'nearest',
+                                })
+                              : setVueEcarts(true)
                     : undefined,
         },
         {
@@ -2027,6 +2010,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
             glyph: PencilSimple,
             teinte: 'ambre',
             label: 'Fiches corrigées',
+            labelCourt: 'Corrigées',
             valeur: itemsCorriges.length,
             detail:
                 itemsCorriges.length === 0
@@ -2057,7 +2041,6 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                 id: 'export-releve',
                 label: 'Exporter le relevé',
                 description: 'le parc, son état et l’heure de chaque lecture',
-                icon: 'download',
                 onSelect: exportRelevé,
             });
         }
@@ -2066,8 +2049,6 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                 id: 'finalize-session',
                 label: 'Clôturer la campagne',
                 description: 'le relevé est remis à un responsable, qui le valide',
-                icon: 'lock',
-                destructive: true,
                 onSelect: handleFinalizeAudit,
             });
         }
@@ -2076,7 +2057,6 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                 id: 'relance',
                 label: 'Lancer une nouvelle campagne',
                 description: 'le lieu se recompte depuis zéro',
-                icon: 'restart_alt',
                 onSelect: relancerLaCampagne,
             });
         }
@@ -2085,8 +2065,10 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                 id: 'abandon-session',
                 label: 'Abandonner la campagne',
                 description: 'jette les comptages en cours ; aucun actif modifié',
-                icon: 'restart_alt',
                 destructive: true,
+                /* Le seul acte qui jette : détaché des autres, comme la sortie du menu du
+                   compte. */
+                dividerBefore: items.length > 0,
                 onSelect: abandonAuditSession,
             });
         }
@@ -2145,7 +2127,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                         <Button
                             variant="outlined"
                             onClick={() => setRenvoiOuvert(true)}
-                            className="h-10 min-h-10 px-4 text-[0.875rem]"
+                            className="text-ts-body h-10 min-h-10 px-4"
                         >
                             <Icon glyph={ArrowUUpLeft} size={18} />
                             Renvoyer
@@ -2153,7 +2135,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                         <Button
                             variant="filled"
                             onClick={validerLaCampagne}
-                            className="h-10 min-h-10 px-4 text-[0.875rem]"
+                            className="text-ts-body h-10 min-h-10 px-4"
                         >
                             <Icon glyph={CheckCircle} size={18} />
                             Valider l’inventaire
@@ -2236,7 +2218,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
             >
                 <p
                     title={infobulle(`${name} · ${code}`)}
-                    className="text-on-surface truncate text-[0.875rem] leading-5 font-medium"
+                    className="text-on-surface text-ts-body leading-ts-body truncate font-medium"
                 >
                     {name} · {code}
                 </p>
@@ -2262,7 +2244,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                     ? leaveException(entry.id)
                                     : discardException(entry.id, entry.equipment)
                             }
-                            className="h-[34px] min-h-[34px] min-w-[7.5rem] flex-1 justify-center px-3 text-[0.8125rem]"
+                            className="text-ts-sub h-[34px] min-h-[34px] min-w-[7.5rem] flex-1 justify-center px-3"
                         >
                             {isOutOfService ? 'Il reste là-bas' : 'Écarter'}
                         </Button>
@@ -2275,7 +2257,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                     ? attachException(entry.id, entry.equipment)
                                     : completeException(entry.id, entry.equipment)
                             }
-                            className="h-[34px] min-h-[34px] min-w-[7.5rem] flex-1 justify-center px-3 text-[0.8125rem]"
+                            className="text-ts-sub h-[34px] min-h-[34px] min-w-[7.5rem] flex-1 justify-center px-3"
                         >
                             {isOutOfService ? 'Rattacher ici' : 'Compléter la fiche'}
                         </Button>
@@ -2349,8 +2331,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                         entry.decision === 'attached' ? (
                             <>
                                 Rattaché à <strong className="font-medium">{selectedPlace}</strong>{' '}
-                                {formatSince(entry.decidedAt)}. L'actif compte désormais parmi les
-                                retrouvés.
+                                {formatSince(entry.decidedAt)}.
                             </>
                         ) : entry.decision === 'left' ? (
                             <>
@@ -2360,16 +2341,12 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                         — <strong className="font-medium">{registeredAt}</strong>
                                     </>
                                 ) : null}
-                                . Il était de passage ici.
+                                .
                             </>
                         ) : entry.decision === 'kept' ? (
-                            <>
-                                Fiche gardée et ouverte pour être complétée{' '}
-                                {formatSince(entry.decidedAt)}. Elle est rattachée au périmètre de
-                                la campagne.
-                            </>
+                            <>Fiche gardée {formatSince(entry.decidedAt)}.</>
                         ) : (
-                            <>Fiche écartée et retirée du parc. Le code pourra être rescanné.</>
+                            <>Fiche écartée et retirée du parc.</>
                         )
                     ) : isOutOfService ? (
                         <>
@@ -2382,9 +2359,8 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                         </>
                     ) : (
                         <>
-                            Aucune fiche ne portait ce code. Le scan a lu{' '}
-                            <strong className="font-medium">{name}</strong> sur l'étiquette — le
-                            reste de la fiche est à saisir. Faut-il la garder ?
+                            Aucune fiche ne portait ce code : le scan a lu{' '}
+                            <strong className="font-medium">{name}</strong>. Faut-il la garder ?
                         </>
                     )}
                 </p>
@@ -2419,18 +2395,6 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                     </div>
                 )}
 
-                {/* La ligne de conséquence, sous les gestes : ce que le geste écrit
-                    réellement. */}
-                {!entry.resolved && (
-                    <p className="text-label-small text-on-surface-variant mt-2 flex items-start gap-2">
-                        <Icon glyph={Info} size={18} className="mt-px shrink-0" />
-                        <span>
-                            {isOutOfService
-                                ? "« Rattacher » écrit l'emplacement dans la fiche — c'est une modification d'actif, elle est journalisée."
-                                : 'La fiche existe déjà, créée du seul code lu : « Compléter » ouvre le formulaire de 04.3 pour le reste.'}
-                        </span>
-                    </p>
-                )}
                 {entry.resolved &&
                     (auditFinalized ? (
                         <p className="text-label-small text-on-surface-variant mt-2.5">
@@ -2454,27 +2418,6 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
         );
     };
 
-    /**
-     * **Les puces du téléphone** (28/09) — dans la bande fixe, sous la jauge : ce qu'on
-     * regarde, et combien. « Écarts » n'est pas une partition du parc : sa puce, orange
-     * tant qu'une décision attend, mène à l'écran des écarts.
-     */
-    const pucesDuTelephone: { id: AuditTab; label: string; count: number }[] = [
-        ...(auditFinalized
-            ? [
-                  {
-                      id: 'missing' as const,
-                      label: 'Jamais vus',
-                      count: missingItems.length + horsSiteItems.length,
-                  },
-              ]
-            : [{ id: 'todo' as const, label: 'À scanner', count: todoItems.length }]),
-        { id: 'scanned', label: 'Retrouvés', count: scannedItems.length },
-        ...(itemsCorriges.length > 0
-            ? [{ id: 'corrigees' as const, label: 'Corrigées', count: itemsCorriges.length }]
-            : []),
-    ];
-
     /** Les fiches corrigées, pour la colonne de la campagne clôturée — de quoi à quoi. */
     const correctionsARelire = itemsCorriges
         .map((item) => ({ item, event: correctionsParActif.get(item.id) }))
@@ -2488,11 +2431,14 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
     );
 
     const enteteDeListe = (
-        <div className="border-outline-variant flex min-h-16 shrink-0 items-center gap-3 border-b px-5 py-3">
-            <h2 className="text-on-surface text-[1rem] leading-6 font-semibold whitespace-nowrap">
+        /* Le retrait d'une carte est 16, au bureau aussi (10/10) : cette liste tenait 20,
+           seule de son espèce — son titre et ses vignettes tombaient 4 px à droite de
+           ceux des deux cartes voisines. */
+        <div className="border-outline-variant flex min-h-16 shrink-0 items-center gap-3 border-b px-4 py-3">
+            <h2 className="text-on-surface text-ts-head leading-ts-head font-medium whitespace-nowrap">
                 {TITRE_DE_LISTE[ongletAffiche]}
             </h2>
-            <span className="text-text-secondary text-[0.8125rem] leading-[1.125rem] whitespace-nowrap tabular-nums">
+            <span className="text-text-secondary text-ts-sub leading-ts-sub whitespace-nowrap tabular-nums">
                 {selection.isActive
                     ? `${selection.count} sélectionné${selection.count > 1 ? 's' : ''} sur ${todoItems.length}`
                     : compteDeListe}
@@ -2504,7 +2450,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                             variant="text"
                             size="sm"
                             onClick={() => selection.selectAll(todoItems.map((item) => item.id))}
-                            className="text-on-surface h-9 min-h-9 px-2.5 text-[0.8125rem]"
+                            className="text-on-surface text-ts-sub h-9 min-h-9 px-2.5"
                         >
                             Tout
                         </Button>
@@ -2512,7 +2458,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                             variant="text"
                             size="sm"
                             onClick={selection.exit}
-                            className="text-on-surface h-9 min-h-9 px-2.5 text-[0.8125rem]"
+                            className="text-on-surface text-ts-sub h-9 min-h-9 px-2.5"
                         >
                             Annuler
                         </Button>
@@ -2521,7 +2467,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                             size="sm"
                             disabled={selection.count === 0}
                             onClick={validerLaSelection}
-                            className="h-9 min-h-9 gap-1.5 px-3 text-[0.8125rem]"
+                            className="text-ts-sub h-9 min-h-9 gap-1.5 px-3"
                         >
                             <Icon glyph={Check} size={18} />
                             Valider comme retrouvés
@@ -2541,7 +2487,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                 variant="text"
                                 size="sm"
                                 onClick={() => selection.enter()}
-                                className="text-on-surface h-9 min-h-9 shrink-0 px-2.5 text-[0.8125rem]"
+                                className="text-on-surface text-ts-sub h-9 min-h-9 shrink-0 px-2.5"
                             >
                                 Sélectionner plusieurs
                             </Button>
@@ -2551,6 +2497,38 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
             </div>
         </div>
     );
+
+    /** Où en est la campagne — les faits que ses étapes écrivent, au bureau comme au téléphone. */
+    const etapesDeLaCampagne = {
+        etat: campagne.etat,
+        lancee: premierComptage
+            ? `${premierComptage.actorName} · ${formatQuand(premierComptage.timestamp)}`
+            : undefined,
+        total: sessionTotal,
+        retrouves: sessionFound,
+        scannes: Math.max(0, sessionFound - comptesALaMain),
+        manuels: comptesALaMain,
+        ecartsATrancher: pendingExceptions.length,
+        manquants: missingItems.length,
+        corrigees: itemsCorriges.length,
+        premiereCorrigee:
+            itemsCorriges.length === 1
+                ? itemsCorriges[0].model || itemsCorriges[0].name
+                : undefined,
+        cloture: campagne.cloture && {
+            acteur: campagne.cloture.actorName,
+            quand: formatQuand(campagne.cloture.timestamp),
+        },
+        validation: campagne.validation && {
+            acteur: campagne.validation.actorName,
+            quand: formatQuand(campagne.validation.timestamp),
+        },
+        renvoi: campagne.renvoi && {
+            acteur: campagne.renvoi.actorName,
+            quand: formatQuand(campagne.renvoi.timestamp),
+            motif: String(campagne.renvoi.metadata?.reason ?? ''),
+        },
+    };
 
     /**
      * **Le parc et les écarts sont deux écrans** : au téléphone la puce « Écarts » mène à
@@ -2588,8 +2566,12 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                   à droite : exporter, « Saisir un code » (le seul jaune, pendant la
                   campagne), et le ⋮ pour le reste.
                 */
-                <header className="px-page flex shrink-0 items-start justify-between gap-6 pt-[26px] pb-4">
-                    <div className="flex min-w-0 items-start gap-1.5">
+                /* **À la mesure des autres en-têtes** (10/10) : 20 au-dessus, une rangée de
+                   52 centrée, 8 de la flèche au titre, 16 entre les gestes nommés. Elle
+                   tenait 26 au-dessus et 16 dessous, alignée en haut : ses tuiles
+                   commençaient à 96 quand les cartes de toute autre page commencent à 88. */
+                <header className="px-page flex min-h-[84px] shrink-0 items-center justify-between gap-4 pt-5 pb-3">
+                    <div className="flex min-w-0 items-center gap-2">
                         <Button
                             variant="text"
                             iconOnly
@@ -2603,7 +2585,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                         </Button>
                         <div className="min-w-0">
                             <div className="flex min-w-0 items-center gap-3">
-                                <h1 className="font-brand text-on-surface truncate text-[1.75rem] leading-10 font-semibold tracking-[-0.02em]">
+                                <h1 className="font-brand text-on-surface text-ts-page leading-ts-page truncate font-semibold tracking-[-0.02em]">
                                     {sousEcran
                                         ? TITRE_DU_SOUS_ECRAN[sousEcran]
                                         : lieuDansLeSite || selectedSite || 'Campagne'}
@@ -2611,7 +2593,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                 {scopeIsReady && !sousEcran && (
                                     <span
                                         className={cn(
-                                            'inline-flex h-[26px] shrink-0 items-center gap-1.5 rounded-full px-2.5 text-[0.8125rem] font-semibold whitespace-nowrap',
+                                            'text-ts-sub inline-flex h-[26px] shrink-0 items-center gap-1.5 rounded-full px-2.5 font-semibold whitespace-nowrap',
                                             PASTILLE_ETAT[etatAffiche.teinte].fond,
                                         )}
                                     >
@@ -2627,7 +2609,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                 )}
                             </div>
                             {scopeIsReady && (
-                                <p className="text-text-secondary truncate text-[0.8125rem] leading-[1.125rem]">
+                                <p className="text-text-secondary text-ts-sub leading-ts-sub truncate">
                                     {sousEcran
                                         ? lieuDansLeSite || selectedSite
                                         : sousTitreDeCampagne}
@@ -2635,13 +2617,13 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                             )}
                         </div>
                     </div>
-                    <div className={cn('flex shrink-0 items-center gap-2', sousEcran && 'hidden')}>
+                    <div className={cn('flex shrink-0 items-center gap-4', sousEcran && 'hidden')}>
                         {sessionStarted && (
                             <Button
                                 variant="outlined"
                                 onClick={exportRelevé}
                                 icon={<Icon glyph={Export} size={20} />}
-                                className="doigt:h-12 doigt:min-h-12 doigt:text-ts-control doigt:leading-ts-control h-10 min-h-10 shrink-0 gap-2 rounded-md px-3.5 text-[0.875rem] font-medium shadow-none"
+                                className="doigt:h-12 doigt:min-h-12 doigt:text-ts-control doigt:leading-ts-control text-ts-body h-10 min-h-10 shrink-0 gap-2 rounded-md px-3.5 font-medium shadow-none"
                             >
                                 {auditFinalized ? 'Exporter le relevé' : 'Exporter'}
                             </Button>
@@ -2656,14 +2638,16 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                     scanPossible ? setScanOpen(true) : setManualOpen(true)
                                 }
                                 icon={<Icon glyph={QrCode} size={20} />}
-                                className="doigt:h-12 doigt:min-h-12 doigt:text-ts-control h-10 min-h-10 shrink-0 gap-2 rounded-md pr-4 pl-3.5 text-[0.875rem] font-semibold"
+                                className="doigt:h-12 doigt:min-h-12 doigt:text-ts-control text-ts-body h-10 min-h-10 shrink-0 gap-2 rounded-md pr-4 pl-3.5 font-semibold"
                             >
                                 {scanPossible ? 'Scanner' : 'Saisir un code'}
                             </Button>
                         )}
                         {overflowAffiche.length > 0 && (
                             <Menu
+                                rootClassName="-ml-2"
                                 align="end"
+                                title={lieuDansLeSite || selectedSite || undefined}
                                 items={overflowAffiche}
                                 trigger={
                                     <Button
@@ -2712,18 +2696,10 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                 !sousEcran && (
                                     <>
                                         {scopeIsReady && sessionTotal > 0 && (
-                                            <Button
-                                                variant="text"
-                                                iconOnly
-                                                aria-label="Chercher un actif"
-                                                aria-pressed={rechercheOuverte}
-                                                onClick={() => {
-                                                    if (rechercheOuverte) setRecherche('');
-                                                    setRechercheOuverte(!rechercheOuverte);
-                                                }}
-                                            >
-                                                <Icon glyph={MagnifyingGlass} size="geste" />
-                                            </Button>
+                                            <BoutonDeRecherche
+                                                ouverte={repliDeRecherche.ouverte}
+                                                onBasculer={repliDeRecherche.basculer}
+                                            />
                                         )}
                                         {auditFinalized ? (
                                             <Button
@@ -2738,6 +2714,9 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                             overflowItems.length > 0 && (
                                                 <Menu
                                                     align="end"
+                                                    title={
+                                                        lieuDansLeSite || selectedSite || undefined
+                                                    }
                                                     items={overflowItems}
                                                     trigger={
                                                         <Button
@@ -2760,74 +2739,14 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                         >
                             {scopeIsReady && !sousEcran && sessionTotal > 0 && (
                                 <>
-                                    {/* La jauge : combien sont retrouvés, sur combien. */}
-                                    <div className="flex flex-col gap-1.5">
-                                        <div className="flex items-baseline justify-between gap-3">
-                                            <span className="text-[0.875rem] leading-5">
-                                                <b className="font-brand text-on-surface text-[1.125rem] font-semibold tabular-nums">
-                                                    {sessionFound}
-                                                </b>{' '}
-                                                <span className="text-text-secondary">
-                                                    sur {sessionTotal} retrouvé
-                                                    {sessionFound > 1 ? 's' : ''}
-                                                </span>
-                                            </span>
-                                            <span className="text-on-tint-vert text-[0.8125rem] leading-[1.125rem] font-semibold tabular-nums">
-                                                {progressPercentage} %
-                                            </span>
-                                        </div>
-                                        <span
-                                            aria-hidden="true"
-                                            className={cn(
-                                                'bg-surface-muted-strong block overflow-hidden',
-                                                JAUGE,
-                                            )}
-                                        >
-                                            <span
-                                                className="mvt-jauge duration-medium2 ease-emphasized block h-full bg-[var(--tk-color-st-vert)] transition-[width]"
-                                                style={{ width: `${progressPercentage}%` }}
-                                            />
-                                        </span>
-                                    </div>
-                                    <div className="-mx-4 flex [scrollbar-width:none] gap-2 overflow-x-auto px-4">
-                                        {pucesDuTelephone.map((puce) => (
-                                            <FacetChip
-                                                compact
-                                                key={puce.id}
-                                                label={puce.label}
-                                                count={puce.count}
-                                                selected={ongletAffiche === puce.id}
-                                                onClick={() => choisir(puce.id)}
-                                                className={cn(
-                                                    'border',
-                                                    ongletAffiche === puce.id
-                                                        ? 'border-inverse-surface'
-                                                        : 'border-outline-variant bg-surface hover:bg-surface-container',
-                                                )}
-                                            />
-                                        ))}
-                                        {sessionExceptions > 0 && (
-                                            <Button
-                                                variant="text"
-                                                onClick={() => setVueEcarts(true)}
-                                                className={cn(
-                                                    'text-ts-sub leading-ts-sub h-9 max-h-9 min-h-9 shrink-0 gap-1.5 rounded-md border px-3 font-medium',
-                                                    pendingExceptions.length > 0
-                                                        ? 'border-tint-orange text-on-tint-orange hover:bg-tint-orange active:bg-tint-orange bg-[color-mix(in_srgb,var(--tk-color-tint-orange)_45%,var(--tk-color-surface))]'
-                                                        : 'border-outline-variant bg-surface text-on-surface hover:bg-surface-container',
-                                                )}
-                                            >
-                                                Écarts
-                                                <b className="font-bold tabular-nums">
-                                                    {pendingExceptions.length > 0
-                                                        ? pendingExceptions.length
-                                                        : sessionExceptions}
-                                                </b>
-                                            </Button>
-                                        )}
-                                    </div>
-                                    {rechercheOuverte && (
+                                    {/* **Plus de jauge ni de puces ici** (10/10). Sous 1000 px la
+                                        campagne gardait sa mise en page d'avant la refonte du
+                                        28/09 : une jauge et des puces dans l'en-tête, là où le
+                                        bureau a ses tuiles. Les tuiles sont maintenant les mêmes
+                                        aux trois formats, dans le corps de la page. */}
+                                    {repliDeRecherche.ouverte && (
                                         <SearchField
+                                            autoFocus={repliDeRecherche.parGeste}
                                             value={recherche}
                                             onChange={setRecherche}
                                             placeholder="Modèle, code, porteur"
@@ -2909,7 +2828,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                     {enteteDeListe}
                                     <div
                                         className={cn(
-                                            'min-h-0 flex-1 overflow-y-auto px-5 pb-2',
+                                            'min-h-0 flex-1 overflow-y-auto px-4 pb-2',
                                             entreeListe && 'mvt-cascade',
                                         )}
                                     >
@@ -2930,45 +2849,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                     )}
                                 >
                                     <EtapesDeCampagne
-                                        etat={campagne.etat}
-                                        lancee={
-                                            premierComptage
-                                                ? `${premierComptage.actorName} · ${formatQuand(premierComptage.timestamp)}`
-                                                : undefined
-                                        }
-                                        total={sessionTotal}
-                                        retrouves={sessionFound}
-                                        scannes={Math.max(0, sessionFound - comptesALaMain)}
-                                        manuels={comptesALaMain}
-                                        ecartsATrancher={pendingExceptions.length}
-                                        manquants={missingItems.length}
-                                        corrigees={itemsCorriges.length}
-                                        premiereCorrigee={
-                                            itemsCorriges.length === 1
-                                                ? itemsCorriges[0].model || itemsCorriges[0].name
-                                                : undefined
-                                        }
-                                        cloture={
-                                            campagne.cloture && {
-                                                acteur: campagne.cloture.actorName,
-                                                quand: formatQuand(campagne.cloture.timestamp),
-                                            }
-                                        }
-                                        validation={
-                                            campagne.validation && {
-                                                acteur: campagne.validation.actorName,
-                                                quand: formatQuand(campagne.validation.timestamp),
-                                            }
-                                        }
-                                        renvoi={
-                                            campagne.renvoi && {
-                                                acteur: campagne.renvoi.actorName,
-                                                quand: formatQuand(campagne.renvoi.timestamp),
-                                                motif: String(
-                                                    campagne.renvoi.metadata?.reason ?? '',
-                                                ),
-                                            }
-                                        }
+                                        {...etapesDeLaCampagne}
                                         peutCloturer={
                                             sessionStarted &&
                                             peutCompter &&
@@ -2987,10 +2868,10 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                         <section
                                             ref={carteDesEcarts}
                                             aria-label="Les écarts"
-                                            className="rounded-card bg-surface flex min-h-[13.5rem] shrink flex-col gap-2.5 px-[18px] py-4"
+                                            className="rounded-card bg-surface flex min-h-[13.5rem] shrink flex-col gap-2.5 p-4"
                                         >
                                             <div className="flex shrink-0 items-baseline justify-between gap-3">
-                                                <h2 className="text-on-surface text-[1rem] leading-6 font-semibold">
+                                                <h2 className="text-on-surface text-ts-head leading-ts-head font-medium">
                                                     Écarts
                                                 </h2>
                                                 <span
@@ -3028,9 +2909,9 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                     correctionsARelire.length > 0 ? (
                                         <section
                                             aria-label="Les fiches corrigées"
-                                            className="rounded-card bg-surface flex min-h-[8rem] flex-1 flex-col px-[18px] py-4"
+                                            className="rounded-card bg-surface flex min-h-[8rem] flex-1 flex-col p-4"
                                         >
-                                            <h2 className="text-on-surface mb-2.5 shrink-0 text-[1rem] leading-6 font-semibold">
+                                            <h2 className="text-on-surface text-ts-head leading-ts-head mb-2.5 shrink-0 font-medium">
                                                 Corrigé pendant le comptage
                                             </h2>
                                             <ul
@@ -3044,7 +2925,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                                         return (
                                                             <li
                                                                 key={item.id}
-                                                                className="flex gap-2.5 text-[0.8125rem] leading-[1.1875rem]"
+                                                                className="text-ts-sub leading-ts-sub flex gap-2.5"
                                                             >
                                                                 <span
                                                                     aria-hidden="true"
@@ -3115,6 +2996,10 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                         </>
                     ) : (
                         <>
+                            {/* **Les mêmes pièces qu'au bureau** (10/10) : les quatre tuiles —
+                                elles filtrent la liste, comme là-bas —, puis la liste, puis
+                                les étapes de la campagne et son activité. */}
+                            {sessionTotal > 0 && <TuilesDeCampagne tuiles={tuiles} />}
                             {bandeauDeCampagne}
 
                             {/* **Valider un lot** (27/09) : on entre en sélection, on coche ce
@@ -3131,7 +3016,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                         onClick={() =>
                                             selection.selectAll(todoItems.map((item) => item.id))
                                         }
-                                        className="text-inverse-on-surface h-9 min-h-9 px-2 text-[0.8125rem] hover:bg-white/10"
+                                        className="text-inverse-on-surface text-ts-sub h-9 min-h-9 px-2 hover:bg-white/10"
                                     >
                                         Tout
                                     </Button>
@@ -3139,7 +3024,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                         variant="text"
                                         size="sm"
                                         onClick={selection.exit}
-                                        className="text-inverse-on-surface h-9 min-h-9 px-2 text-[0.8125rem] hover:bg-white/10"
+                                        className="text-inverse-on-surface text-ts-sub h-9 min-h-9 px-2 hover:bg-white/10"
                                     >
                                         Annuler
                                     </Button>
@@ -3148,30 +3033,25 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                         size="sm"
                                         disabled={selection.count === 0}
                                         onClick={validerLaSelection}
-                                        className="h-9 min-h-9 gap-1.5 px-3 text-[0.8125rem]"
+                                        className="text-ts-sub h-9 min-h-9 gap-1.5 px-3"
                                     >
                                         <Icon glyph={Check} size={18} />
                                         Valider comme retrouvés
                                     </Button>
                                 </div>
                             ) : (
-                                (selectionPossible || listeCorrigeable) && (
-                                    <div className="text-text-secondary flex min-h-9 items-center justify-between gap-3 px-0.5 text-[0.75rem] leading-4">
-                                        <span className="min-w-0">
-                                            {ongletAffiche === 'todo'
-                                                ? 'Touchez un actif pour vérifier sa fiche'
-                                                : 'Touchez un actif pour corriger sa fiche'}
-                                        </span>
-                                        {selectionPossible && (
-                                            <Button
-                                                variant="text"
-                                                size="sm"
-                                                onClick={() => selection.enter()}
-                                                className="text-on-surface -mr-2 h-9 min-h-9 shrink-0 px-2 text-[0.8125rem]"
-                                            >
-                                                Sélectionner
-                                            </Button>
-                                        )}
+                                /* « Touchez un actif pour vérifier sa fiche » est retiré (10/10) :
+                                   une rangée qui s'ouvre n'a pas besoin de le dire. */
+                                selectionPossible && (
+                                    <div className="flex min-h-9 items-center justify-end px-0.5">
+                                        <Button
+                                            variant="text"
+                                            size="sm"
+                                            onClick={() => selection.enter()}
+                                            className="text-on-surface text-ts-sub -mr-2 h-9 min-h-9 shrink-0 px-2"
+                                        >
+                                            Sélectionner
+                                        </Button>
                                     </div>
                                 )
                             )}
@@ -3185,6 +3065,19 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                 {rangeesDeLaListe}
                                 {indicesDeLaListe}
                             </section>
+
+                            {/* Où en est la campagne, et ce qui vient de s'y passer. Les
+                                gestes de clôture et de validation restent ceux du téléphone
+                                (le ⋮, le bandeau) : les étapes ne les redisent pas. */}
+                            <EtapesDeCampagne
+                                {...etapesDeLaCampagne}
+                                peutCloturer={false}
+                                peutValider={false}
+                            />
+                            <ActiviteDeCampagne
+                                faits={faitsDActivite}
+                                onTout={() => setVueActivite(true)}
+                            />
                         </>
                     )}
                 </div>
@@ -3226,7 +3119,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                     <ScanView
                         mode="batch"
                         onClose={() => setScanOpen(false)}
-                        tip="Cadrez le numéro de série ou le code-barres. Le compteur monte à chaque lecture."
+                        tip="Cadrez le numéro de série ou le code-barres."
                         hits={scanHits}
                         expected={sessionTotal}
                         finishLabel="Terminer le lot"
@@ -3247,7 +3140,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                 open={manualOpen}
                 onClose={() => setManualOpen(false)}
                 title="Saisir le code lu"
-                description="Le numéro de série ou le code d’actif lu sur l’étiquette — ou le contenu d’un QR, si l’actif en porte un."
+                description="Le numéro de série ou le code d’actif lu sur l’étiquette."
             >
                 <div className="space-y-4">
                     <textarea

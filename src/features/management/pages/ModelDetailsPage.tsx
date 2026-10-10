@@ -5,7 +5,6 @@ import {
     Handshake,
     Package,
     PencilSimple,
-    Plus,
 } from '@phosphor-icons/react';
 import { useConfirmation } from '../../../context/ConfirmationContext';
 import { useData } from '../../../context/DataContext';
@@ -166,8 +165,7 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ modelId, onBack, on
             /* C2 — la conséquence, et ce qui est conservé. L'irréversibilité en
                sortait : elle a sa ligne, en rouge, sous le corps (C4). La dire deux
                fois dans deux formes différentes ne la rend pas plus lisible. */
-            message:
-                "Aucun actif n'y est rattaché. Le modèle disparaît du catalogue et de la création d'équipement.",
+            message: 'Le modèle disparaît du catalogue.',
             tone: 'destructive',
             irreversible: true,
             /* **Le dernier mot-clé à recopier du produit.** Il exigeait de taper
@@ -188,18 +186,13 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ modelId, onBack, on
         });
     };
 
+    /* **« Modifier » n'a qu'une porte : le héro** (10/10). Il était aussi dans ce menu et au
+       pied de la carte « Référence » — trois gestes pour ouvrir la même fiche. */
     const menuItems = [
-        {
-            id: 'edit',
-            label: 'Modifier le modèle',
-            description: 'nom, type, marque, spécifications',
-            onSelect: () => setIsEditModalOpen(true),
-        },
         {
             id: 'export',
             label: 'Exporter les unités',
             description: `${totalUnits} unité(s) au format CSV`,
-            dividerBefore: true,
             onSelect: handleExportUnits,
         },
         {
@@ -242,6 +235,7 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ modelId, onBack, on
                     <>
                         <Menu
                             align="end"
+                            title={model.name}
                             items={menuItems}
                             trigger={
                                 <Button
@@ -448,9 +442,9 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ modelId, onBack, on
                 {/*
                   `.card` de 09.2, « Référence » — l'amortissement, hérité du type et dit
                   comme tel, puis les spécifications : leur texte sous la clé, ou « aucune
-                  saisie » en encre tertiaire à droite ; le geste en `.more`. La carte
-                  « Spécifications » posait un paragraphe en 13 et un bouton tonal pleine
-                  largeur.
+                  saisie » en encre tertiaire à droite. **La carte ne porte plus de geste**
+                  (10/10) : « Modifier les spécifications » ouvrait la même fiche que le
+                  « Modifier » du héro.
                 */}
                 <section className="bg-surface rounded-lg px-4 py-2">
                     <div className="flex min-h-12 items-center pt-2 pb-1">
@@ -489,14 +483,6 @@ const ModelDetailsPage: React.FC<ModelDetailsPageProps> = ({ modelId, onBack, on
                             </span>
                         </div>
                     )}
-                    <button
-                        type="button"
-                        onClick={() => setIsEditModalOpen(true)}
-                        className="border-outline-variant text-on-surface hover:bg-surface-container text-ts-control leading-ts-control flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 border-t font-medium transition-colors"
-                    >
-                        <Icon glyph={model.specs ? PencilSimple : Plus} size={20} />
-                        {model.specs ? 'Modifier les spécifications' : 'Ajouter des spécifications'}
-                    </button>
                 </section>
             </DetailTemplate>
         </>

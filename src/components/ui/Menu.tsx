@@ -37,6 +37,13 @@ export interface MenuItem {
 /** La largeur minimale de la surface — `min-w-[236px]` de `widthClassName`. */
 const LARGEUR_MIN = 236;
 
+/**
+ * **Le menu ne colle pas au bord de l'écran** (10/10) — il s'arrête à la gouttière de la
+ * page, 16. Le menu du compte, à l'accueil, y était déjà : sa pastille est dans la page.
+ * Le ⋮ d'un en-tête, lui, est à 4 px du bord, et son menu s'y alignait.
+ */
+const MARGE_DU_BORD = 16;
+
 interface MenuProps {
     /**
      * Le déclencheur. Le menu lui **greffe** `id`, `aria-*`, `onClick` et `onKeyDown` :
@@ -95,6 +102,8 @@ const Menu: React.FC<MenuProps> = ({
     const presence = usePresence(open);
     /** La place du menu flottant, relevée sur le déclencheur à l'ouverture. */
     const [coords, setCoords] = useState<React.CSSProperties | null>(null);
+    /** Ce dont le menu ancré se retire du bord de l'écran, relevé à l'ouverture. */
+    const [retrait, setRetrait] = useState<React.CSSProperties | undefined>(undefined);
     const [highlightedIndex, setHighlightedIndex] = useState(-1);
     const rootRef = useRef<HTMLDivElement>(null);
     const triggerRef = useRef<HTMLElement | null>(null);
@@ -136,6 +145,7 @@ const Menu: React.FC<MenuProps> = ({
                    17 par séparateur. */
                 const hauteur =
                     items.length * 48 +
+                    items.filter((item) => item.disabled && item.description).length * 16 +
                     16 +
                     (title ? 30 : 0) +
                     items.filter((item) => item.dividerBefore).length * 17;
@@ -162,11 +172,24 @@ const Menu: React.FC<MenuProps> = ({
                     ...(align === 'end'
                         ? rect.right - LARGEUR_MIN < 8
                             ? { left: 8 }
-                            : { right: window.innerWidth - rect.right }
+                            : { right: Math.max(MARGE_DU_BORD, window.innerWidth - rect.right) }
                         : rect.left + LARGEUR_MIN > window.innerWidth - 8
                           ? { right: 8 }
-                          : { left: rect.left }),
+                          : { left: Math.max(MARGE_DU_BORD, rect.left) }),
                 });
+            } else if (triggerRef.current) {
+                const rect = triggerRef.current.getBoundingClientRect();
+                const manque =
+                    align === 'end'
+                        ? MARGE_DU_BORD - (window.innerWidth - rect.right)
+                        : MARGE_DU_BORD - rect.left;
+                setRetrait(
+                    manque > 0
+                        ? align === 'end'
+                            ? { right: manque }
+                            : { left: manque }
+                        : undefined,
+                );
             }
             setOpen(true);
             setHighlightedIndex(parLeClavier ? firstEnabled : -1);
@@ -326,7 +349,7 @@ const Menu: React.FC<MenuProps> = ({
                     aria-labelledby={triggerId}
                     onKeyDown={onMenuKeyDown}
                     onAnimationEnd={presence.finDeSortie}
-                    style={floating && coords ? coords : undefined}
+                    style={floating && coords ? coords : retrait}
                     className={cn(
                         /* `.menu` de `menus.css` — **la surface, pas le creux**, rayon 8,
                            une seule ombre (`0 8px 24px rgba(10,25,29,.2)`) et **aucun
@@ -418,7 +441,7 @@ const Menu: React.FC<MenuProps> = ({
                                         ? 'bg-on-surface/[0.12]'
                                         : 'hover:bg-on-surface/[0.08]',
                                     item.disabled
-                                        ? 'text-on-surface-variant cursor-not-allowed opacity-[0.38]'
+                                        ? 'text-on-surface-variant cursor-not-allowed'
                                         : 'cursor-pointer',
                                 )}
                             >
@@ -433,6 +456,7 @@ const Menu: React.FC<MenuProps> = ({
                                             item.destructive && !item.disabled
                                                 ? undefined
                                                 : 'text-on-surface-variant',
+                                            item.disabled && 'opacity-[0.38]',
                                         )}
                                     />
                                 ) : (
@@ -444,15 +468,28 @@ const Menu: React.FC<MenuProps> = ({
                                                 item.destructive && !item.disabled
                                                     ? undefined
                                                     : 'text-on-surface-variant',
+                                                item.disabled && 'opacity-[0.38]',
                                             )}
                                         />
                                     )
                                 )}
-                                <div className="flex min-w-0 flex-1 items-baseline gap-2">
-                                    <span className="truncate">{item.label}</span>
+                                {/* **Un acte impossible dit pourquoi, sous son nom** (10/10). La
+                                    raison était au bout de la ligne : elle élargissait le menu
+                                    à tout l'écran, coupait le libellé (« Supprimer le mod… ») et
+                                    se lisait à 38 % d'encre. Elle passe dessous, lisible, et le
+                                    menu garde sa largeur. */}
+                                <div className="min-w-0 flex-1">
+                                    <span
+                                        className={cn(
+                                            'block truncate',
+                                            item.disabled && 'opacity-[0.38]',
+                                        )}
+                                    >
+                                        {item.label}
+                                    </span>
                                     {item.description &&
                                         (item.disabled ? (
-                                            <span className="text-text-tertiary ml-auto min-w-0 truncate text-right text-[0.75rem] leading-4">
+                                            <span className="text-text-secondary block w-0 min-w-full text-[0.75rem] leading-4 whitespace-normal">
                                                 {item.description}
                                             </span>
                                         ) : (

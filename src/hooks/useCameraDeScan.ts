@@ -39,8 +39,29 @@ const FORMATS = [
     'aztec',
 ];
 
+/** Un point de l'image, en pixels de la vidéo. */
+interface Point {
+    x: number;
+    y: number;
+}
+/** Où un code a été vu, en pixels de la vidéo. */
+interface Zone {
+    x: number;
+    y: number;
+    l: number;
+    h: number;
+}
 interface CodeDetecte {
     rawValue: string;
+    boundingBox?: { x: number; y: number; width: number; height: number };
+    cornerPoints?: Point[];
+}
+/** Où le cadre se pose à l'écran pour entourer le code vu — relatif au cadre de repos. */
+export interface Visee {
+    left: number;
+    top: number;
+    width: number;
+    height: number;
 }
 interface Detecteur {
     detect: (source: HTMLVideoElement) => Promise<CodeDetecte[]>;
@@ -49,6 +70,22 @@ interface ConstructeurDeDetecteur {
     new (options: { formats: string[] }): Detecteur;
     getSupportedFormats?: () => Promise<string[]>;
 }
+
+/** Ce que le crochet emploie de `jsqr` — le décodeur de QR, là où le navigateur n'en a pas. */
+type LecteurDeQr = (
+    donnees: Uint8ClampedArray,
+    largeur: number,
+    hauteur: number,
+    options?: { inversionAttempts?: 'dontInvert' | 'onlyInvert' | 'attemptBoth' | 'invertFirst' },
+) => {
+    data: string;
+    location: {
+        topLeftCorner: Point;
+        topRightCorner: Point;
+        bottomRightCorner: Point;
+        bottomLeftCorner: Point;
+    };
+} | null;
 
 /** Ce que le crochet emploie du lecteur de Tesseract. */
 interface LecteurDeTexte {
@@ -86,6 +123,53 @@ const zoneVisee = (video: HTMLVideoElement, cadre: HTMLElement | null) => {
     return { sx, sy, sl: Math.min(l, x1) - sx, sh: Math.min(h, y1) - sy };
 };
 
+/** La zone qui contient tous les coins d'un code. */
+const zoneDesCoins = (coins: Point[], echelle = 1): Zone | null => {
+    if (coins.length === 0) return null;
+    const xs = coins.map((c) => c.x * echelle);
+    const ys = coins.map((c) => c.y * echelle);
+    const x = Math.min(...xs);
+    const y = Math.min(...ys);
+    return { x, y, l: Math.max(...xs) - x, h: Math.max(...ys) - y };
+};
+
+/**
+ * L'air laissé autour du code quand le cadre se resserre sur lui. Le décodeur de QR estime
+ * le quatrième coin : à 18, le cadre contient encore le code quand cette estimation dérive
+ * d'un module.
+ */
+const AIR_AUTOUR_DU_CODE = 18;
+/** Le cadre ne se resserre pas en deçà : ses quatre coins doivent rester lisibles. */
+const COTE_MIN_DU_CADRE = 88;
+/** Sans code vu pendant ce temps, le cadre revient à sa place de repos. */
+const RETOUR_DU_CADRE_MS = 700;
+
+/**
+ * **Le cadre se pose sur le code vu** (10/10). Ramène la zone d'un code, en pixels de la
+ * vidéo, à l'écran — la vidéo couvre l'écran, agrandie et rognée — puis au cadre de repos,
+ * dont le cadre mobile est l'enfant.
+ */
+const versLeCadre = (zone: Zone, video: HTMLVideoElement, cadre: HTMLElement): Visee => {
+    const rv = video.getBoundingClientRect();
+    const rc = cadre.getBoundingClientRect();
+    const agrandissement = Math.max(rv.width / video.videoWidth, rv.height / video.videoHeight);
+    const dx = (rv.width - video.videoWidth * agrandissement) / 2;
+    const dy = (rv.height - video.videoHeight * agrandissement) / 2;
+    const largeur = Math.max(COTE_MIN_DU_CADRE, zone.l * agrandissement + 2 * AIR_AUTOUR_DU_CODE);
+    const hauteur = Math.max(COTE_MIN_DU_CADRE, zone.h * agrandissement + 2 * AIR_AUTOUR_DU_CODE);
+    const centreX = rv.left + dx + (zone.x + zone.l / 2) * agrandissement;
+    const centreY = rv.top + dy + (zone.y + zone.h / 2) * agrandissement;
+    return {
+        left: Math.round(centreX - largeur / 2 - rc.left),
+        top: Math.round(centreY - hauteur / 2 - rc.top),
+        width: Math.round(largeur),
+        height: Math.round(hauteur),
+    };
+};
+
+/** Le plus grand côté de l'image donnée au décodeur de QR : au-delà, il ralentit sans mieux lire. */
+const COTE_DE_LECTURE_QR = 720;
+
 /** Un même code qui reste dans le cadre ne compte qu'une fois : il doit en sortir deux secondes. */
 const ABSENCE_AVANT_RELECTURE_MS = 2_000;
 
@@ -120,10 +204,15 @@ export const useCameraDeScan = ({
               ? 'demande'
               : 'indisponible',
     );
-    /** Le décodeur continu : `natif`, ou `photo` seulement. */
-    const [decodeur, setDecodeur] = useState<'natif' | 'photo'>(() =>
-        constructeur() ? 'natif' : 'photo',
+    /**
+     * Le décodeur continu : `natif` (celui du navigateur, tous les codes), `qr` (le nôtre, là
+     * où le navigateur n'en a pas — les QR seulement), ou `photo` : rien ne se lit seul.
+     */
+    const [decodeur, setDecodeur] = useState<'natif' | 'qr' | 'photo'>(() =>
+        constructeur() ? 'natif' : 'qr',
     );
+    /** Où le cadre se pose : sur le code vu, sinon nulle part — il reste à sa place. */
+    const [visee, setVisee] = useState<Visee | null>(null);
     const [lampe, setLampe] = useState({ possible: false, allumee: false });
     const [photo, setPhoto] = useState<'repos' | 'lecture' | 'rien'>('repos');
 
@@ -207,42 +296,136 @@ export const useCameraDeScan = ({
         };
     }, [actif]);
 
-    /* La lecture continue : six regards par seconde, tant que la caméra tourne. */
+    /*
+     * La lecture continue : cinq à six regards par seconde, tant que la caméra tourne.
+     *
+     * **Toute l'image est lue, pas le seul cadre**, et **un QR se lit partout** (10/10). Le
+     * décodeur du navigateur n'existe ni sur iPhone ni sur Firefox : là, seule la lecture de
+     * l'étiquette en photo restait — du texte —, et un QR ne se lisait jamais. Un décodeur
+     * de QR prend le relais (`jsqr`, chargé à l'ouverture du viseur). Quand un code est vu,
+     * le cadre vient l'entourer : on voit ce que l'appareil a lu.
+     */
     useEffect(() => {
-        const Constructeur = constructeur();
-        if (etat !== 'active' || !Constructeur) return;
+        if (etat !== 'active') return;
         let fini = false;
         let minuterie: number | undefined;
+        let dernierCodeVu = 0;
         void (async () => {
-            const offerts = (await Constructeur.getSupportedFormats?.().catch(() => [])) ?? [];
-            const formats = FORMATS.filter((f) => offerts.includes(f));
-            if (fini) return;
-            if (formats.length === 0) {
-                setDecodeur('photo');
-                return;
+            let detecteur: Detecteur | null = null;
+            const Constructeur = constructeur();
+            if (Constructeur) {
+                const offerts = (await Constructeur.getSupportedFormats?.().catch(() => [])) ?? [];
+                const formats = FORMATS.filter((f) => offerts.includes(f));
+                if (formats.length > 0) detecteur = new Constructeur({ formats });
             }
-            const detecteur = new Constructeur({ formats });
+            let lireUnQr: LecteurDeQr | null = null;
+            if (!detecteur) {
+                try {
+                    const module = (await import('jsqr')) as unknown as {
+                        default: LecteurDeQr | { default: LecteurDeQr };
+                    };
+                    lireUnQr =
+                        typeof module.default === 'function'
+                            ? module.default
+                            : module.default.default;
+                } catch {
+                    lireUnQr = null;
+                }
+            }
+            if (fini) return;
+            setDecodeur(detecteur ? 'natif' : lireUnQr ? 'qr' : 'photo');
+            if (!detecteur && !lireUnQr) return;
+
+            const toile = document.createElement('canvas');
+            const trait = toile.getContext('2d', { willReadFrequently: true });
+            const lire = async (
+                video: HTMLVideoElement,
+            ): Promise<{ code: string; zone: Zone | null } | null> => {
+                if (detecteur) {
+                    const codes = await detecteur.detect(video);
+                    const lu = codes.find((c) => c.rawValue?.trim());
+                    if (!lu) return null;
+                    return {
+                        code: lu.rawValue.trim(),
+                        zone: lu.cornerPoints?.length
+                            ? zoneDesCoins(lu.cornerPoints)
+                            : lu.boundingBox
+                              ? {
+                                    x: lu.boundingBox.x,
+                                    y: lu.boundingBox.y,
+                                    l: lu.boundingBox.width,
+                                    h: lu.boundingBox.height,
+                                }
+                              : null,
+                    };
+                }
+                if (!lireUnQr || !trait) return null;
+                const echelle = Math.min(
+                    1,
+                    COTE_DE_LECTURE_QR / Math.max(video.videoWidth, video.videoHeight),
+                );
+                toile.width = Math.round(video.videoWidth * echelle);
+                toile.height = Math.round(video.videoHeight * echelle);
+                trait.drawImage(video, 0, 0, toile.width, toile.height);
+                const image = trait.getImageData(0, 0, toile.width, toile.height);
+                const qr = lireUnQr(image.data, image.width, image.height, {
+                    inversionAttempts: 'dontInvert',
+                });
+                if (!qr?.data?.trim()) return null;
+                return {
+                    code: qr.data.trim(),
+                    zone: zoneDesCoins(
+                        [
+                            qr.location.topLeftCorner,
+                            qr.location.topRightCorner,
+                            qr.location.bottomRightCorner,
+                            qr.location.bottomLeftCorner,
+                        ],
+                        1 / echelle,
+                    ),
+                };
+            };
+
             const regarder = async () => {
                 if (fini) return;
                 const video = videoRef.current;
-                if (video && video.readyState >= 2 && !pauseRef.current) {
+                if (video && video.readyState >= 2 && video.videoWidth > 0 && !pauseRef.current) {
                     try {
-                        const codes = await detecteur.detect(video);
-                        const lu = codes.find((c) => c.rawValue?.trim());
-                        if (lu && !fini) signaler(lu.rawValue.trim());
+                        const lu = await lire(video);
+                        if (fini) return;
+                        if (lu) {
+                            dernierCodeVu = Date.now();
+                            const cadre = cadreRef?.current;
+                            const pose =
+                                lu.zone && cadre ? versLeCadre(lu.zone, video, cadre) : null;
+                            setVisee((avant) =>
+                                pose &&
+                                avant &&
+                                Math.abs(avant.left - pose.left) < 3 &&
+                                Math.abs(avant.top - pose.top) < 3 &&
+                                Math.abs(avant.width - pose.width) < 3 &&
+                                Math.abs(avant.height - pose.height) < 3
+                                    ? avant
+                                    : pose,
+                            );
+                            signaler(lu.code);
+                        } else if (Date.now() - dernierCodeVu > RETOUR_DU_CADRE_MS) {
+                            setVisee(null);
+                        }
                     } catch {
                         /* Une image illisible : la suivante. */
                     }
                 }
-                minuterie = window.setTimeout(regarder, 160);
+                minuterie = window.setTimeout(regarder, detecteur ? 160 : 200);
             };
             void regarder();
         })();
         return () => {
             fini = true;
             window.clearTimeout(minuterie);
+            setVisee(null);
         };
-    }, [etat, signaler]);
+    }, [etat, signaler, cadreRef]);
 
     const basculerLampe = useCallback(async () => {
         const piste = fluxRef.current?.getVideoTracks()[0];
@@ -316,5 +499,5 @@ export const useCameraDeScan = ({
         }
     }, [photo, cadreRef]);
 
-    return { videoRef, etat, decodeur, lampe, basculerLampe, lireLEtiquette, photo };
+    return { videoRef, etat, decodeur, visee, lampe, basculerLampe, lireLEtiquette, photo };
 };

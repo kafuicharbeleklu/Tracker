@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-    ArrowLeft,
     Calculator,
     Check,
     CheckCircle,
@@ -15,6 +14,7 @@ import BarreDePage from '../../../components/layout/BarreDePage';
 import Button from '../../../components/ui/Button';
 import ListActionFab from '../../../components/ui/ListActionFab';
 import CardEmptyState from '../../../components/ui/CardEmptyState';
+import FlecheDeRetour from '../../../components/ui/FlecheDeRetour';
 import Icon from '../../../components/ui/Icon';
 import InputField from '../../../components/ui/InputField';
 import Menu, { type MenuItem } from '../../../components/ui/Menu';
@@ -741,22 +741,25 @@ const BudgetLinesPage: React.FC<BudgetLinesPageProps> = ({ year, onBack }) => {
                 {bureau ? (
                     /* `.dhead` de 17.11 : retour, titre et sous-titre, puis Annuler et
                        Enregistrer. Le héro du téléphone devient le sous-titre. */
-                    <header className="px-page large:mx-auto large:max-w-[calc(80rem+2*var(--tk-space-page))] flex min-h-[72px] w-full items-center gap-3 pt-5">
-                        <Button
-                            variant="text"
-                            iconOnly
-                            aria-label="Retour aux finances"
-                            onClick={onBack}
-                        >
-                            <Icon glyph={ArrowLeft} size={20} />
-                        </Button>
-                        <div className="min-w-0 flex-1">
-                            <h1 className="font-brand text-on-surface text-ts-page leading-ts-page truncate font-semibold tracking-[-0.02em]">
-                                Lignes du budget
-                            </h1>
-                            <p className="text-on-surface-variant mt-0.5 truncate text-[0.8125rem] leading-4 tabular-nums">
-                                {sousTitre}
-                            </p>
+                    /* **La rangée des listes** (10/10) : la flèche calée sur le bord (-10), 8
+                       jusqu'au titre, 16 entre les gestes. La flèche était un bouton nu,
+                       posé à 280 : le titre tombait à 332 quand toutes les autres pages
+                       l'ont à 318. */
+                    <header className="px-page large:mx-auto large:max-w-[calc(80rem+2*var(--tk-space-page))] flex min-h-[72px] w-full items-center gap-4 pt-5">
+                        <div className="flex min-w-0 flex-1 items-center gap-2">
+                            <FlecheDeRetour
+                                onBack={onBack}
+                                compact={false}
+                                label="Retour aux finances"
+                            />
+                            <div className="min-w-0 flex-1">
+                                <h1 className="font-brand text-on-surface text-ts-page leading-ts-page truncate font-semibold tracking-[-0.02em]">
+                                    Lignes du budget
+                                </h1>
+                                <p className="text-on-surface-variant text-ts-sub leading-ts-sub truncate tabular-nums">
+                                    {sousTitre}
+                                </p>
+                            </div>
                         </div>
                         {/* Les gestes du chrome du bureau font 40, comme la flèche (17.11) ;
                             48 au doigt. Ils tenaient 48 à côté d'une flèche de 40 (08/10). */}

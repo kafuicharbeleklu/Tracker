@@ -201,12 +201,7 @@ const ImportLocationsPage: React.FC<ImportLocationsPageProps> = ({ onCancel, onS
                         size={18}
                         className="mt-px shrink-0 text-[var(--tk-color-st-ambre)]"
                     />
-                    <span>
-                        <b className="text-on-surface font-medium">
-                            Un parent manquant n'est pas une faute de saisie.
-                        </b>{' '}
-                        Il suffit souvent de remonter la ligne du pays au-dessus de ses sites.
-                    </span>
+                    <span>Remontez la ligne du pays au-dessus de ses sites.</span>
                 </>
             }
         />

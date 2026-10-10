@@ -146,6 +146,7 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({
             menu={
                 <Menu
                     align="end"
+                    title={displayName}
                     items={[
                         {
                             id: 'edit',
@@ -167,8 +168,8 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({
                                     title: `Supprimer « ${displayName} » du catalogue ?`,
                                     message:
                                         categoryEquipment.length > 0
-                                            ? `${categoryEquipment.length} actif(s) portent ce type. Ils ne sont pas supprimés, mais plus rien ne définira ce qu'ils sont.`
-                                            : 'Aucun actif ne porte ce type. Les modèles qui en dépendent perdent leur rattachement.',
+                                            ? `${categoryEquipment.length} actif(s) portent ce type : ils ne sont pas supprimés.`
+                                            : 'Les modèles qui en dépendent perdent leur rattachement.',
                                     confirmText: 'Supprimer le type',
                                     tone: 'destructive',
                                     irreversible: true,
@@ -276,21 +277,11 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({
                     glyph={isAssignable ? UserCheck : UserMinus}
                     tint={isAssignable ? 'vert' : undefined}
                     title={isAssignable ? 'Attribuable à une personne' : 'Non attribuable'}
-                    subtitle={
-                        isAssignable
-                            ? 'proposé dans le sélecteur d’attribution'
-                            : 'reste en stock ou dans un lieu'
-                    }
                 />
                 <FactRow
                     glyph={ChartLineDown}
                     tint="bleu"
                     title={`${depreciationMethod} sur ${depreciationYears} ans`}
-                    subtitle={
-                        categoryEquipment.length > 0
-                            ? `ne recalcule pas les ${categoryEquipment.length} actifs existants`
-                            : 'amortissement des prochains actifs'
-                    }
                 />
                 <p className="text-text-muted border-outline-variant border-t pt-3 text-[0.75rem] leading-4">
                     Clé de donnée ·{' '}
@@ -382,16 +373,6 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({
                             {categoryEquipment.length > 2 &&
                                 `, et ${categoryEquipment.length - 2} autre${categoryEquipment.length - 2 > 1 ? 's' : ''}`}
                             .
-                            {categoryEquipment.length === 1
-                                ? ' Il a été créé'
-                                : ' Ils ont été créés'}{' '}
-                            avant {categoryEquipment.length === 1 ? 'son modèle' : 'leur modèle'},
-                            ou hors du catalogue.{' '}
-                            {categoryEquipment.length === 1
-                                ? 'Sa fiche reste valide'
-                                : 'Leurs fiches restent valides'}{' '}
-                            ; c'est le référentiel qui est en retard sur{' '}
-                            {categoryEquipment.length === 1 ? 'elle' : 'elles'}.
                         </span>
                     </div>
                 </section>
@@ -402,9 +383,6 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({
             {!isAssignable && assignedEquipmentCount > 0 && (
                 <FormWarn glyph={Warning} tint="ambre">
                     <span>
-                        <strong className="font-medium">
-                            Le retrait du sélecteur ne défait pas les attributions faites.
-                        </strong>{' '}
                         {assignedEquipmentCount === 1
                             ? 'Un actif de ce type reste attribué.'
                             : `${assignedEquipmentCount} actifs de ce type restent attribués.`}

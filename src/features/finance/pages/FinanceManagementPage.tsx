@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+    Calculator,
     CalendarBlank,
     CalendarPlus,
-    Calculator,
     CaretRight,
     DotsThreeVertical,
     Export,
@@ -306,37 +306,45 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                                 : 'bg-background -mt-page pt-5',
                         )}
                     >
+                        {/* **La rangée des listes** (10/10) : 16 entre le titre et ses gestes,
+                            8 de la flèche au titre, le dernier geste au bord des cartes.
+                            Elle tenait tout à 4 — « Changer d'exercice » collé au bouton
+                            jaune —, et le ⋮ masqué du bureau gardait sa gouttière : la
+                            rangée s'arrêtait 4 px avant le bord. */}
                         <div
                             className={cn(
-                                'flex items-center gap-1',
-                                isCompact ? 'min-h-12' : 'min-h-[52px]',
+                                'flex items-center',
+                                isCompact ? 'min-h-12 gap-1' : 'min-h-[52px] gap-4',
                             )}
                         >
-                            {/* `.tt` de 15.1 ouvre sur `.tb` — **la flèche de retour**, que la
+                            <div
+                                className={cn(
+                                    'flex min-w-0 flex-1 items-center',
+                                    isCompact ? 'gap-1' : 'gap-2',
+                                )}
+                            >
+                                {/* `.tt` de 15.1 ouvre sur `.tb` — **la flèche de retour**, que la
                                 page n'avait pas : atteinte depuis « Plus », elle ne se
                                 quittait que par la barre du bas. Au bureau, 15.1 n'en dessine
                                 pas : la barre latérale mène déjà partout. */}
-                            {onBack && (
-                                <FlecheDeRetour
-                                    onBack={onBack}
-                                    compact={isCompact}
-                                    /* 8 jusqu'au titre, comme les listes : la rangée n'en met que 4. */
-                                    className={isCompact ? undefined : 'mr-1'}
-                                />
-                            )}
-                            {/* `.tt2` de 15.1 au bureau — **le titre et, sous lui, l'exercice
+                                {onBack && <FlecheDeRetour onBack={onBack} compact={isCompact} />}
+                                {/* `.tt2` de 15.1 au bureau — **le titre et, sous lui, l'exercice
                                 que l'on regarde** : *« Exercice 2026 · en cours · au 3
                                 septembre »*. La page ne disait nulle part, au bureau, de quel
                                 exercice elle parlait ; le sélecteur pleine largeur le portait
                                 pour elle. */}
-                            <div className="min-w-0 flex-1">
-                                <h1 className="font-brand text-on-surface text-ts-page leading-ts-page font-semibold tracking-[-0.02em]">
-                                    Finances
-                                </h1>
-                                <p className="text-on-surface-variant text-ts-body leading-ts-body deux:block mt-0.5 hidden">
-                                    Exercice {selectedYear} · {currentBudget.status.toLowerCase()} ·
-                                    au {currentFrenchDate}
-                                </p>
+                                <div className="min-w-0 flex-1">
+                                    <h1 className="font-brand text-on-surface text-ts-page leading-ts-page font-semibold tracking-[-0.02em]">
+                                        Finances
+                                    </h1>
+                                    {/* Le sous-titre d'une page, à la taille des autres (une
+                                    campagne, les lignes du budget) : le secondaire. */}
+                                    <p className="text-on-surface-variant text-ts-sub leading-ts-sub deux:block hidden">
+                                        Exercice {selectedYear} ·{' '}
+                                        {currentBudget.status.toLowerCase()} · au{' '}
+                                        {currentFrenchDate}
+                                    </p>
+                                </div>
                             </div>
 
                             {/* **Les deux gestes passent dans l'en-tête au bureau** (15.1) :
@@ -362,30 +370,40 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                             >
                                 Enregistrer une dépense
                             </Button>
+                            {/* **Le ⋮ du téléphone et de la tablette porte les destinations**
+                                (10/10) : la carte « Aller à » et le bouton « Changer » du héro
+                                y sont rangés, à la demande du commanditaire — la page gagne une
+                                carte de hauteur et le héro n'a plus de geste. « Enregistrer une
+                                dépense » reste le bouton flottant : il n'est pas redit ici. */}
                             <Menu
                                 align="end"
-                                /* Le ⋮ du téléphone : au bureau, ses deux verbes sont des
-                                   boutons. */
+                                rootClassName="deux:hidden"
+                                title={`Exercice ${selectedYear}`}
                                 items={[
-                                    /* 15.2 : ajuster les lignes a sa page ; la boîte ne sert
-                                       plus qu'à ouvrir un exercice (saisi ou importé). */
                                     {
                                         id: 'lignes',
-                                        label: 'Ajuster les enveloppes',
-                                        description: 'les lignes du budget de l’exercice',
+                                        label: 'Les lignes du budget',
+                                        description: 'les enveloppes de l’exercice',
                                         onSelect: ouvrirLesLignes,
                                     },
                                     {
-                                        id: 'exercices',
-                                        label: 'Les exercices',
-                                        description: 'changer d’année, ouvrir la suivante',
-                                        onSelect: ouvrirLesExercices,
+                                        id: 'depenses',
+                                        label: 'Les dépenses',
+                                        description: 'le journal des écritures',
+                                        onSelect: () => onViewChange('finance_expenses'),
                                     },
                                     {
-                                        id: 'expense',
-                                        label: 'Enregistrer une dépense',
-                                        description: 'une écriture sur un poste',
-                                        onSelect: () => setIsAddExpenseModalOpen(true),
+                                        id: 'rapports',
+                                        label: 'Les rapports',
+                                        description: 'les exports',
+                                        onSelect: () => onViewChange('reports'),
+                                    },
+                                    {
+                                        id: 'exercices',
+                                        label: 'Changer d’exercice',
+                                        description: 'une autre année, ou ouvrir la suivante',
+                                        dividerBefore: true,
+                                        onSelect: ouvrirLesExercices,
                                     },
                                 ]}
                                 trigger={
@@ -430,7 +448,8 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                                     en capitales espacées « EXERCICE 2026 · EN COURS › » mêlait
                                     l'étiquette et l'acte : on ne savait pas si elle se lisait ou
                                     se touchait. L'exercice s'écrit en casse de phrase avec son
-                                    statut en point de couleur ; « Changer » est un bouton. */}
+                                    statut en point de couleur. « Changer » a quitté le héro le
+                                    10/10 : il est dans le ⋮ de l'en-tête. */}
                                 <div className="-mt-1.5 flex items-center justify-between gap-3">
                                     <span className="text-ts-sub leading-ts-sub flex min-w-0 items-center gap-2">
                                         <b className="text-inverse-on-surface font-medium whitespace-nowrap">
@@ -453,18 +472,6 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                                             </span>
                                         </span>
                                     </span>
-                                    <Button
-                                        variant="text"
-                                        onClick={ouvrirLesExercices}
-                                        aria-label={`Changer d'exercice — ${selectedYear}`}
-                                        icon={<Icon glyph={CalendarBlank} size={18} />}
-                                        className="text-inverse-on-surface hover:text-inverse-on-surface h-8 min-h-8 shrink-0 gap-1.5 rounded-md bg-white/10 px-2.5 text-[0.8125rem] leading-4 font-medium hover:bg-white/15"
-                                    >
-                                        {/* Sous 360 px, le calendrier seul : le mot prenait la
-                                            place du statut de l'exercice. Le nom du geste
-                                            reste dit par `aria-label`. */}
-                                        <span className="exigu:sr-only">Changer</span>
-                                    </Button>
                                 </div>
                                 {/* `.big` — **le nombre, puis l'unité à côté** : Archivo 44
                                     sur 48 pour l'un, 14 sur 20 en encre estompée pour
@@ -688,8 +695,8 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                                                         « XOF » par rangée, trente-trois sur
                                                         l'écran, et une ligne qui touchait
                                                         son libellé. */}
-                                                        <span className="text-on-surface-variant deux:col-start-3 deux:row-span-2 deux:row-start-1 deux:text-right deux:text-[0.8125rem] text-ts-sub leading-ts-sub whitespace-nowrap tabular-nums">
-                                                            <b className="text-on-surface deux:text-[0.875rem] deux:leading-5 text-ts-body font-medium">
+                                                        <span className="text-on-surface-variant deux:col-start-3 deux:row-span-2 deux:row-start-1 deux:text-right text-ts-sub leading-ts-sub whitespace-nowrap tabular-nums">
+                                                            <b className="text-on-surface text-ts-body leading-ts-body font-medium">
                                                                 {formatNumber(
                                                                     item.spent,
                                                                     settings.compactNotation,
@@ -807,8 +814,10 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                                 types de dépense et leur part de l'enveloppe (`PartDesPostes`). Elle
                                 occupe la place que « Aller à » laissait vide à côté de
                                 l'histogramme. Au bureau seulement. */}
-                            <div className="deux:order-none deux:col-span-4 deux:row-start-1 order-1 flex flex-col gap-4">
-                                <section className="rounded-card bg-surface deux:pt-1 deux:pb-2 px-4 py-2">
+                            <div className="deux:order-none deux:col-span-4 deux:row-start-1 expanded:flex order-1 hidden flex-col gap-4">
+                                {/* **Au bureau seulement** (10/10) : sous 1000, ses destinations
+                                    sont dans le ⋮ de l'en-tête. */}
+                                <section className="rounded-card bg-surface deux:block deux:pt-1 deux:pb-2 hidden px-4 py-2">
                                     <div className="flex min-h-12 items-center pt-2 pb-1">
                                         <h3 className="text-on-surface text-ts-head leading-ts-head font-medium">
                                             Aller à

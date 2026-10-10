@@ -6,12 +6,8 @@ import Button from '../../../components/ui/Button';
 import CardEmptyState from '../../../components/ui/CardEmptyState';
 import ScreenState from '../../../components/ui/ScreenState';
 import { useData } from '../../../context/DataContext';
-import {
-    FeuilleAjoutLocal,
-    PiedDesLocaux,
-    RangeesDeLocaux,
-    useLocauxDuSite,
-} from '../components/LocauxDuSite';
+import ListActionFab from '../../../components/ui/ListActionFab';
+import { FeuilleAjoutLocal, RangeesDeLocaux, useLocauxDuSite } from '../components/LocauxDuSite';
 import { adresseDuLocal } from '../../../lib/perimetreDuParc';
 
 interface SiteLocauxPageProps {
@@ -58,7 +54,24 @@ const SiteLocauxPage: React.FC<SiteLocauxPageProps> = ({ siteName, onBack, onNav
                 open={ajoutOuvert}
                 onClose={() => setAjoutOuvert(false)}
             />
-            <DetailTemplate code="Locaux" onBack={onBack}>
+            <DetailTemplate
+                code="Locaux"
+                onBack={onBack}
+                /* L'acte d'ajout est dans l'en-tête (10/10), plus au pied de la carte. */
+                fab={
+                    <ListActionFab
+                        label="local"
+                        actions={[
+                            {
+                                id: 'add-local',
+                                label: 'Ajouter un local',
+                                icon: 'add',
+                                onSelect: () => setAjoutOuvert(true),
+                            },
+                        ]}
+                    />
+                }
+            >
                 <section className="rounded-card bg-surface px-4 py-1">
                     <div className="flex min-h-12 items-center justify-between gap-3 pt-2 pb-1">
                         <h3 className="text-on-surface text-ts-head leading-ts-head min-w-0 truncate font-medium">
@@ -82,7 +95,6 @@ const SiteLocauxPage: React.FC<SiteLocauxPageProps> = ({ siteName, onBack, onNav
                             description="Les actifs de ce site ne sont rangés dans aucune salle."
                         />
                     )}
-                    <PiedDesLocaux onAjouter={() => setAjoutOuvert(true)} total={locals.length} />
                 </section>
             </DetailTemplate>
         </>

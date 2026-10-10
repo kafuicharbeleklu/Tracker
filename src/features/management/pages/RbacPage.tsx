@@ -14,7 +14,6 @@ import {
     PencilSimple,
     Prohibit,
     ShieldPlus,
-    Trash,
     User as UserGlyph,
     UserPlus,
     Users,
@@ -561,7 +560,6 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                         label: droitsAjoutes.length > 1 ? 'droits en plus' : 'droit en plus',
                     },
                 ]}
-                note="Un groupe ajoute un droit à ses membres, jamais un lien hiérarchique."
             />
         );
 
@@ -602,12 +600,6 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                         )}
                     </>
                 )}
-                <RuleGroup.Row
-                    glyph={UserPlus}
-                    className="gap-3"
-                    title="Ajouter ou retirer des membres"
-                    onOpen={() => setMembresOuvert(true)}
-                />
             </RuleGroup>
         );
 
@@ -682,22 +674,36 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                     fil="Groupe"
                     retourLabel="Retour aux groupes"
                     onRetour={() => navigate(cheminPrecedent() ?? '/rbac/groups')}
+                    /* **Les actes d'un groupe sont dans son en-tête** (10/10). « Ajouter ou
+                       retirer des membres » était une rangée de la carte — la seule porte
+                       au bureau, et un doublon du ⋮ au téléphone. */
                     gestesDuBureau={
-                        <Button variant="text" onClick={supprimerLeGroupe} className="text-error">
-                            Supprimer
-                        </Button>
+                        <>
+                            <Button
+                                variant="text"
+                                onClick={supprimerLeGroupe}
+                                className="text-error"
+                            >
+                                Supprimer
+                            </Button>
+                            <Button
+                                variant="outlined"
+                                onClick={() => setMembresOuvert(true)}
+                                icon={<Icon glyph={UserPlus} size={20} />}
+                            >
+                                Gérer les membres
+                            </Button>
+                        </>
                     }
                     menu={[
                         {
                             id: 'membres',
                             label: 'Ajouter ou retirer des membres',
-                            glyph: UserPlus,
                             onSelect: () => setMembresOuvert(true),
                         },
                         {
                             id: 'supprimer',
                             label: 'Supprimer le groupe',
-                            glyph: Trash,
                             destructive: true,
                             dividerBefore: true,
                             onSelect: supprimerLeGroupe,
@@ -938,7 +944,6 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
             <RuleGroup
                 header={titreDeCarte(Lightning, 'Ce qu’il permet')}
                 headerTrailing={`${openActions.length} sur ${ACTION_KEYS.length}`}
-                note="Valider une demande dépend du lien — manager, bénéficiaire —, pas du rôle."
             >
                 {ACTION_KEYS.filter(
                     (key) =>
@@ -985,10 +990,9 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
 
         /* **Où il s'applique**, et d'où il vient — deux rangées, une carte. */
         const portee = (
-            <RuleGroup
-                header={titreDeCarte(Crosshair, 'Où il s’applique')}
-                note="Déclarée ; le filtrage des données ne l’applique pas encore."
-            >
+            /* La rangée dit déjà « non appliquée » : la note qui le redisait est retirée
+               (10/10). */
+            <RuleGroup header={titreDeCarte(Crosshair, 'Où il s’applique')}>
                 <RuleGroup.Row
                     glyph={SCOPE_ICON[scope]}
                     className="gap-3"
@@ -1006,9 +1010,7 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                         className="gap-3"
                         title={`Hérite de ${inheritance.baseName}`}
                         subtitle={
-                            inheritance.addsNothing
-                                ? 'N’ajoute aucun droit à sa base'
-                                : 'Reprend ses droits, puis ajoute ou refuse les siens'
+                            inheritance.addsNothing ? 'N’ajoute aucun droit à sa base' : undefined
                         }
                         onOpen={() => goToRole(openRole.baseRoleId as string)}
                     />
@@ -1066,7 +1068,6 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                                   {
                                       id: 'modifier',
                                       label: 'Modifier le rôle',
-                                      glyph: PencilSimple,
                                       onSelect: () => setEditing(true),
                                   },
                                   ...(supprimable
@@ -1074,7 +1075,6 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                                             {
                                                 id: 'supprimer',
                                                 label: 'Supprimer le rôle',
-                                                glyph: Trash,
                                                 destructive: true,
                                                 dividerBefore: true,
                                                 onSelect: () => removeRole(openRole),
@@ -1267,7 +1267,6 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                             className={cn(enColonnes && 'col-span-8')}
                             header="Les rôles"
                             headerTrailing="porteurs"
-                            note="Les rôles du système ne se suppriment pas. La portée d'un rôle est déclarée, pas encore appliquée."
                         >
                             {filteredRoles.map((role) => {
                                 const niveau = declaredScope(role);
@@ -1344,11 +1343,7 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                         </RuleGroup>
                     </div>
                 ) : (
-                    <RuleGroup
-                        header="Ce qu'ils ajoutent"
-                        headerTrailing="membres"
-                        note="Un groupe ajoute un droit, jamais la hiérarchie. Sa portée est déclarée, pas encore appliquée."
-                    >
+                    <RuleGroup header="Ce qu'ils ajoutent" headerTrailing="membres">
                         {filteredGroups.map((group) => (
                             <RuleGroup.Row
                                 key={group.id}
@@ -1731,6 +1726,9 @@ const EnTeteDeFiche: React.FC<{
                 menu && menu.length > 0 ? (
                     <Menu
                         align="end"
+                        /* La légende du menu du compte dit qui l'on est ; celle-ci dit
+                           sur quoi l'on agit. */
+                        title={`${fil} · ${titre}`}
                         items={menu}
                         trigger={
                             <Button variant="text" iconOnly aria-label="Autres actes">

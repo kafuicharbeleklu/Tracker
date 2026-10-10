@@ -27,6 +27,8 @@ const NatureBadge: React.FC<{ nature?: 'CAPEX' | 'OPEX' | null; className?: stri
 }) =>
     nature ? (
         <span
+            /* Le sigle se dit en clair au survol (10/10). */
+            data-infobulle={nature === 'CAPEX' ? 'Investissement' : 'Frais courants'}
             className={cn(
                 'inline-flex h-5 items-center rounded-[4px] px-1.5 text-[0.75rem] leading-4 font-medium',
                 NATURE_TEINTE[nature].badge,

@@ -374,10 +374,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
             requestConfirmation({
                 title: `Suspension bloquée pour ${user.name}`,
                 message: (
-                    <p>
-                        Une demande est en cours à son nom. La règle refuse de suspendre tant
-                        qu'elle n'est pas arbitrée — acceptée, refusée ou annulée dans la file.
-                    </p>
+                    <p>Une demande est en cours à son nom : elle doit d'abord être arbitrée.</p>
                 ),
                 confirmText: 'Voir la demande',
                 tone: 'neutral',
@@ -515,7 +512,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
     const handleResetPin = () => {
         requestConfirmation({
             title: `Réinitialiser le code PIN de ${user.name} ?`,
-            message: `Son code actuel cesse de fonctionner immédiatement. Jusqu'à ce qu'elle en redéfinisse un, ses réceptions passeront par signature.`,
+            message: 'Son code actuel cesse de fonctionner immédiatement.',
             confirmText: 'Réinitialiser le code',
             tone: 'neutral',
             onConfirm: async () => {
@@ -533,7 +530,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
     const handleResetPassword = () => {
         requestConfirmation({
             title: `Réinitialiser le mot de passe de ${user.name} ?`,
-            message: `Un mot de passe temporaire est généré et s'affiche une fois. ${firstName} devra le changer à sa prochaine connexion.`,
+            message: "Un mot de passe temporaire s'affiche une fois.",
             confirmText: 'Générer le mot de passe',
             tone: 'neutral',
             onConfirm: async () => {
@@ -561,12 +558,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
         }
         requestConfirmation({
             title: `Supprimer le compte de ${user.name} ?`,
-            message: (
-                <p>
-                    L'accès est coupé et l'adresse redevient libre. Les attestations signées et
-                    l'historique des objets restent lisibles sur leur fiche.
-                </p>
-            ),
+            message: <p>L'accès est coupé et l'adresse redevient libre.</p>,
             confirmText: 'Supprimer définitivement',
             tone: 'destructive',
             irreversible: true,
@@ -772,7 +764,10 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
             dividerBefore: !authUser,
             onSelect: openDeparture,
         },
-        ...(held > 0
+        /* **Ce que le héro porte, le menu ne le redit pas** (10/10) : « Organiser la
+           restitution » et « Réactiver le compte » y étaient en double quand le héro en
+           faisait son geste. */
+        ...(held > 0 && !(departure && !isSuspended)
             ? [
                   {
                       id: 'restitution',
@@ -782,30 +777,19 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                   },
               ]
             : []),
-        ...(!isSelf
+        ...(!isSelf && !isSuspended
             ? [
-                  isSuspended
-                      ? {
-                            id: 'toggle-status',
-                            label: 'Réactiver le compte',
-                            description:
-                                held > 0
-                                    ? 'Rétablit l’accès et lève le signal sur ses objets.'
-                                    : 'Rétablit l’accès.',
-                            dividerBefore: true,
-                            onSelect: handleReactivate,
-                        }
-                      : {
-                            id: 'toggle-status',
-                            label: 'Suspendre le compte',
-                            description: hasActiveApprovals
-                                ? 'Bloqué : une demande est en cours à son nom.'
-                                : held > 0
-                                  ? 'L’accès est coupé ; ce qu’elle détient est signalé.'
-                                  : 'L’accès est coupé, rien d’autre.',
-                            dividerBefore: true,
-                            onSelect: openSuspend,
-                        },
+                  {
+                      id: 'toggle-status',
+                      label: 'Suspendre le compte',
+                      description: hasActiveApprovals
+                          ? 'Bloqué : une demande est en cours à son nom.'
+                          : held > 0
+                            ? 'L’accès est coupé ; ce qu’elle détient est signalé.'
+                            : 'L’accès est coupé, rien d’autre.',
+                      dividerBefore: true,
+                      onSelect: openSuspend,
+                  },
               ]
             : []),
         ...(canDelete
@@ -860,6 +844,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
             menu={
                 <Menu
                     align="end"
+                    title={roleLabel}
                     items={menuItems}
                     trigger={
                         <Button variant="text" iconOnly aria-label="Options de la personne">
@@ -1199,7 +1184,6 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                 />
                 <RuleGroup.Row
                     title="Code PIN"
-                    subtitle="Sert à signer une réception sans e-mail"
                     value={pinValue}
                     valueTone={authUser && authUser.PinStatus === 'pending' ? 'pending' : undefined}
                 />
@@ -1226,7 +1210,6 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                     <RuleGroup.Row
                         glyph={UsersThree}
                         title={access.groups.length ? access.groups.join(' · ') : 'Aucun groupe'}
-                        subtitle="un groupe borne un rôle à un pays ou un service"
                         onOpen={() => onViewChange?.('rbac')}
                         external
                     />
@@ -1260,8 +1243,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                     {user.managerNote && (
                         <p className="text-body-small text-text-muted">
                             Dernière écriture : {user.managerNote.authorName} ·{' '}
-                            {formatDate(user.managerNote.updatedAt)}. L'enregistrement remplace
-                            l'auteur et la date par les vôtres.
+                            {formatDate(user.managerNote.updatedAt)}.
                         </p>
                     )}
                     <div className="flex items-center justify-between gap-2">
@@ -1299,7 +1281,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                         Elle tenait dans une pilule ambre : la planche n'en met pas, et une
                         alerte teintée pour un acte réversible dit le contraire du texte. */}
                     <p className="text-on-surface-variant text-ts-sub leading-ts-sub">
-                        Réversible : « Réactiver le compte » redevient le geste de la fiche.
+                        Réversible.
                     </p>
 
                     {/* `.fixed` — sur qui porte l'acte : sa vignette, son nom, ce qu'il détient. */}
@@ -1392,7 +1374,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                     <p className="text-body-medium text-text-secondary">{user.name}</p>
                     <p className="flex items-center gap-2 rounded-md bg-[var(--tk-color-tint-bleu)] px-3 py-2.5 text-[0.75rem] leading-4 font-medium text-[var(--tk-color-on-tint-bleu)]">
                         <Icon glyph={SignOut} size={18} />
-                        Rien n'est coupé — son accès reste ouvert jusqu'au dernier jour.
+                        Son accès reste ouvert jusqu'au dernier jour.
                     </p>
                     <label className="block">
                         <span className="text-text-muted mb-1.5 block text-[0.75rem] leading-4 font-medium">
@@ -1413,14 +1395,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                                     {held > 1 ? 'sont signalés' : 'est signalé'} « à récupérer avant
                                     cette date »
                                 </strong>
-                                , ici et sur {held > 1 ? 'leur' : 'sa'} fiche.
-                            </li>
-                            <li>
-                                «{' '}
-                                <strong className="text-on-surface font-medium">
-                                    Organiser la restitution
-                                </strong>{' '}
-                                » devient le geste primaire.
+                                .
                             </li>
                         </ul>
                     )}
@@ -1500,10 +1475,6 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
                             );
                         })}
                     </div>
-                    <p className="text-body-small text-text-muted">
-                        Chaque restitution passe par l'assistant : état constaté, attestation. Rien
-                        ne se rend depuis cette liste.
-                    </p>
                     <div className="flex justify-end">
                         <Button variant="text" onClick={() => setSheet(null)}>
                             Fermer

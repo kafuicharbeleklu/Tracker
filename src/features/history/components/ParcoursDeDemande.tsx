@@ -11,6 +11,7 @@ import {
 } from '../lib/journal';
 import Renvoi, { initiales } from './Renvoi';
 import SignatureDeLEtape from './SignatureDeLEtape';
+import { signaturesDuFait } from '../../../lib/signatureDeLActe';
 
 /**
  * **Le parcours d'une demande, une seule lecture** (08/10).
@@ -56,7 +57,10 @@ export const etapesSignees = (etapes: readonly Preuve[]): Preuve[] =>
         (preuve) =>
             !preuve.attente &&
             !preuve.avenir &&
-            /signature/.test(lire(preuve.evenement, 'method') ?? ''),
+            (/signature/.test(lire(preuve.evenement, 'method') ?? '') ||
+                /* Une remise écrit sa preuve en toutes lettres, sans `method` : elle garde
+                   pourtant sa signature (10/10). */
+                signaturesDuFait(preuve.evenement.metadata).length > 0),
     );
 
 /**

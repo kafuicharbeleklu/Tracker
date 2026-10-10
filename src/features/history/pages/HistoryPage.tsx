@@ -602,7 +602,7 @@ const HistoryPage: React.FC<HistoryPageProps> = ({
                 titre: mien ? 'Rien ne vous concerne encore' : `Aucun fait ${phrase}`.trim(),
                 description: mien
                     ? 'Vos remises, vos demandes et vos incidents apparaîtront ici.'
-                    : 'Le journal se remplit à mesure que des actes sont posés : une remise, un retour, une demande tranchée.',
+                    : 'Le journal se remplit à mesure que des actes sont posés.',
                 geste:
                     periode !== 'tout'
                         ? { label: 'Voir tout le journal', onClick: () => setPeriode('tout') }
@@ -1068,9 +1068,6 @@ const HistoryPage: React.FC<HistoryPageProps> = ({
                 onClose={() => setFeuille(null)}
                 title={feuille === 'choix' ? 'Personne ou objet' : 'Filtrer'}
                 emploi={feuille === 'choix' ? 'acte' : 'filtre'}
-                subtitle={
-                    feuille === 'choix' ? 'Les faits qui la concernent, et eux seuls.' : undefined
-                }
             >
                 {feuille === 'choix' ? (
                     <ConcernPicker personnes={personnes} objets={objets} onPick={choisir} />

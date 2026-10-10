@@ -6,6 +6,7 @@ import Attestation, { type AttestationMethod } from '../../../components/ui/Atte
 import { signatureService } from '../../../services/signatureService';
 import Button from '../../../components/ui/Button';
 import type { Equipment, RetirementReason } from '../../../types';
+import { oublierLesSignatures } from '../../../lib/signatureDeLActe';
 
 import {
     Consequences,
@@ -97,6 +98,11 @@ const RetireSheet: React.FC<RetireSheetProps> = ({
     /* Le récapitulatif, puis l'attestation seule — l'étape de 17.4 (arbitrage du 22/09). */
     const [etape, setEtape] = useState<'recap' | 'attester'>('recap');
 
+    /* Une feuille qui s'ouvre commence un acte : ce qui a été signé avant ne la concerne pas. */
+    useEffect(() => {
+        if (open) oublierLesSignatures();
+    }, [open]);
+
     useEffect(() => {
         let vivant = true;
         setAttestation({ method: actor?.pin ? 'pin' : 'signature', done: false });
@@ -164,7 +170,7 @@ const RetireSheet: React.FC<RetireSheetProps> = ({
             {etape === 'recap' ? (
                 <div className="flex flex-col gap-4">
                     <p className="text-on-surface-variant text-ts-sub leading-ts-sub">
-                        Irréversible. L'historique, lui, est conservé.
+                        Irréversible.
                     </p>
 
                     <SubjectRow
@@ -199,7 +205,7 @@ const RetireSheet: React.FC<RetireSheetProps> = ({
                         .
                     </FormWarn>
 
-                    <div className="border-outline-variant -mx-5 duo-de-pied gap-3 border-t px-5 pt-4 pb-1">
+                    <div className="border-outline-variant duo-de-pied -mx-5 gap-3 border-t px-5 pt-4 pb-1">
                         <Button variant="ghost" onClick={close}>
                             Annuler
                         </Button>
@@ -223,7 +229,7 @@ const RetireSheet: React.FC<RetireSheetProps> = ({
                         onChange={setAttestation}
                     />
 
-                    <div className="border-outline-variant -mx-5 duo-de-pied gap-3 border-t px-5 pt-4 pb-1">
+                    <div className="border-outline-variant duo-de-pied -mx-5 gap-3 border-t px-5 pt-4 pb-1">
                         <Button variant="ghost" onClick={retour}>
                             Retour
                         </Button>

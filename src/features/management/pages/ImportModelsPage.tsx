@@ -238,7 +238,7 @@ const ImportModelsPage: React.FC<ImportModelsPageProps> = ({ onCancel, onSave })
                         supportingText={
                             typeDeFeuille(tableau.feuille, categories)
                                 ? `Deviné du nom de la feuille, « ${tableau.feuille} ».`
-                                : 'Une colonne Category renseignée l’emporte, ligne par ligne.'
+                                : undefined
                         }
                     />
                 ) : null

@@ -229,8 +229,8 @@ const ScanView: React.FC<ScanViewProps> = ({
     const exceptions = hits.filter((h) => h.kind === 'exception').length;
     const defaultTip =
         mode === 'batch'
-            ? 'Enchaînez les équipements. La caméra reste ouverte.'
-            : 'Cadrez le numéro de série ou le code-barres. Tenez l’appareil à environ 20 cm.';
+            ? 'Enchaînez les équipements.'
+            : 'Présentez le QR, le code-barres ou le numéro de série.';
     const consigne =
         mode === 'simple' && hit && cameraOuverte
             ? 'Vérifiez le code lu avant de continuer.'
@@ -239,7 +239,9 @@ const ScanView: React.FC<ScanViewProps> = ({
               : (CONSIGNE_DE_CAMERA[camera.etat] ??
                 (camera.etat === 'active' && camera.decodeur === 'photo'
                     ? 'Cadrez l’étiquette, puis lisez-la.'
-                    : (tip ?? defaultTip)));
+                    : camera.etat === 'active' && camera.decodeur === 'qr'
+                      ? 'Un QR se lit seul. Pour une étiquette, cadrez-la puis lisez-la.'
+                      : (tip ?? defaultTip)));
 
     return (
         <div className={cn('bg-inverse-surface relative flex min-h-dvh flex-col', className)}>
@@ -326,21 +328,49 @@ const ScanView: React.FC<ScanViewProps> = ({
                 {/* **Le cadre découpe l'image** (09/10) : caméra ouverte, tout ce qui l'entoure
                     est voilé — une ombre portée sans flou, immense. C'est ce qui dit où viser,
                     et ce qui garde la consigne lisible sur une étiquette blanche. */}
+                {/* **Le cadre se pose sur le code vu** (10/10). Il gardait sa taille de repos :
+                    un QR posé devant l'objectif débordait du cadre, et l'on croyait que la
+                    lecture s'arrêtait à ses bords. Toute l'image est lue ; quand un code est
+                    vu, le cadre vient l'entourer, à sa forme — carré pour un QR, bande pour
+                    un code-barres. Le cadre de repos garde sa place : c'est lui que vise la
+                    lecture de l'étiquette en photo. */}
                 <div
                     ref={cadreRef}
                     aria-hidden="true"
                     className={cn(
-                        'relative w-[250px] rounded-xs',
-                        mode === 'batch' ? 'h-[120px]' : 'h-40',
-                        cameraOuverte && 'shadow-[0_0_0_200vmax_rgba(0,0,0,0.62)]',
+                        'relative w-[260px]',
+                        mode === 'batch' ? 'h-[140px]' : 'h-[200px]',
                     )}
                 >
-                    <span className="border-primary absolute top-0 left-0 h-[30px] w-[30px] rounded-xs border-[2.5px] border-r-0 border-b-0" />
-                    <span className="border-primary absolute top-0 right-0 h-[30px] w-[30px] rounded-xs border-[2.5px] border-b-0 border-l-0" />
-                    <span className="border-primary absolute bottom-0 left-0 h-[30px] w-[30px] rounded-xs border-[2.5px] border-t-0 border-r-0" />
-                    <span className="border-primary absolute right-0 bottom-0 h-[30px] w-[30px] rounded-xs border-[2.5px] border-t-0 border-l-0" />
-                    <span className="bg-primary/50 absolute inset-x-2 top-1/2 h-0.5 blur-[3px]" />
-                    <span className="bg-primary/75 absolute inset-x-2 top-1/2 h-0.5" />
+                    <div
+                        data-cadre-mobile=""
+                        className={cn(
+                            'duration-short4 ease-emphasized absolute rounded-xs transition-[left,top,width,height]',
+                            cameraOuverte && 'shadow-[0_0_0_200vmax_rgba(0,0,0,0.62)]',
+                        )}
+                        style={
+                            camera.visee
+                                ? {
+                                      left: camera.visee.left,
+                                      top: camera.visee.top,
+                                      width: camera.visee.width,
+                                      height: camera.visee.height,
+                                  }
+                                : { left: 0, top: 0, width: '100%', height: '100%' }
+                        }
+                    >
+                        <span className="border-primary absolute top-0 left-0 h-[30px] w-[30px] rounded-xs border-[2.5px] border-r-0 border-b-0" />
+                        <span className="border-primary absolute top-0 right-0 h-[30px] w-[30px] rounded-xs border-[2.5px] border-b-0 border-l-0" />
+                        <span className="border-primary absolute bottom-0 left-0 h-[30px] w-[30px] rounded-xs border-[2.5px] border-t-0 border-r-0" />
+                        <span className="border-primary absolute right-0 bottom-0 h-[30px] w-[30px] rounded-xs border-[2.5px] border-t-0 border-l-0" />
+                        {/* Le trait de visée ne sert qu'au repos : sur un code vu, il le barre. */}
+                        {!camera.visee && (
+                            <>
+                                <span className="bg-primary/50 absolute inset-x-2 top-1/2 h-0.5 blur-[3px]" />
+                                <span className="bg-primary/75 absolute inset-x-2 top-1/2 h-0.5" />
+                            </>
+                        )}
+                    </div>
                 </div>
                 <p
                     aria-live="polite"

@@ -12,6 +12,7 @@ import {
 import Button from '../../../components/ui/Button';
 import ChiffreAnime from '../../../components/ui/ChiffreAnime';
 import Icon from '../../../components/ui/Icon';
+import ListeDeFaits from '../../../components/ui/ListeDeFaits';
 import Menu, { type MenuItem } from '../../../components/ui/Menu';
 import Touche from '../../../components/ui/Touche';
 import { formatNumber } from '../../../lib/financial';
@@ -21,7 +22,7 @@ import { EXPENSE_TYPE_LABELS, etatDuJustificatif } from '../lib/expensePresentat
 import { JAUGE } from '../../../lib/jauge';
 
 /** Le geste d'un pied de panneau : 40 de haut, 16 d'intérieur, 14 en 500 (comme Tâches). */
-const GESTE = 'h-10 min-h-10 gap-2 rounded-md px-4 text-[0.875rem] leading-5 font-medium';
+const GESTE = 'h-10 min-h-10 gap-2 rounded-md px-4 text-ts-body leading-ts-body font-medium';
 
 const dateLongue = (iso: string): string => {
     const date = new Date(iso);
@@ -39,6 +40,218 @@ const sorteDePiece = (nom: string): string => {
     const extension = nom.split('.').pop()?.toLowerCase() ?? '';
     if (['jpg', 'jpeg', 'png', 'webp', 'heic', 'gif'].includes(extension)) return 'Photo';
     return extension ? extension.toUpperCase() : 'Fichier';
+};
+
+interface CorpsDeLaDepenseProps {
+    depense: FinanceExpense;
+    poste: FinanceBudgetItem | null;
+    devise: string;
+    notationCompacte: boolean;
+    /** Les gestes de la pièce à la mesure du doigt — la feuille du téléphone et de la tablette. */
+    auDoigt?: boolean;
+    onJoindre: () => void;
+    onVoir: () => void;
+    onTelecharger: () => void;
+}
+
+/**
+ * **Ce qu'on vient vérifier d'une dépense** — le montant, la pièce, les faits, le poste.
+ * Le panneau du bureau et la feuille du téléphone et de la tablette rendent le même corps
+ * (10/10) : sous 840, la dépense s'ouvrait encore dans l'ancienne feuille — trois cartes
+ * encadrées, « Ce que la machine a lu », l'imputation sous un triangle d'alerte et
+ * « Supprimer » en rouge au pied.
+ */
+export const CorpsDeLaDepense: React.FC<CorpsDeLaDepenseProps> = ({
+    depense,
+    poste,
+    devise,
+    notationCompacte,
+    auDoigt = false,
+    onJoindre,
+    onVoir,
+    onTelecharger,
+}) => {
+    const n = (valeur: number) => formatNumber(valeur, notationCompacte);
+    const justificatif = etatDuJustificatif(depense);
+    const lectureIncertaine =
+        justificatif === 'joint' &&
+        (depense.extractionConfidence === 'medium' || depense.extractionConfidence === 'low');
+    const nomDeLaPiece = depense.sourceFileName || 'Justificatif';
+    const part =
+        poste && poste.allocated > 0 ? Math.round((poste.spent / poste.allocated) * 100) : 0;
+    const reste = poste ? poste.allocated - poste.spent : 0;
+    const GESTE_DE_PIECE = cn(
+        'text-ts-sub gap-1.5 px-2.5',
+        auDoigt ? 'h-10 min-h-10' : 'h-8 min-h-8',
+    );
+
+    return (
+        <>
+            {/* Le montant, et l'état quand il y en a un. */}
+            <div className="flex flex-wrap items-center gap-3">
+                <span className="flex items-baseline gap-1.5">
+                    <b className="font-brand text-on-surface text-[2.125rem] leading-10 font-semibold tracking-[-0.01em] whitespace-nowrap tabular-nums">
+                        <ChiffreAnime valeur={n(depense.amount)} />
+                    </b>
+                    <span className="text-text-secondary text-ts-sub leading-ts-sub">
+                        {depense.currencyCode || devise}
+                    </span>
+                </span>
+                {depense.status === 'Pending' && (
+                    <span className="text-ts-sub rounded-[4px] bg-[var(--tk-color-tint-ambre)] px-2 leading-6 font-medium text-[var(--tk-color-on-tint-ambre)]">
+                        En attente
+                    </span>
+                )}
+                {depense.status === 'Recurring' && (
+                    <span className="text-text-secondary text-ts-sub leading-ts-sub flex items-center gap-1">
+                        <Icon glyph={Repeat} size={18} />
+                        Récurrente
+                    </span>
+                )}
+            </div>
+
+            {/* La pièce — l'aperçu, ou l'invitation à la joindre. */}
+            <div className="flex flex-col gap-2.5">
+                {justificatif === 'joint' ? (
+                    <div className="border-outline-variant flex items-center gap-3.5 rounded-lg border p-3">
+                        <span
+                            aria-hidden="true"
+                            className="border-outline-variant bg-surface flex h-[72px] w-14 shrink-0 flex-col gap-1 rounded-[4px] border px-[7px] pt-[9px] pb-[7px]"
+                        >
+                            <span className="bg-on-surface-variant block h-[5px] w-6 rounded-[1px]" />
+                            <span className="bg-surface-muted-strong mt-1 block h-[3px] w-full" />
+                            <span className="bg-surface-muted-strong block h-[3px] w-4/5" />
+                            <span className="bg-surface-muted-strong block h-[3px] w-full" />
+                            <span className="bg-surface-muted-strong block h-[3px] w-3/5" />
+                            <span className="bg-outline mt-auto block h-1 w-[18px] self-end" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                            <span className="text-on-surface text-ts-body leading-ts-body block truncate font-medium">
+                                {nomDeLaPiece}
+                            </span>
+                            <span className="text-text-secondary text-ts-sub leading-ts-sub block">
+                                {sorteDePiece(nomDeLaPiece)} · justificatif joint
+                            </span>
+                        </span>
+                        <Button
+                            variant="outlined"
+                            size="sm"
+                            onClick={onVoir}
+                            className={GESTE_DE_PIECE}
+                        >
+                            <Icon glyph={Eye} size={18} />
+                            Voir
+                        </Button>
+                        <Button
+                            variant="outlined"
+                            iconOnly
+                            size="sm"
+                            aria-label="Télécharger le justificatif"
+                            onClick={onTelecharger}
+                            className={cn(auDoigt ? 'h-10 w-10' : 'h-8 w-8')}
+                        >
+                            <Icon glyph={DownloadSimple} size={18} />
+                        </Button>
+                    </div>
+                ) : (
+                    <div className="border-outline-variant flex items-center gap-3.5 rounded-lg border border-dashed p-3">
+                        <span className="bg-surface-container text-text-secondary flex h-10 w-10 shrink-0 items-center justify-center rounded-md">
+                            <Icon glyph={Paperclip} size={20} />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                            <span className="text-on-surface text-ts-body leading-ts-body block font-medium">
+                                {justificatif === 'manquant'
+                                    ? 'Aucun justificatif'
+                                    : 'Justificatif facultatif'}
+                            </span>
+                        </span>
+                        <Button
+                            variant="outlined"
+                            size="sm"
+                            onClick={onJoindre}
+                            className={GESTE_DE_PIECE}
+                        >
+                            <Icon glyph={Paperclip} size={18} />
+                            Joindre
+                        </Button>
+                    </div>
+                )}
+                {lectureIncertaine && (
+                    <p className="text-ts-sub leading-ts-sub flex items-start gap-2 rounded-md bg-[var(--tk-color-tint-ambre)] px-3.5 py-2.5 text-[var(--tk-color-on-tint-ambre)]">
+                        <Icon glyph={Warning} size={18} className="mt-px shrink-0" />
+                        <span>
+                            <b className="font-semibold">
+                                {depense.extractionConfidence === 'low'
+                                    ? 'Lecture incertaine.'
+                                    : 'Lecture partielle.'}
+                            </b>{' '}
+                            Comparez le montant et la date au document.
+                        </span>
+                    </p>
+                )}
+            </div>
+
+            {/* Les faits de la facture — la liste commune à tous les détails (10/10). */}
+            <ListeDeFaits
+                label="Les faits de la facture"
+                chiffres
+                faits={[
+                    ['Date de la facture', dateLongue(depense.date)],
+                    [
+                        'N° de facture',
+                        depense.invoiceNumber || (
+                            <span className="text-text-secondary">non renseigné</span>
+                        ),
+                    ],
+                    ['Nature', EXPENSE_TYPE_LABELS[depense.type]],
+                ]}
+            />
+
+            {/* Le poste, et ce qu'il y reste. */}
+            {poste && (
+                <section className="flex flex-col gap-2">
+                    <div className="flex items-baseline justify-between gap-3">
+                        <h3 className="text-text-secondary text-ts-sub leading-ts-sub min-w-0 truncate font-medium">
+                            Le poste {poste.category}
+                        </h3>
+                        <span className="text-text-secondary text-ts-sub leading-ts-sub shrink-0 tabular-nums">
+                            <b className="text-on-surface font-semibold">{n(poste.spent)}</b> sur{' '}
+                            {n(poste.allocated)}
+                        </span>
+                    </div>
+                    <span className={cn('bg-surface-muted-strong block overflow-hidden', JAUGE)}>
+                        <span
+                            className={cn(
+                                'mvt-jauge duration-medium2 ease-emphasized block h-full transition-[width]',
+                                reste < 0
+                                    ? 'bg-[var(--tk-color-st-orange)]'
+                                    : 'bg-[var(--tk-color-st-vert)]',
+                            )}
+                            style={{ width: `${Math.min(100, part)}%` }}
+                        />
+                    </span>
+                    <p className="text-text-secondary text-ts-sub leading-ts-sub">
+                        {part} % consommés ·{' '}
+                        {reste >= 0 ? (
+                            <>
+                                il reste{' '}
+                                <b className="text-on-surface font-medium tabular-nums">
+                                    {n(reste)} {devise}
+                                </b>
+                            </>
+                        ) : (
+                            <>
+                                dépassé de{' '}
+                                <b className="font-semibold text-[var(--tk-color-on-tint-orange)] tabular-nums">
+                                    {n(-reste)} {devise}
+                                </b>
+                            </>
+                        )}
+                    </p>
+                </section>
+            )}
+        </>
+    );
 };
 
 interface PanneauDeDepenseProps {
@@ -89,15 +302,7 @@ const PanneauDeDepense: React.FC<PanneauDeDepenseProps> = ({
     onTelecharger,
     onSupprimer,
 }) => {
-    const n = (valeur: number) => formatNumber(valeur, notationCompacte);
     const justificatif = etatDuJustificatif(depense);
-    const lectureIncertaine =
-        justificatif === 'joint' &&
-        (depense.extractionConfidence === 'medium' || depense.extractionConfidence === 'low');
-    const nomDeLaPiece = depense.sourceFileName || 'Justificatif';
-    const part =
-        poste && poste.allocated > 0 ? Math.round((poste.spent / poste.allocated) * 100) : 0;
-    const reste = poste ? poste.allocated - poste.spent : 0;
 
     const actes: MenuItem[] = [
         ...(justificatif === 'joint'
@@ -159,193 +364,21 @@ const PanneauDeDepense: React.FC<PanneauDeDepenseProps> = ({
                         {depense.supplier}
                     </h2>
                     {depense.description?.trim() && (
-                        <p className="text-text-secondary text-[0.875rem] leading-5">
+                        <p className="text-text-secondary text-ts-body leading-ts-body">
                             {depense.description}
                         </p>
                     )}
                 </div>
 
-                {/* Le montant, et l'état quand il y en a un. */}
-                <div className="flex flex-wrap items-center gap-3">
-                    <span className="flex items-baseline gap-1.5">
-                        <b className="font-brand text-on-surface text-[2.125rem] leading-10 font-semibold tracking-[-0.01em] whitespace-nowrap tabular-nums">
-                            <ChiffreAnime valeur={n(depense.amount)} />
-                        </b>
-                        <span className="text-text-secondary text-[0.8125rem] leading-[1.125rem]">
-                            {depense.currencyCode || devise}
-                        </span>
-                    </span>
-                    {depense.status === 'Pending' && (
-                        <span className="rounded-[4px] bg-[var(--tk-color-tint-ambre)] px-2 text-[0.8125rem] leading-6 font-medium text-[var(--tk-color-on-tint-ambre)]">
-                            En attente
-                        </span>
-                    )}
-                    {depense.status === 'Recurring' && (
-                        <span className="text-text-secondary flex items-center gap-1 text-[0.8125rem] leading-[1.125rem]">
-                            <Icon glyph={Repeat} size={18} />
-                            Récurrente
-                        </span>
-                    )}
-                </div>
-
-                {/* La pièce — l'aperçu, ou l'invitation à la joindre. */}
-                <div className="flex flex-col gap-2.5">
-                    {justificatif === 'joint' ? (
-                        <div className="border-outline-variant flex items-center gap-3.5 rounded-lg border p-3">
-                            <span
-                                aria-hidden="true"
-                                className="border-outline-variant bg-surface flex h-[72px] w-14 shrink-0 flex-col gap-1 rounded-[4px] border px-[7px] pt-[9px] pb-[7px]"
-                            >
-                                <span className="bg-on-surface-variant block h-[5px] w-6 rounded-[1px]" />
-                                <span className="bg-surface-muted-strong mt-1 block h-[3px] w-full" />
-                                <span className="bg-surface-muted-strong block h-[3px] w-4/5" />
-                                <span className="bg-surface-muted-strong block h-[3px] w-full" />
-                                <span className="bg-surface-muted-strong block h-[3px] w-3/5" />
-                                <span className="bg-outline mt-auto block h-1 w-[18px] self-end" />
-                            </span>
-                            <span className="min-w-0 flex-1">
-                                <span className="text-on-surface block truncate text-[0.875rem] leading-5 font-medium">
-                                    {nomDeLaPiece}
-                                </span>
-                                <span className="text-text-secondary block text-[0.8125rem] leading-[1.125rem]">
-                                    {sorteDePiece(nomDeLaPiece)} · justificatif joint
-                                </span>
-                            </span>
-                            <Button
-                                variant="outlined"
-                                size="sm"
-                                onClick={onVoir}
-                                className="h-8 min-h-8 gap-1.5 px-2.5 text-[0.8125rem]"
-                            >
-                                <Icon glyph={Eye} size={18} />
-                                Voir
-                            </Button>
-                            <Button
-                                variant="outlined"
-                                iconOnly
-                                size="sm"
-                                aria-label="Télécharger le justificatif"
-                                onClick={onTelecharger}
-                                className="h-8 w-8"
-                            >
-                                <Icon glyph={DownloadSimple} size={18} />
-                            </Button>
-                        </div>
-                    ) : (
-                        <div className="border-outline-variant flex items-center gap-3.5 rounded-lg border border-dashed p-3">
-                            <span className="bg-surface-container text-text-secondary flex h-10 w-10 shrink-0 items-center justify-center rounded-md">
-                                <Icon glyph={Paperclip} size={20} />
-                            </span>
-                            <span className="min-w-0 flex-1">
-                                <span className="text-on-surface block text-[0.875rem] leading-5 font-medium">
-                                    {justificatif === 'manquant'
-                                        ? 'Aucun justificatif'
-                                        : 'Justificatif facultatif'}
-                                </span>
-                                <span className="text-text-secondary block text-[0.8125rem] leading-[1.125rem]">
-                                    {justificatif === 'manquant'
-                                        ? 'La facture reste à joindre.'
-                                        : 'Un abonnement se justifie par son contrat.'}
-                                </span>
-                            </span>
-                            <Button
-                                variant="outlined"
-                                size="sm"
-                                onClick={onJoindre}
-                                className="h-8 min-h-8 gap-1.5 px-2.5 text-[0.8125rem]"
-                            >
-                                <Icon glyph={Paperclip} size={18} />
-                                Joindre
-                            </Button>
-                        </div>
-                    )}
-                    {lectureIncertaine && (
-                        <p className="flex items-start gap-2 rounded-md bg-[var(--tk-color-tint-ambre)] px-3.5 py-2.5 text-[0.8125rem] leading-[1.125rem] text-[var(--tk-color-on-tint-ambre)]">
-                            <Icon glyph={Warning} size={18} className="mt-px shrink-0" />
-                            <span>
-                                <b className="font-semibold">
-                                    {depense.extractionConfidence === 'low'
-                                        ? 'Lecture incertaine.'
-                                        : 'Lecture partielle.'}
-                                </b>{' '}
-                                Comparez le montant et la date au document.
-                            </span>
-                        </p>
-                    )}
-                </div>
-
-                {/* Les faits de la facture. */}
-                <dl className="border-outline-variant grid grid-cols-[148px_minmax(0,1fr)] border-b text-[0.875rem] leading-5">
-                    <dt className="border-outline-variant text-text-secondary flex h-9 items-center border-t text-[0.8125rem]">
-                        Date de la facture
-                    </dt>
-                    <dd className="border-outline-variant flex h-9 items-center border-t">
-                        {dateLongue(depense.date)}
-                    </dd>
-                    <dt className="border-outline-variant text-text-secondary flex h-9 items-center border-t text-[0.8125rem]">
-                        N° de facture
-                    </dt>
-                    <dd
-                        className={cn(
-                            'border-outline-variant flex h-9 min-w-0 items-center border-t tabular-nums',
-                            !depense.invoiceNumber && 'text-text-secondary',
-                        )}
-                    >
-                        <span className="truncate">{depense.invoiceNumber || 'non renseigné'}</span>
-                    </dd>
-                    <dt className="border-outline-variant text-text-secondary flex h-9 items-center border-t text-[0.8125rem]">
-                        Nature
-                    </dt>
-                    <dd className="border-outline-variant flex h-9 items-center border-t">
-                        {EXPENSE_TYPE_LABELS[depense.type]}
-                    </dd>
-                </dl>
-
-                {/* Le poste, et ce qu'il y reste. */}
-                {poste && (
-                    <section className="flex flex-col gap-2">
-                        <div className="flex items-baseline justify-between gap-3">
-                            <h3 className="text-text-secondary min-w-0 truncate text-[0.8125rem] leading-[1.125rem] font-medium">
-                                Le poste {poste.category}
-                            </h3>
-                            <span className="text-text-secondary shrink-0 text-[0.8125rem] leading-[1.125rem] tabular-nums">
-                                <b className="text-on-surface font-semibold">{n(poste.spent)}</b>{' '}
-                                sur {n(poste.allocated)}
-                            </span>
-                        </div>
-                        <span
-                            className={cn('bg-surface-muted-strong block overflow-hidden', JAUGE)}
-                        >
-                            <span
-                                className={cn(
-                                    'mvt-jauge duration-medium2 ease-emphasized block h-full transition-[width]',
-                                    reste < 0
-                                        ? 'bg-[var(--tk-color-st-orange)]'
-                                        : 'bg-[var(--tk-color-st-vert)]',
-                                )}
-                                style={{ width: `${Math.min(100, part)}%` }}
-                            />
-                        </span>
-                        <p className="text-text-secondary text-[0.8125rem] leading-[1.125rem]">
-                            {part} % consommés ·{' '}
-                            {reste >= 0 ? (
-                                <>
-                                    il reste{' '}
-                                    <b className="text-on-surface font-medium tabular-nums">
-                                        {n(reste)} {devise}
-                                    </b>
-                                </>
-                            ) : (
-                                <>
-                                    dépassé de{' '}
-                                    <b className="font-semibold text-[var(--tk-color-on-tint-orange)] tabular-nums">
-                                        {n(-reste)} {devise}
-                                    </b>
-                                </>
-                            )}
-                        </p>
-                    </section>
-                )}
+                <CorpsDeLaDepense
+                    depense={depense}
+                    poste={poste}
+                    devise={devise}
+                    notationCompacte={notationCompacte}
+                    onJoindre={onJoindre}
+                    onVoir={onVoir}
+                    onTelecharger={onTelecharger}
+                />
             </div>
 
             {/* Le pied — le clavier à gauche, les gestes à droite. */}

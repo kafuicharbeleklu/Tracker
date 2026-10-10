@@ -309,12 +309,6 @@ const RequestSheet: React.FC<RequestSheetProps> = ({ open, onClose, beneficiaryI
     return (
         <BottomSheet open={open} onClose={onClose} title="Demander un équipement">
             <div className="flex flex-col gap-4">
-                <p className="text-on-surface-variant text-ts-sub leading-ts-sub">
-                    {pourUnAutre
-                        ? `Pour ${beneficiaire?.name.split(' ')[0]}, à votre nom.`
-                        : 'Votre manager décide, l’informatique remet.'}
-                </p>
-
                 {/* On ne bloque pas : on rappelle celle qui existe. */}
                 {dejaEnCours && (
                     <div className="bg-tint-ambre text-on-tint-ambre flex min-h-14 items-center gap-3 rounded-[4px] px-3.5 py-2">
@@ -415,17 +409,8 @@ const RequestSheet: React.FC<RequestSheetProps> = ({ open, onClose, beneficiaryI
                         aria-label="Pourquoi maintenant"
                         placeholder="Ce que vous avez, et ce qui ne va plus."
                     />
-                    {erreurs.motif ? (
-                        <InlineError className="mt-2">{erreurs.motif}</InlineError>
-                    ) : (
-                        <p className="text-on-surface-variant text-ts-sub leading-ts-sub mt-2">
-                            Une phrase :{' '}
-                            <strong className="text-on-surface font-medium">
-                                ce que vous avez, et ce qui ne va plus
-                            </strong>
-                            .
-                        </p>
-                    )}
+                    {/* La consigne est dans le champ vide ; dessous, il ne reste que le refus. */}
+                    {erreurs.motif && <InlineError className="mt-2">{erreurs.motif}</InlineError>}
                 </div>
 
                 {/* Urgence — deux crans, parce que le produit n'en distingue pas trois. */}
@@ -460,12 +445,7 @@ const RequestSheet: React.FC<RequestSheetProps> = ({ open, onClose, beneficiaryI
                                     <strong className="font-medium">
                                         {manager?.name || 'votre manager'}
                                     </strong>
-                                    . Sa réponse vous attendra dans Tâches.
-                                </>
-                            ) : pourUnAutre ? (
-                                <>
-                                    <strong className="font-medium">Vous en répondez</strong> : part
-                                    directement à l’informatique.
+                                    .
                                 </>
                             ) : (
                                 <>
@@ -478,7 +458,7 @@ const RequestSheet: React.FC<RequestSheetProps> = ({ open, onClose, beneficiaryI
                 </div>
 
                 {/* `.sfoot` — deux verbes de même largeur, filet au-dessus. */}
-                <div className="border-outline-variant -mx-5 duo-de-pied gap-3 border-t px-5 pt-4 pb-1">
+                <div className="border-outline-variant duo-de-pied -mx-5 gap-3 border-t px-5 pt-4 pb-1">
                     <Button variant="ghost" onClick={onClose} className="!rounded-[4px]">
                         Annuler
                     </Button>

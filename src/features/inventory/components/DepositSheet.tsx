@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Tray, User, Wrench } from '@phosphor-icons/react';
 
 import Attestation, { type AttestationMethod } from '../../../components/ui/Attestation';
@@ -8,6 +8,7 @@ import Icon from '../../../components/ui/Icon';
 import { Consequences, SubjectRow } from '../../../components/ui/FormParts';
 import { motifIncident } from '../incidents';
 import type { Equipment } from '../../../types';
+import { oublierLesSignatures } from '../../../lib/signatureDeLActe';
 
 /**
  * **Recevoir le dépôt d'un objet à réparer** — premier passage de main du parcours de
@@ -39,6 +40,11 @@ const DepositSheet: React.FC<DepositSheetProps> = ({
         done: false,
     });
 
+    /* Une feuille qui s'ouvre commence un acte : ce qui a été signé avant ne la concerne pas. */
+    useEffect(() => {
+        if (open) oublierLesSignatures();
+    }, [open]);
+
     return (
         <BottomSheet
             open={open}
@@ -64,7 +70,7 @@ const DepositSheet: React.FC<DepositSheetProps> = ({
                         {
                             glyph: Tray,
                             tint: 'bleu',
-                            content: 'L’objet passe au bureau informatique, à prendre en charge.',
+                            content: 'L’objet passe au bureau informatique.',
                         },
                         {
                             glyph: User,
@@ -83,7 +89,7 @@ const DepositSheet: React.FC<DepositSheetProps> = ({
                     onChange={setAttestation}
                 />
 
-                <div className="border-outline-variant -mx-5 duo-de-pied gap-3 border-t px-5 pt-4 pb-1">
+                <div className="border-outline-variant duo-de-pied -mx-5 gap-3 border-t px-5 pt-4 pb-1">
                     <Button variant="ghost" onClick={onClose}>
                         Annuler
                     </Button>

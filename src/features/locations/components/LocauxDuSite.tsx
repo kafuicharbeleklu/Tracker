@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { DoorOpen, DotsThreeVertical, Hourglass, Plus } from '@phosphor-icons/react';
+import { DoorOpen, DotsThreeVertical, Hourglass } from '@phosphor-icons/react';
 
 import BottomSheet from '../../../components/ui/BottomSheet';
 import Button from '../../../components/ui/Button';
@@ -33,8 +33,8 @@ export interface RangeeDeLocal {
 
 /** Combien la fiche du site en montre avant de renvoyer à la page des locaux. */
 export const LOCAUX_SUR_LA_FICHE = 4;
-/** Au bureau, en tuiles : deux rangs de trois, la tuile d'ajout comprise. */
-export const TUILES_SUR_LA_FICHE = 5;
+/** Au bureau, en tuiles : deux rangs de trois. */
+export const TUILES_SUR_LA_FICHE = 6;
 
 export const useLocauxDuSite = (siteName: string) => {
     const { locationData, equipment, deleteLocation } = useData();
@@ -74,8 +74,7 @@ export const useLocauxDuSite = (siteName: string) => {
     const supprimerLocal = (local: string) =>
         requestConfirmation({
             title: `Supprimer le local « ${local} » ?`,
-            message:
-                'Le local disparaît du site. Les actifs qui le portaient restent localisés sur le site.',
+            message: 'Ses actifs restent localisés sur le site.',
             confirmText: 'Supprimer le local',
             tone: 'destructive',
             onConfirm: () => {
@@ -185,24 +184,15 @@ export const RangeesDeLocaux: React.FC<{
 
 /**
  * **Au bureau, les locaux en tuiles** (23/09) — trois de front : le nom, ce qu'il porte, et
- * son ⋮ ; la première tuile ajoute.
+ * son ⋮. **Plus de tuile d'ajout** (10/10) : « Ajouter un local » est un acte de la fiche, il
+ * vit dans son en-tête (bouton au bureau, bouton flottant au téléphone), comme « Ajouter un
+ * modèle » sur la fiche d'un type.
  */
 export const TuilesDeLocaux: React.FC<{
     rangees: readonly RangeeDeLocal[];
-    onAjouter: () => void;
     onSupprimer: (local: string) => void;
-}> = ({ rangees, onAjouter, onSupprimer }) => (
+}> = ({ rangees, onSupprimer }) => (
     <ul className="grid grid-cols-3 gap-3">
-        <li>
-            <Button
-                variant="text"
-                onClick={onAjouter}
-                className="border-outline-variant text-on-surface text-ts-control h-full min-h-24 w-full flex-col gap-1.5 rounded-md border border-dashed font-medium"
-            >
-                <Icon glyph={Plus} size={20} className="text-text-secondary" />
-                Ajouter un local
-            </Button>
-        </li>
         {rangees.map(({ local, count }) =>
             local ? (
                 <li
@@ -256,23 +246,12 @@ export const TuilesDeLocaux: React.FC<{
  * **Le pied de la carte** — `.more` : 48 px, un filet au-dessus. Ajouter, et, quand la carte
  * n'en montre qu'une partie, « Tous les locaux » vers leur page.
  */
-export const PiedDesLocaux: React.FC<{
-    onAjouter?: () => void;
-    total: number;
-    onTous?: () => void;
-}> = ({ onAjouter, total, onTous }) => (
+export const PiedDesLocaux: React.FC<{ total: number; onTous: () => void }> = ({
+    total,
+    onTous,
+}) => (
     <PiedDeCarte>
-        {onAjouter && (
-            <Button
-                variant="text"
-                onClick={onAjouter}
-                className="text-on-surface text-ts-control -ml-2 min-h-12 gap-2 px-2 font-medium"
-            >
-                <Icon glyph={Plus} size={20} className="text-text-secondary" />
-                Ajouter un local
-            </Button>
-        )}
-        {onTous && <ToutVoir libelle="Tous les locaux" total={total} onOuvrir={onTous} />}
+        <ToutVoir libelle="Tous les locaux" total={total} onOuvrir={onTous} />
     </PiedDeCarte>
 );
 

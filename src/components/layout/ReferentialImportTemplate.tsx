@@ -168,7 +168,7 @@ function ReferentialImportTemplate<T>({
     onImport,
     rejectionNote,
     contractNote,
-    dropSubLabel = 'CSV ou Excel — les colonnes se reconnaissent à leur nom',
+    dropSubLabel = 'CSV ou Excel',
     reglages,
 }: ReferentialImportTemplateProps<T>) {
     const [file, setFile] = useState<File | null>(null);
@@ -406,10 +406,6 @@ function ReferentialImportTemplate<T>({
                                     {contractNote}
                                 </p>
                             )}
-                            <p className="text-on-surface-variant text-ts-sub leading-ts-sub mt-2">
-                                Dans n'importe quel ordre, et sous leur nom français aussi : «
-                                Numéro de série », « Modèle », « Date d'achat »…
-                            </p>
                         </div>
                         <Button
                             variant="text"

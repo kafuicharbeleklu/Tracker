@@ -202,21 +202,6 @@ const INVENTORY_PERIODS = [3, 6, 12, 24];
  */
 const FILE_LIMITS = [2, 5, 10, 20];
 
-/** Ce que chaque choix veut dire, pour que la durée ne soit pas qu'un chiffre. */
-const PERIOD_SUBTITLES: Record<number, string> = {
-    3: 'Un parc qui bouge tous les jours',
-    6: 'Deux comptages par an',
-    12: 'Le rythme courant d’un inventaire annuel',
-    24: 'Un parc stable, peu de mouvements',
-};
-
-const FILE_LIMIT_SUBTITLES: Record<number, string> = {
-    2: 'Un tableur, pas une photo',
-    5: 'Un tableur et une photo de téléphone',
-    10: 'Une facture scannée, plusieurs pages',
-    20: 'Tout passe, la lecture peut être longue',
-};
-
 /**
  * L'ordinal se compose : 14.1 écrit `1<sup>er</sup> janv.`. L'exposant rend trois
  * pixels à la rangée — assez pour que « Devise et année fiscale » ne se coupe plus.
@@ -432,7 +417,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
     const {
         settings,
         updateSettings,
-        equipment,
         categories,
         detectedDevices,
         ingestAgentCheckIn,
@@ -566,41 +550,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
         [settings.fiscalYearStart],
     );
 
-    /**
-     * Ce que le réglage d'amortissement décide **réellement** : les actifs dont ni la
-     * fiche ni le type ne portent de plan. Le chiffre est compté sur la donnée — la
-     * planche en annonçait 14 sans avoir vu la cascade.
-     *
-     * **Il se lit aux deux endroits** (16/09) : en pied de l'écran du réglage, là où l'on
-     * s'apprête à changer la valeur, et en sous-ligne de la rangée, comme 14.1 la dessine.
-     * Le 10/09 l'avait retiré de la rangée parce qu'il y disputait sa place au titre : la
-     * sous-ligne y était rendue en 14 sur 20 au lieu des 12 sur 16 de la planche.
-     */
-    const governedAssets = useMemo(() => {
-        const typedWithoutPlan = new Set(
-            categories
-                .filter((category) => !category.defaultDepreciation?.years)
-                .map((category) => category.name),
-        );
-        return equipment.filter(
-            (item) => !item.financial?.depreciationYears && typedWithoutPlan.has(item.type),
-        ).length;
-    }, [categories, equipment]);
-
-    /**
-     * Combien de lieux la périodicité gouverne. 14.1 écrit *« Donne son sens à “en
-     * retard” sur 6 sites »* : ce n'est pas le nombre de retardataires mais **l'étendue
-     * du réglage**, comme « 14 actifs » sous l'amortissement. Un site sans aucun objet
-     * n'a rien à compter : il n'entre pas dans le compte.
-     */
-    const sitesInventories = useMemo(
-        () =>
-            new Set(
-                equipment.map((item) => (item.site || '').trim()).filter((site) => site.length > 0),
-            ).size,
-        [equipment],
-    );
-
     const typesWithOwnPlan = useMemo(
         () => categories.filter((category) => Boolean(category.defaultDepreciation?.years)).length,
         [categories],
@@ -631,13 +580,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
             settings.salvageValuePercent,
         ],
     );
-
-    /**
-     * 14.1 écrit « Vaut pour les 9 imports ». Le produit en porte **quatre** — équipements,
-     * modèles, emplacements, personnes : c'est ce nombre-là qui est vrai ici, et il se compte
-     * à la main faute d'un registre des écrans d'import.
-     */
-    const importSurfaces = 4;
 
     /** L'état d'une source : ce qu'elle a renvoyé, et quand. */
     const sourceState = useMemo(() => {
@@ -888,7 +830,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                                 />
                                 <RuleGroup.Row
                                     title="Amortissement par défaut"
-                                    subtitle={`Décide de la valeur de ${governedAssets} actif${governedAssets > 1 ? 's' : ''}`}
                                     value={`${settings.defaultDepreciationYears} ans`}
                                     onOpen={() => setView('depreciation')}
                                 />
@@ -898,13 +839,11 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                                     d'aucun écran. */}
                                 <RuleGroup.Row
                                     title="Périodicité de l'inventaire"
-                                    subtitle={`Donne son sens à « en retard » sur ${sitesInventories} site${sitesInventories > 1 ? 's' : ''}`}
                                     value={`${settings.inventoryPeriodMonths} mois`}
                                     onOpen={() => setReglage('inventory')}
                                 />
                                 <RuleGroup.Row
                                     title="Validation des devis"
-                                    subtitle="Au-delà, la Finance valide une réparation"
                                     value={
                                         seuilDevis(settings) === 0
                                             ? 'toujours'
@@ -914,7 +853,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                                 />
                                 <RuleGroup.Row
                                     title="Taille maximale d'un fichier"
-                                    subtitle={`Vaut pour les ${importSurfaces} imports`}
                                     value={`${settings.maxImportFileMb} Mo`}
                                     onOpen={() => setReglage('files')}
                                 />
@@ -1182,11 +1120,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                                     />
                                 ))}
                             </RuleGroup>
-
-                            <p className="text-text-muted text-ts-sub leading-ts-sub">
-                                Aucun bouton d'enregistrement : chaque réglage s'applique quand on
-                                le pose.
-                            </p>
                         </>
                     )}
 
@@ -1228,15 +1161,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                                     )}
                                 </section>
 
-                                <RuleGroup
-                                    form="grp"
-                                    header="Méthode"
-                                    note={
-                                        governedAssets > 0
-                                            ? `Elle vaut pour les types sans plan à eux — ${governedAssets} actif${governedAssets > 1 ? 's' : ''} aujourd'hui.`
-                                            : 'Elle vaut pour les types sans plan à eux.'
-                                    }
-                                >
+                                <RuleGroup form="grp" header="Méthode">
                                     <div className="grid grid-cols-2 gap-3 px-4 pt-1 pb-4">
                                         {DEPRECIATION_METHODS.map((method) => (
                                             <CarteMethode
@@ -1269,7 +1194,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                                 <RuleGroup form="grp" header="Durée et fin de vie">
                                     <RuleGroup.Row
                                         title="Durée"
-                                        subtitle="Jusqu'à ce qu'il ne vaille plus que son résiduel"
                                         trailing={
                                             <Stepper
                                                 label="Durée"
@@ -1327,11 +1251,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                                         </PiedDeCarte>
                                     )}
                                 </RuleGroup>
-
-                                <p className="text-text-muted text-ts-sub leading-ts-sub">
-                                    Aucun bouton d'enregistrement : chaque réglage s'applique quand
-                                    on le pose.
-                                </p>
                             </div>
                         </div>
                     )}
@@ -1348,10 +1267,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
 
                     {view === 'sources' && (
                         <>
-                            <RuleGroup
-                                form="grp"
-                                note="Une source muette depuis six jours remonte au sommaire."
-                            >
+                            <RuleGroup form="grp">
                                 {SOURCES.map((source) => {
                                     const enabled = Boolean(settings[source.enabledKey]);
                                     const state = sourceState.get(source.id);
@@ -1388,11 +1304,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                                 })}
                             </RuleGroup>
 
-                            <RuleGroup
-                                form="grp"
-                                header="Alimenter à la main"
-                                note="Une machine remontée attend une validation dans Tâches."
-                            >
+                            <RuleGroup form="grp" header="Alimenter à la main">
                                 <RuleGroup.Row
                                     title="Importer des fichiers de remontée"
                                     subtitle="JSON, tableau, ou NDJSON"
@@ -1466,7 +1378,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                                     <RuleGroup.Row
                                         key={mois}
                                         title={`${mois} mois`}
-                                        subtitle={PERIOD_SUBTITLES[mois]}
                                         status={
                                             retenue
                                                 ? { icon: CheckCircle, tone: 'positive' }
@@ -1489,7 +1400,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                                     <RuleGroup.Row
                                         key={mo}
                                         title={`${mo} Mo`}
-                                        subtitle={FILE_LIMIT_SUBTITLES[mo]}
                                         status={
                                             retenue
                                                 ? { icon: CheckCircle, tone: 'positive' }
@@ -1561,9 +1471,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                                     }))
                                 }
                             />
-                            <p className="text-text-secondary text-ts-sub leading-ts-sub">
-                                En dessous de 15 minutes, l'agent parle plus qu'il n'observe.
-                            </p>
                             <InputField
                                 label="URL de l'API"
                                 value={sourceDraft.autoCollectionApiBaseUrl}
@@ -1706,13 +1613,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                 title="Ma signature"
             >
                 <div className="flex flex-col pb-1">
-                    {/* `.slead` — **la raison avant les chemins.** Sans elle, la feuille
-                        demande un fichier sans dire ce qu'il deviendra ; c'est pourtant là
-                        que se gagne l'envie d'en déposer un. */}
-                    <p className="text-on-surface-variant text-ts-sub leading-ts-sub mb-2">
-                        Une image de votre signature. Avec votre code PIN, elle s'apposera
-                        d'elle-même.
-                    </p>
                     {/* Les deux champs sont **cachés** : c'est la rangée qu'on voit, et
                         c'est elle qui les déclenche (`FilePicker`, primitive de 17.10). */}
                     <FilePicker
@@ -1760,10 +1660,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                 title="Ma signature"
             >
                 <div className="flex flex-col gap-4 pb-1">
-                    <p className="text-on-surface-variant text-ts-sub leading-ts-sub">
-                        Avec votre code PIN, elle s'appose d'elle-même à chaque remise.
-                    </p>
-
                     {signatureBlob && (
                         <SignatureApercu
                             image={signatureBlob}
@@ -2548,10 +2444,7 @@ const SignatureCrop: React.FC<{
                     <span>
                         {lue && !lue.encre
                             ? 'Aucun tracé reconnu : cadrez à la main.'
-                            : 'Glissez, pincez, ou touchez deux fois pour recadrer.'}{' '}
-                        <b className="text-on-surface font-medium">
-                            Le cadre garde le tracé, sans le fond.
-                        </b>
+                            : 'Glissez, pincez, ou touchez deux fois pour recadrer.'}
                     </span>
                 </p>
                 <Button
@@ -2749,9 +2642,7 @@ const PinSheet: React.FC<{
         ? 'Trois essais sans le bon code actuel.'
         : phase === 'actuel'
           ? 'Entrez votre code actuel.'
-          : dejaDefini
-            ? "Six chiffres. L'ancien cesse de valoir dès que le nouveau est posé."
-            : "Six chiffres. Il vaut signature à chaque remise — personne ne peut le lire, pas même l'informatique.";
+          : null;
 
     return (
         <BottomSheet
@@ -2764,14 +2655,15 @@ const PinSheet: React.FC<{
               Le titre de la feuille reste à gauche, comme dans toutes les feuilles.
             */}
             <div className="flex flex-col gap-4">
-                <p className="text-on-surface-variant text-ts-sub leading-ts-sub mx-auto max-w-[300px] text-center text-balance">
-                    {phrase}
-                </p>
+                {phrase && (
+                    <p className="text-on-surface-variant text-ts-sub leading-ts-sub mx-auto max-w-[300px] text-center text-balance">
+                        {phrase}
+                    </p>
+                )}
 
                 {bloque ? (
                     <p className="text-on-surface text-ts-sub leading-ts-sub mx-auto max-w-[300px] text-center text-balance">
-                        Votre informatique peut réinitialiser votre code depuis votre fiche. Vous en
-                        poserez alors un nouveau.
+                        Votre informatique peut le réinitialiser.
                     </p>
                 ) : phase === 'actuel' ? (
                     <div className="flex flex-col items-center">
@@ -2790,15 +2682,14 @@ const PinSheet: React.FC<{
                             label="Code PIN actuel"
                         />
                         <PinSteps className="mt-4" total={3} current={0} />
+                        {/* Les trois points disent déjà qu'il reste deux saisies : la ligne ne
+                            paraît que pour un refus (10/10). */}
                         <p
-                            className={cn(
-                                'text-ts-sub leading-ts-sub mt-2 max-w-[300px] text-center',
-                                refusActuel ? 'text-error' : 'text-on-surface-variant',
-                            )}
+                            className="text-error text-ts-sub leading-ts-sub mt-2 min-h-[1.25rem] max-w-[300px] text-center"
                             role={refusActuel ? 'alert' : undefined}
                             aria-live="polite"
                         >
-                            {refusActuel ?? 'Ensuite, le nouveau code, deux fois.'}
+                            {refusActuel}
                         </p>
                     </div>
                 ) : (
@@ -2912,10 +2803,6 @@ const PasswordSheet: React.FC<{ open: boolean; onClose: () => void; userId?: str
            éviter se rejouerait ici sans elle. */
         <BottomSheet open={open} onClose={onClose} title="Changer mon mot de passe">
             <div className="flex flex-col gap-4">
-                <p className="text-on-surface-variant text-ts-sub leading-ts-sub">
-                    Vous resterez connecté sur cet appareil.
-                </p>
-
                 <InputField
                     label="Mot de passe actuel"
                     type="password"
@@ -2926,17 +2813,13 @@ const PasswordSheet: React.FC<{ open: boolean; onClose: () => void; userId?: str
                 <div>
                     <InputField
                         label="Nouveau mot de passe"
+                        /* La règle se lit dans le champ, pas dans une ligne dessous (10/10). */
+                        placeholder={`${PASSWORD_MIN_LENGTH} caractères minimum`}
                         type="password"
                         value={next}
                         onChange={(event) => setNext(event.target.value)}
                     />
                     <PasswordMeter filled={forceNouveau.score} />
-                    {/* `.hint` — la règle se lit **avant** la faute, pas après : c'est la
-                        seule ligne de l'écran qui évite un aller-retour. */}
-                    <p className="text-on-surface-variant text-ts-sub leading-ts-sub mt-2">
-                        {PASSWORD_MIN_LENGTH} caractères minimum ; une phrase vaut mieux qu'un mot
-                        compliqué.
-                    </p>
                 </div>
 
                 <div>
@@ -2955,16 +2838,6 @@ const PasswordSheet: React.FC<{ open: boolean; onClose: () => void; userId?: str
                         <span>{error}</span>
                     </p>
                 )}
-
-                {/* `.alt` — **les deux secrets ne se confondent pas.** Une personne qui
-                    vient de changer « son code » doit repartir en sachant lequel. */}
-                <p className="text-on-surface-variant text-ts-sub leading-ts-sub flex items-start gap-2">
-                    <Icon glyph={Key} size={18} className="text-text-tertiary mt-px shrink-0" />
-                    <span>
-                        Votre <b className="text-on-surface font-medium">code PIN</b> ne change pas
-                        : il signe, il n'ouvre pas.
-                    </span>
-                </p>
 
                 {/* `.sfoot` — deux boutons de **même largeur**, le filet au-dessus. */}
                 <div className="border-outline-variant duo-de-pied -mx-5 gap-3 border-t px-5 pt-4 pb-1">

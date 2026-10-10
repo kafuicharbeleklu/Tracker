@@ -20,7 +20,8 @@ import { MagnifyingGlass, PaperPlaneTilt } from '@phosphor-icons/react';
 import { useAccessControl } from '../../hooks/useAccessControl';
 import { useTransitionDePage } from '../../hooks/useTransitionDePage';
 import { champDeRecherche, useRaccourciRecherche } from '../../hooks/useRaccourciRecherche';
-import { SkeletonList } from '../ui/Skeleton';
+import { SkeletonPage } from '../ui/Skeleton';
+import { formeDeLAdresse } from '../../lib/formeDePage';
 import { SelectionRegimeProvider } from '../../context/SelectionRegimeContext';
 import RequestSheet from '../../features/tasks/components/RequestSheet';
 import AvisDesTaches from '../../features/tasks/components/AvisDesTaches';
@@ -78,11 +79,7 @@ interface AppLayoutProps {
  * l'arrivée de la donnée ; et « Chargement de la vue » nommait la mécanique, pas ce
  * que la personne attend.
  */
-const PageLoadingFallback: React.FC = () => (
-    <div data-testid="route-loading-fallback" className="medium:p-6 p-4">
-        <SkeletonList rows={4} />
-    </div>
-);
+const PageLoadingFallback: React.FC = () => <SkeletonPage forme={formeDeLAdresse()} />;
 
 /** L'objet que l'adresse d'un acte désigne — `?equipmentId=` dans le hash. */
 const lireObjetDeLAdresse = (parametre = 'equipmentId'): string | null => {
@@ -411,6 +408,11 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
     const usesBottomNavShortcuts =
         isCompact && !isCompactLandscape && bottomNavViews.includes(currentView);
     const showBottomNav = usesBottomNavShortcuts && !isMobileMenuOpen && !enSelection;
+    /* **Le pied d'actes n'existe qu'au téléphone** (10/10). Au rail et au bureau, la sélection
+       porte ses gestes dans la barre du haut (`SelectionBarBureau`) : rien ne se pose en bas.
+       La coque réservait pourtant ses 76 px à toutes les largeurs — entrer en sélection
+       rétrécissait d'autant la carte de la liste, relevé par le commanditaire. */
+    const piedDeSelection = enSelection && isCompact;
 
     /* La barre du bas publie sa hauteur à la racine du document. Le retour transitoire
        (17.5) est monté par `ToastProvider`, en dehors de cet arbre : il ne peut pas hériter
@@ -421,10 +423,10 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
         const root = document.documentElement;
         // 64 px — la hauteur que 17.7 déclare depuis la passe du 05/09 (elle valait 56).
         // En sélection, c'est le pied d'actes qui occupe le bas : 12 + 48 + 16 (17.2).
-        const hauteur = enSelection ? '76px' : showBottomNav ? '64px' : '0px';
+        const hauteur = piedDeSelection ? '76px' : showBottomNav ? '64px' : '0px';
         root.style.setProperty('--tk-size-bottom-bar', hauteur);
         return () => root.style.setProperty('--tk-size-bottom-bar', '0px');
-    }, [showBottomNav, enSelection]);
+    }, [showBottomNav, piedDeSelection]);
 
     /**
      * Vues passées à l'ADN mobile (DESIGN_BRIEF.md §5) : elles portent elles-mêmes
@@ -935,7 +937,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                     <ScreenState
                         icon={MagnifyingGlass}
                         title="Cette page n'existe plus"
-                        description="Cet objet ou ce compte n'existe plus. Son historique, lui, est conservé."
+                        description="Cet objet ou ce compte n'existe plus."
                         actions={
                             <>
                                 <Button
@@ -1040,7 +1042,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                         id={APP_SCROLLER_ID}
                         className={cn(
                             'bg-background relative flex min-w-0 flex-1 flex-col',
-                            enSelection ? 'pb-[76px]' : usesBottomNavShortcuts ? 'pb-16' : '',
+                            piedDeSelection ? 'pb-[76px]' : usesBottomNavShortcuts ? 'pb-16' : '',
                             'expanded:min-h-0 expanded:overflow-y-auto',
                         )}
                     >

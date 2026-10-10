@@ -71,8 +71,6 @@ interface PanneauDeTacheProps {
     onRelancer?: () => void;
     /** Ignorer une machine remontée — la collecte. */
     onIgnorer?: () => void;
-    /** Ouvrir la fiche d'un actif — les candidats d'une collecte. */
-    onOuvrirActif?: (id: string) => void;
     /**
      * **Où il se pose** (08/10). `panneau` — la colonne de droite du bureau. `feuille` — la
      * feuille du téléphone : la même tâche, le même détail, une croix pour fermer, un pied qui
@@ -130,7 +128,6 @@ const PanneauDeTache: React.FC<PanneauDeTacheProps> = ({
     onAnnulerDemande,
     onRelancer,
     onIgnorer,
-    onOuvrirActif,
     surface = 'panneau',
     onFermer,
     onDemanderRefus,
@@ -261,7 +258,7 @@ const PanneauDeTache: React.FC<PanneauDeTacheProps> = ({
                             {demande &&
                                 ` pour ${demande.beneficiaryId === currentUser?.id ? 'vous' : demande.beneficiaryName}`}
                         </h2>
-                        <p className="text-text-secondary text-[0.8125rem] leading-5">
+                        <p className="text-text-secondary text-ts-sub leading-ts-sub">
                             {sousLigne}
                         </p>
                     </div>
@@ -270,7 +267,7 @@ const PanneauDeTache: React.FC<PanneauDeTacheProps> = ({
 
                 {/* Ce qu'un autre doit faire, et que le super administrateur peut forcer. */}
                 {tache.force && (
-                    <p className="flex items-start gap-2 rounded-md bg-[var(--tk-color-tint-ambre)] px-3.5 py-2.5 text-[0.8125rem] leading-[1.125rem] text-[var(--tk-color-on-tint-ambre)]">
+                    <p className="text-ts-sub leading-ts-sub flex items-start gap-2 rounded-md bg-[var(--tk-color-tint-ambre)] px-3.5 py-2.5 text-[var(--tk-color-on-tint-ambre)]">
                         <Icon glyph={Warning} size={18} className="mt-px shrink-0" />
                         Attend {tache.force}. Vous pouvez agir à sa place.
                     </p>
@@ -284,12 +281,7 @@ const PanneauDeTache: React.FC<PanneauDeTacheProps> = ({
                 )}
 
                 {dossier && <DetailDeTache dossier={dossier} />}
-                {machine && (
-                    <ExamenDeMachine
-                        machine={machine}
-                        onOuvrirActif={(id) => onOuvrirActif?.(id)}
-                    />
-                )}
+                {machine && <ExamenDeMachine machine={machine} />}
 
                 {/* Le parcours et ses signatures — les pièces de l'historique. Pas de liste des
                     parties prenantes (08/10) : le parcours nomme déjà chacune, avec son rôle. */}

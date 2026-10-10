@@ -48,6 +48,8 @@ interface SearchFieldProps {
      * (`useRaccourciRecherche`). Au bureau, à la souris, le champ vide le rappelle à droite.
      */
     raccourci?: boolean;
+    /** Le champ prend le curseur en paraissant — la bande dépliée d'un en-tête de téléphone. */
+    autoFocus?: boolean;
     className?: string;
 }
 
@@ -58,6 +60,7 @@ const SearchField: React.FC<SearchFieldProps> = ({
     label = 'Rechercher',
     dense = false,
     raccourci = false,
+    autoFocus = false,
     className,
 }) => {
     const id = useId();
@@ -99,6 +102,7 @@ const SearchField: React.FC<SearchFieldProps> = ({
                     if (event.key === 'Escape' && !value) event.currentTarget.blur();
                 }}
                 placeholder={placeholder}
+                autoFocus={autoFocus}
                 data-recherche-de-page={raccourci || undefined}
                 aria-keyshortcuts={raccourci ? 'Meta+K Control+K' : undefined}
                 className={cn(

@@ -11,6 +11,7 @@ import { lireDate, lireMontant, normaliserNom, plusProche } from '../../../lib/t
 import { useData } from '../../../context/DataContext';
 import { useToast } from '../../../context/ToastContext';
 import { Equipment } from '../../../types';
+import { imageARecopier } from '../../../lib/imageDeModele';
 import { deducedAssetName, nextInternalCode, proposeReadableId } from '../lib/assetCode';
 
 interface ImportEquipmentPageProps {
@@ -359,7 +360,7 @@ const ImportEquipmentPage: React.FC<ImportEquipmentPageProps> = ({ onCancel, onS
                 os: draft.os || undefined,
                 warrantyEnd: draft.warrantyEnd || undefined,
                 notes: draft.notes || undefined,
-                image: models.find((item) => item.name === draft.model)?.image || '',
+                image: imageARecopier(models.find((item) => item.name === draft.model)?.image),
                 financial: {
                     purchasePrice: draft.purchasePrice,
                     purchaseDate: draft.purchaseDate || new Date().toISOString().split('T')[0],
@@ -391,7 +392,7 @@ const ImportEquipmentPage: React.FC<ImportEquipmentPageProps> = ({ onCancel, onS
             noun={{ one: 'équipement', many: 'équipements' }}
             parse={parse}
             onImport={handleImport}
-            dropSubLabel="CSV ou Excel · une ligne par objet, l'identifiant déduit"
+            dropSubLabel="CSV ou Excel · une ligne par objet"
             reglages={(tableau) =>
                 /* Le site des lignes qui n'en portent pas — seulement si le fichier en laisse. */
                 tableau.lignes.some((ligne) => !ligne.get('Site')) ? (
@@ -404,11 +405,6 @@ const ImportEquipmentPage: React.FC<ImportEquipmentPageProps> = ({ onCancel, onS
                             { value: '', label: 'Choisir un site' },
                             ...sites.map((s) => ({ value: s.nom, label: `${s.nom} · ${s.pays}` })),
                         ]}
-                        supportingText={
-                            tableau.trouvees.Site
-                                ? 'Une colonne Site renseignée l’emporte, ligne par ligne.'
-                                : 'Le fichier ne dit pas le site : toutes ses lignes y entrent.'
-                        }
                     />
                 ) : null
             }

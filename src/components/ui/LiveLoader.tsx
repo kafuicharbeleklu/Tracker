@@ -5,13 +5,13 @@ import { cn } from '../../lib/utils';
 /**
  * **Le chargement LIVE** (24/09) — les quatre signes des valeurs de Neemba, dans leur
  * carré de la charte (`images/imgdownloader-76bd8c9f.png`) : **angles emboîtés** en haut
- * à gauche (vert), **losange dans le losange** en haut à droite (jaune), **triangles en
- * moulin** en bas à droite (bleu), **cercles concentriques** en bas à gauche (orange).
+ * à gauche (vert), **losange dans le losange** en haut à droite (jaune), **quatre
+ * triangles** en bas à droite (bleu), **cercles concentriques** en bas à gauche (orange).
  *
  * Ils s'animent **à tour de rôle, dans le sens des aiguilles d'une montre**, chacun selon
  * sa nature : les angles s'effacent et se retracent du plus petit au plus grand, le losange
- * pivote d'un quart de tour pendant que son cœur bat, le moulin fait un tour, les cercles
- * émettent une onde.
+ * pivote d'un quart de tour pendant que son cœur bat, les triangles se replient dans leur
+ * angle droit puis se déplient l'un après l'autre, les cercles émettent une onde.
  * Le signe qui parle est plein ; les trois autres attendent en retrait. Cycle de 2,4 s.
  * Sans mouvement (`prefers-reduced-motion`), ils s'allument seulement, tour à tour.
  *
@@ -55,6 +55,9 @@ const CYCLE_MS = 2400;
  * même horloge : le suivant reprend où le précédent s'arrêtait.
  */
 const phaseCommune = () => `-${Math.round(performance.now() % CYCLE_MS)}ms`;
+
+/** Le pas entre deux triangles du même signe : quatre en un sixième de seconde. */
+const pas = (rang: number) => ({ '--live-pas': `${rang * 0.05}s` }) as React.CSSProperties;
 
 /** Le quart de cycle de chaque signe — l'ordre des aiguilles d'une montre. */
 const retard = (quart: number) => ({ '--live-retard': `${quart * 0.6}s` }) as React.CSSProperties;
@@ -118,14 +121,14 @@ const LiveLoader: React.FC<LiveLoaderProps> = ({
                     <path className="live-coeur" d="M77 15L85 23L77 31L69 23Z" fill={t.jaune} />
                 </g>
 
-                {/* Triangles en moulin — quatre demi-carrés qui tournent ensemble. */}
-                <g className="live-signe" style={retard(2)}>
-                    <g className="live-moulin" fill={t.bleu}>
-                        <path d="M56 77L77 56V77Z" />
-                        <path d="M77 77L98 56V77Z" />
-                        <path d="M56 98L77 77V98Z" />
-                        <path d="M77 98L98 77V98Z" />
-                    </g>
+                {/* Les quatre triangles — chacun se replie dans son angle droit puis se
+                    déplie, l'un après l'autre en montant la diagonale (10/10 : ils tournaient
+                    d'un bloc, « pas élégant »). */}
+                <g className="live-signe" style={retard(2)} fill={t.bleu}>
+                    <path className="live-triangle" d="M56 98L77 77V98Z" style={pas(0)} />
+                    <path className="live-triangle" d="M56 77L77 56V77Z" style={pas(1)} />
+                    <path className="live-triangle" d="M77 98L98 77V98Z" style={pas(2)} />
+                    <path className="live-triangle" d="M77 77L98 56V77Z" style={pas(3)} />
                 </g>
 
                 {/* Cercles concentriques — l'anneau émet une onde qui s'éteint. */}

@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import {
-    ArrowUUpLeft,
     CheckCircle,
     ClockCounterClockwise,
     SignOut,
@@ -143,7 +142,7 @@ const ReceiveRepairSheet: React.FC<ReceiveRepairSheetProps> = ({
                         content: (
                             <>
                                 Une <strong className="font-medium">réserve</strong> est notée à la
-                                fiche, et elle suivra l'objet.
+                                fiche.
                             </>
                         ),
                     },
@@ -165,15 +164,9 @@ const ReceiveRepairSheet: React.FC<ReceiveRepairSheetProps> = ({
                         glyph: SignOut,
                         content: (
                             <>
-                                <strong className="font-medium">Sortir du parc</strong> s'ouvre, son
-                                motif déjà écrit.
+                                <strong className="font-medium">Sortir du parc</strong> s'ouvre.
                             </>
                         ),
-                    },
-                    {
-                        tint: 'bleu' as const,
-                        glyph: ArrowUUpLeft,
-                        content: "Rien n'est enregistré tant que la sortie n'est pas confirmée.",
                     },
                 ];
 
@@ -189,7 +182,7 @@ const ReceiveRepairSheet: React.FC<ReceiveRepairSheetProps> = ({
                   {
                       tint: 'bleu' as const,
                       glyph: Receipt,
-                      content: `Une dépense de ${formatMontant(cout)} ${devise} sur Maintenance & Services, la facture en justificatif.`,
+                      content: `Une dépense de ${formatMontant(cout)} ${devise} sur Maintenance & Services.`,
                   },
                   ...(ecart !== 0
                       ? [
@@ -245,7 +238,7 @@ const ReceiveRepairSheet: React.FC<ReceiveRepairSheetProps> = ({
                         />
                         <OptionRow
                             title="Irréparable"
-                            hint="Ouvre « Sortir du parc », motif pré-rempli"
+                            hint="Ouvre « Sortir du parc »"
                             selected={outcome === 'irreparable'}
                             tint="rouge"
                             onSelect={() => setOutcome('irreparable')}
@@ -293,7 +286,7 @@ const ReceiveRepairSheet: React.FC<ReceiveRepairSheetProps> = ({
                     lines={[...consequences, ...lignesFacture]}
                 />
 
-                <div className="border-outline-variant -mx-5 duo-de-pied gap-3 border-t px-5 pt-4 pb-1">
+                <div className="border-outline-variant duo-de-pied -mx-5 gap-3 border-t px-5 pt-4 pb-1">
                     <Button variant="ghost" onClick={fermer}>
                         Annuler
                     </Button>

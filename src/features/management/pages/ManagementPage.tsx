@@ -34,7 +34,9 @@ import { useSelection } from '../../../hooks/useSelection';
 import { useDeclareSelectionRegime } from '../../../context/SelectionRegimeContext';
 import { buildCsvLine } from '../../../lib/csv';
 import CardEmptyState from '../../../components/ui/CardEmptyState';
+import BoutonDeRecherche from '../../../components/ui/BoutonDeRecherche';
 import SearchField from '../../../components/ui/SearchField';
+import { useRechercheRepliee } from '../../../hooks/useRechercheRepliee';
 import { MEDIA } from '../../../constants/breakpoints';
 import { getCategoryLabel } from '../../../constants/glossary';
 import { useData } from '../../../context/DataContext';
@@ -187,6 +189,9 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
     const { showToast } = useToast();
 
     const [searchQuery, setSearchQuery] = useState('');
+    /* Au téléphone, la recherche, le tri et le filtre se déplient depuis la loupe du titre
+       (10/10). */
+    const repli = useRechercheRepliee({ value: searchQuery, onChange: setSearchQuery });
     const [familyFilter, setFamilyFilter] = useState<string>(ALL_FAMILIES);
     const [typeStateFilter, setTypeStateFilter] = useState<TypeStateFilter>('');
     const [methodFilter, setMethodFilter] = useState<MethodFilter>('');
@@ -728,9 +733,15 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                         className={cn(
                             'flex flex-col',
                             isCompact
-                                ? 'border-outline-variant bg-surface border-b px-4 pt-2 pb-3'
+                                ? /* Repliée ou dépliée, les marges de toute barre de téléphone :
+                                     69 avec le titre seul. */
+                                  'border-outline-variant bg-surface border-b px-4 pt-2 pb-3'
                                 : 'px-page pt-5',
-                            !isReferentialEmpty && 'gap-3',
+                            /* 8 du titre aux outils au bureau, comme les listes (10/10) :
+                               la colonne en mettait 12, et sa recherche tombait 4 px sous
+                               celle des autres pages. */
+                            !isReferentialEmpty &&
+                                (isCompact ? repli.ouverte && 'gap-3' : 'gap-2 pb-1'),
                         )}
                     >
                         {/* `.tt` — **le titre, et rien d'autre.** 17.8 tranche : *« une seule
@@ -777,6 +788,14 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                                 </span>
                             ) : (
                                 <span className="flex-1" />
+                            )}
+                            {isCompact && !isReferentialEmpty && !selection.isActive && (
+                                <BoutonDeRecherche
+                                    ouverte={repli.ouverte}
+                                    onBasculer={repli.basculer}
+                                    pose={sheetFilterCount > 0}
+                                    className="-mr-3 shrink-0"
+                                />
                             )}
                             {/* **Au bureau, le geste d'ajout monte dans l'en-tête** (25/09).
                                 Le catalogue n'en avait aucun au-delà du téléphone : le bouton
@@ -845,7 +864,8 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                                 />
                             </Reading>
                         ) : (
-                            !isReferentialEmpty && (
+                            !isReferentialEmpty &&
+                            (!isCompact || repli.ouverte) && (
                                 <>
                                     {/* Au bureau, la bande devient la ligne d'outils de 17.11 : le
                                 champ cerné de 320 × 40, et le filtre à 40 comme lui. */}
@@ -858,6 +878,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                                         >
                                             <SearchField
                                                 dense={!isCompact}
+                                                autoFocus={isCompact && repli.parGeste}
                                                 value={searchQuery}
                                                 onChange={setSearchQuery}
                                                 placeholder="Type, modèle, marque"
@@ -1223,9 +1244,6 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                                                 ? `${unfiledTypes.length} types n'ont pas de famille`
                                                 : "1 type n'a pas de famille"}
                                         </b>
-                                        {
-                                            ' — ils se rangent sous « Sans famille » et ne remontent sous aucune des quatre familles du filtre. La famille se renseigne sur la fiche du type.'
-                                        }
                                     </p>
                                 )}
 
@@ -1236,10 +1254,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                                                 ? `${unusableTypes.length} types n'ont aucun modèle`
                                                 : "1 type n'a aucun modèle"}
                                         </b>
-                                        {` — ${unusableTypes.map((cat) => getCategoryLabel(cat.name)).join(', ')}. `}
-                                        {unusableTypes.length > 1
-                                            ? "On ne peut créer aucun équipement de ces types tant qu'un modèle n'y est pas rattaché."
-                                            : "On ne peut créer aucun équipement de ce type tant qu'un modèle n'y est pas rattaché."}
+                                        {` — ${unusableTypes.map((cat) => getCategoryLabel(cat.name)).join(', ')}.`}
                                     </p>
                                 )}
                             </>

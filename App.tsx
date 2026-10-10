@@ -13,6 +13,7 @@ import FirstLoginPage from './src/features/auth/pages/FirstLoginPage';
 
 import LoadingSpinner from './src/components/ui/LoadingSpinner';
 import { ErrorBoundary } from './src/components/ui/ErrorBoundary';
+import Infobulles from './src/components/ui/Infobulles';
 import { useRouter } from './src/hooks/useRouter';
 import { installerCheminParcouru } from './src/lib/cheminParcouru';
 
@@ -166,6 +167,8 @@ const App: React.FC = () => {
                     </AuthProvider>
                 </ToastProvider>
             </MobileFrame>
+            {/* Une seule bulle pour tout l'écran : gestes d'icône, textes coupés (10/10). */}
+            <Infobulles />
         </ErrorBoundary>
     );
 };

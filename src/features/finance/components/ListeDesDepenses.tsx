@@ -62,10 +62,10 @@ const ListeDesDepenses: React.FC<ListeDesDepensesProps> = ({
                 {mois.map((groupe) => (
                     <section key={groupe.cle} aria-label={groupe.titre}>
                         <h3 className="bg-surface-container border-outline-variant sticky top-0 z-[1] flex h-8 items-center justify-between gap-3 border-b px-4">
-                            <span className="text-on-surface text-[0.8125rem] leading-4 font-semibold">
+                            <span className="text-on-surface text-ts-sub leading-4 font-semibold">
                                 {groupe.titre}
                             </span>
-                            <span className="text-on-surface text-[0.8125rem] leading-4 font-semibold tabular-nums">
+                            <span className="text-on-surface text-ts-sub leading-4 font-semibold tabular-nums">
                                 {formatNumber(groupe.total, notationCompacte)}
                             </span>
                         </h3>
@@ -125,7 +125,7 @@ const ListeDesDepenses: React.FC<ListeDesDepensesProps> = ({
                                                     </>
                                                 )}
                                             </span>
-                                            <span className="text-text-secondary truncate text-[0.8125rem] leading-[1.125rem]">
+                                            <span className="text-text-secondary text-ts-sub leading-ts-sub truncate">
                                                 {dateCourte(depense.date)} ·{' '}
                                                 {getBudgetCategoryByExpenseType(depense.type)}
                                             </span>

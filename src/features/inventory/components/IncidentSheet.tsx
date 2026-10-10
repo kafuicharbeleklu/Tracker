@@ -10,6 +10,7 @@ import Icon from '../../../components/ui/Icon';
 import { TextArea } from '../../../components/ui/TextArea';
 import { cn } from '../../../lib/utils';
 import type { Equipment, IncidentOutcome } from '../../../types';
+import { oublierLesSignatures } from '../../../lib/signatureDeLActe';
 
 import {
     Consequences,
@@ -49,13 +50,13 @@ const OUTCOMES: Array<{
     {
         value: 'immobilised',
         title: 'Immobilisé, à réviser',
-        hint: 'À déposer à l’informatique, qui le fera réparer',
+        hint: 'À déposer à l’informatique',
         tint: 'orange',
     },
     {
         value: 'out_of_service',
         title: 'Hors service',
-        hint: 'Cesse de servir, la sortie du parc se décide ensuite',
+        hint: 'Cesse de servir',
         tint: 'rouge',
     },
 ];
@@ -108,6 +109,11 @@ const IncidentSheet: React.FC<IncidentSheetProps> = ({
     /* Le récapitulatif, puis l'attestation seule — l'étape de 17.4 (arbitrage du 22/09). */
     const [etape, setEtape] = useState<'recap' | 'attester'>('recap');
 
+    /* Une feuille qui s'ouvre commence un acte : ce qui a été signé avant ne la concerne pas. */
+    useEffect(() => {
+        if (open) oublierLesSignatures();
+    }, [open]);
+
     useEffect(() => {
         let vivant = true;
         setAttestation({ method: declarer?.pin ? 'pin' : 'signature', done: false });
@@ -150,8 +156,7 @@ const IncidentSheet: React.FC<IncidentSheetProps> = ({
                       tint: 'orange' as Tint,
                       content: (
                           <>
-                              <b className="font-medium">À déposer</b> à l’informatique : elle le
-                              prend en charge, avec devis s’il n’est plus garanti.
+                              <b className="font-medium">À déposer</b> à l’informatique.
                           </>
                       ),
                   }
@@ -269,7 +274,7 @@ const IncidentSheet: React.FC<IncidentSheetProps> = ({
                     <Consequences label="Ce que cela déclenche" lines={consequences} />
 
                     {/* `.sfoot` — deux colonnes égales, filet au-dessus. */}
-                    <div className="border-outline-variant -mx-5 duo-de-pied gap-3 border-t px-5 pt-4 pb-1">
+                    <div className="border-outline-variant duo-de-pied -mx-5 gap-3 border-t px-5 pt-4 pb-1">
                         <Button variant="ghost" onClick={close}>
                             Annuler
                         </Button>
@@ -289,7 +294,7 @@ const IncidentSheet: React.FC<IncidentSheetProps> = ({
                         onChange={setAttestation}
                     />
 
-                    <div className="border-outline-variant -mx-5 duo-de-pied gap-3 border-t px-5 pt-4 pb-1">
+                    <div className="border-outline-variant duo-de-pied -mx-5 gap-3 border-t px-5 pt-4 pb-1">
                         <Button variant="ghost" onClick={retour}>
                             Retour
                         </Button>
