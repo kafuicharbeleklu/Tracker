@@ -535,18 +535,15 @@ export const PERIODES: readonly {
 ];
 
 /**
- * Le début d'une période, ou `null` pour tout le journal. **L'exercice** commence au
- * mois que Paramètres fixe (`fiscalYearStart`, « 01 » par défaut) : c'est celui des
- * Finances, et un journal qui borne autrement contredirait leurs rapports.
+ * Le début d'une période, ou `null` pour tout le journal. **L'exercice est l'année civile**,
+ * celui des Finances : leurs budgets et leurs consommations sont rangés par année, et un
+ * journal qui bornerait autrement contredirait leurs rapports. Paramètres proposait un mois
+ * de début que ce filtre était seul à lire — le réglage a été retiré le 10/10.
  */
-export const debutDe = (periode: PeriodeId, moisDebutExercice: string): number | null => {
+export const debutDe = (periode: PeriodeId): number | null => {
     if (periode === 'tout') return null;
     if (periode === '7' || periode === '30') return Date.now() - Number(periode) * JOUR;
-    const maintenant = new Date();
-    const mois = Math.min(Math.max(Number(moisDebutExercice) || 1, 1), 12) - 1;
-    const annee =
-        maintenant.getMonth() >= mois ? maintenant.getFullYear() : maintenant.getFullYear() - 1;
-    return new Date(annee, mois, 1).getTime();
+    return new Date(new Date().getFullYear(), 0, 1).getTime();
 };
 
 /* ------------------------------------------------------------------ la preuve d'un fait */

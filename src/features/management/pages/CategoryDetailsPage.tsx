@@ -80,7 +80,9 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({
     /* Les modèles en cartes quand la fiche a ses deux colonnes (≥ 1280, 23/09). */
     /* Les modèles en cartes dès 840 (24/09) : sous 1 280, la rangée courait sur 700 px
        pour porter un nom et un compte. */
-    const enGrille = useMediaQuery(MEDIA.expandedUp);
+    /* En rangées à la tablette debout (10/10) : ses cartes vont par deux, et deux tuiles de
+       130 px dans une carte de 312 coupaient chaque nom. */
+    const enGrille = useMediaQuery(MEDIA.twoColumn);
     const modelesMontres = enGrille ? MODELES_EN_TUILES : MODELES_EN_RANGEES;
     const categoryEquipment = useMemo(
         () => (category ? equipment.filter((e) => e.type === category.name) : []),
@@ -364,8 +366,8 @@ const CategoryDetailsPage: React.FC<CategoryDetailsPageProps> = ({
                                 {categoryEquipment.length === 1
                                     ? 'Un actif porte pourtant ce type'
                                     : `${categoryEquipment.length} actifs portent pourtant ce type`}
-                            </strong>{' '}
-                            —{' '}
+                            </strong>
+                            {' : '}
                             {categoryEquipment
                                 .slice(0, 2)
                                 .map((item) => item.assetId)

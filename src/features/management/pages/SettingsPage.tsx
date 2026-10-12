@@ -2,12 +2,12 @@ import React, { useEffect, useMemo, useState } from 'react';
 import BarreDePage from '../../../components/layout/BarreDePage';
 import {
     ArrowLeft,
+    BellSlash,
     Camera,
     CheckCircle,
     Clock,
     HandPointing,
     ImageSquare,
-    Info,
     Key,
     LockKey,
     MagicWand,
@@ -52,6 +52,7 @@ import { MEDIA } from '../../../constants/breakpoints';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { IconGestureSizeContext } from '../../../hooks/useIconGestureSize';
 import type { RuleRowTone } from '../../../components/ui/RuleGroup';
+import ListeDeFaits from '../../../components/ui/ListeDeFaits';
 import Notice from '../../../components/ui/Notice';
 import Reading from '../../../components/layout/Reading';
 import { FileDropzone } from '../../../components/ui/FileDropzone';
@@ -62,16 +63,13 @@ import { authService } from '../../../services/authService';
 import PasswordMeter from '../../../components/ui/PasswordMeter';
 import { measurePasswordStrength, PASSWORD_MIN_LENGTH } from '../../../lib/passwordStrength';
 import { parseAgentBatchContent } from '../../../lib/agentCheckin';
-import { checkAgentApiHealth, postAgentCheckIn } from '../../../services/agentCollectionService';
-import { APP_CONFIG } from '../../../config';
+import { APP_CONFIG, adresseDuSupport } from '../../../config';
+import { demanderLesNotifications, permissionDesNotifications } from '../../../lib/avis';
+import { essayerLAvis, usePreferencesDAvis } from '../../../lib/preferencesDAvis';
+import { LIBELLE_DU_THEME, useTheme, type ThemeChoisi } from '../../../lib/theme';
 import type { BusinessRuleDecision } from '../../../lib/businessRules';
 import { useEntree } from '../../../hooks/useEntree';
-import type {
-    AgentCheckInPayload,
-    AppSettings,
-    AutoCollectionSource,
-    ViewType,
-} from '../../../types';
+import type { AppSettings, AutoCollectionSource, ViewType } from '../../../types';
 
 /**
  * Paramètres — **porté sur la planche 14.1**.
@@ -119,8 +117,31 @@ import type {
  * (fiche → type → défaut global) ; et comme les huit types portent déjà leur durée,
  * l'écran dit la vérité mesurée sur la donnée, pas le chiffre de la planche.
  *
- * `renewalThreshold` et `roundingRule` restent sans consommateur **et sans écran** :
- * un réglage qui ne change rien ne mérite pas une rangée.
+ * `renewalThreshold` et `roundingRule` restaient sans consommateur **et sans écran** :
+ * un réglage qui ne change rien ne mérite pas une rangée — ni une place dans la donnée, qu'ils
+ * ont quittée le 10/10.
+ *
+ * ## Deux pages, et des réglages qui font ce qu'ils disent (10/10)
+ *
+ * Relevé du commanditaire : *« beaucoup de fonctionnalités des paramètres ne sont pas
+ * implémentées et restent statiques : la langue, le thème, les notifications »*. Chaque
+ * réglage a été suivi jusqu'au code qui le lit ; le plan retenu :
+ *
+ * - **La page se scinde.** « Mes préférences » — le compte, les notifications, le thème —
+ *   s'ouvre à tous ; « Règles de l'organisation » — la devise, l'amortissement, les seuils, la
+ *   collecte — à qui a le droit de les régler (`action.settings.manage`, que rien ne lisait).
+ *   Ce composant rend l'une ou l'autre (`domaine`).
+ * - **Notifications devient un écran** : l'autorisation du navigateur, les trois natures, le
+ *   son, un essai — par personne et par appareil (`lib/preferencesDAvis`).
+ * - **« Langue » s'en va** : il n'y en a qu'une, et aucune traduction.
+ * - **L'année fiscale s'en va** : seul le filtre de l'Historique la lisait, et les budgets
+ *   sont rangés par année civile, consommations comprises. L'appliquer aurait demandé de
+ *   recalculer chaque exercice enregistré ; le référentiel comptable de l'organisation fait
+ *   de toute façon coïncider l'exercice et l'année civile.
+ * - **Le dégressif se calcule** (`calculateDepreciation`) : il se choisissait, et la valeur
+ *   du parc restait linéaire.
+ * - **L'annuaire et le scan réseau disent « non branché »** : leurs hôtes, comptes et plages
+ *   n'étaient lus par aucun connecteur. L'import de fichiers de remontée reste.
  */
 
 interface SettingsPageProps {
@@ -136,13 +157,16 @@ interface SettingsPageProps {
     initialSection?: 'account';
     /** Paramètres s'atteint depuis la feuille « Plus » : la barre en garde le retour. */
     onBack?: () => void;
+    /** Laquelle des deux pages : ce qui regarde la personne, ou ce qui règle l'organisation. */
+    domaine?: 'preferences' | 'organisation';
 }
 
 /** Les vues de l'écran. Chacune est un état de Paramètres, pas une page du produit. */
 type SettingsView =
     | 'index'
     | 'account'
-    | 'currency'
+    /** Ce dont on veut être averti, sur cet appareil (10/10). */
+    | 'notifications'
     | 'depreciation'
     /** Le plan de chaque type, tous — la carte de l'amortissement n'en montre qu'une part. */
     | 'depreciation_types'
@@ -153,11 +177,10 @@ type SettingsView =
 /** Combien de types la carte de l'amortissement montre avant de renvoyer à tous. */
 const PLANS_SUR_LA_CARTE = 6;
 
-const VIEW_TITLE: Record<SettingsView, string> = {
+const VIEW_TITLE: Record<Exclude<SettingsView, 'index'>, string> = {
     signature: 'Recadrer',
-    index: 'Paramètres',
     account: 'Mon compte',
-    currency: 'Devise et année fiscale',
+    notifications: 'Notifications',
     depreciation: 'Amortissement',
     depreciation_types: 'Plans par type',
     sources: 'Sources de collecte',
@@ -170,9 +193,11 @@ const VIEW_TITLE: Record<SettingsView, string> = {
  * toucher une rangée et revenir. Ils s'ouvrent sur le sommaire, et se referment sur le choix —
  * la rangée du sommaire dit aussitôt la valeur retenue.
  */
-type ReglageEnFeuille = 'inventory' | 'files' | 'repair';
+type ReglageEnFeuille = 'inventory' | 'files' | 'repair' | 'theme';
 
-const REGLAGE: Record<ReglageEnFeuille, { titre: string; sens: string }> = {
+const REGLAGE: Record<ReglageEnFeuille, { titre: string; sens?: string }> = {
+    /* Le thème de cet appareil (10/10) : trois choix, aucun n'appelle d'explication. */
+    theme: { titre: 'Thème' },
     inventory: {
         titre: "Périodicité de l'inventaire",
         sens: 'Au-delà, un lieu que personne n’a recompté est dit en retard.',
@@ -183,7 +208,7 @@ const REGLAGE: Record<ReglageEnFeuille, { titre: string; sens: string }> = {
     },
     files: {
         titre: "Taille maximale d'un fichier",
-        sens: 'Au-delà, un fichier est refusé — import, facture ou photo.',
+        sens: 'Au-delà, un fichier est refusé : import, facture ou photo.',
     },
 };
 
@@ -202,63 +227,6 @@ const INVENTORY_PERIODS = [3, 6, 12, 24];
  */
 const FILE_LIMITS = [2, 5, 10, 20];
 
-/**
- * L'ordinal se compose : 14.1 écrit `1<sup>er</sup> janv.`. L'exposant rend trois
- * pixels à la rangée — assez pour que « Devise et année fiscale » ne se coupe plus.
- * Il ne descend pas sous le plancher de 11 : au bureau, 0,7em du corps de 14 font 9,8.
- */
-const Premier: React.FC = () => (
-    <>
-        1<sup className="text-[length:max(0.7em,0.6875rem)] leading-none">er</sup>
-    </>
-);
-
-const FISCAL_MONTHS: Array<{
-    value: string;
-    label: React.ReactNode;
-    short: React.ReactNode;
-}> = [
-    {
-        value: '01',
-        label: (
-            <>
-                <Premier /> janvier
-            </>
-        ),
-        short: (
-            <>
-                <Premier /> janv.
-            </>
-        ),
-    },
-    {
-        value: '04',
-        label: (
-            <>
-                <Premier /> avril
-            </>
-        ),
-        short: (
-            <>
-                <Premier /> avr.
-            </>
-        ),
-    },
-    {
-        value: '09',
-        label: (
-            <>
-                <Premier /> septembre
-            </>
-        ),
-        short: (
-            <>
-                <Premier /> sept.
-            </>
-        ),
-    },
-];
-
 const DEPRECIATION_METHODS: Array<{
     value: AppSettings['defaultDepreciationMethod'];
     label: string;
@@ -270,8 +238,13 @@ const DEPRECIATION_METHODS: Array<{
 interface SourceDescriptor {
     id: AutoCollectionSource;
     title: string;
-    subtitle: string;
-    enabledKey: keyof AppSettings;
+    subtitle?: string;
+    /**
+     * Son interrupteur — **l'agent seul en a un** (10/10). L'annuaire et le scan réseau
+     * n'ont pas de connecteur : la rangée le dit (« Non branché ») et ne s'ouvre pas. Leurs
+     * remontées n'arrivent que par un fichier déposé.
+     */
+    enabledKey?: 'autoCollectionAgentEnabled';
 }
 
 /** Les trois sources relevées dans le code, dans l'ordre où 14.1 les pose. */
@@ -282,23 +255,28 @@ const SOURCES: SourceDescriptor[] = [
         subtitle: 'GPO / Intune',
         enabledKey: 'autoCollectionAgentEnabled',
     },
-    {
-        id: 'active_directory',
-        title: 'Annuaire',
-        subtitle: 'LDAP',
-        enabledKey: 'autoCollectionAdEnabled',
-    },
-    {
-        id: 'network_scan',
-        title: 'Scan réseau',
-        subtitle: 'Passif, sur les plages déclarées',
-        enabledKey: 'autoCollectionNetworkEnabled',
-    },
+    { id: 'active_directory', title: 'Annuaire', subtitle: 'LDAP' },
+    { id: 'network_scan', title: 'Scan réseau' },
 ];
 
 /** « il y a 6 j » — l'état d'une source, c'est ce qu'elle a renvoyé **et quand**. */
 const daysSince = (iso: string): number =>
     Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000));
+
+const minutesDepuis = (iso: string): number | null => {
+    const instant = new Date(iso).getTime();
+    return Number.isNaN(instant) ? null : Math.max(0, Math.floor((Date.now() - instant) / 60_000));
+};
+
+/** « à l'instant », « il y a 12 min », « il y a 3 h », « il y a 2 j » : un serveur se suit à la minute. */
+const ilYA = (iso: string): string => {
+    const minutes = minutesDepuis(iso);
+    if (minutes === null) return 'à une date illisible';
+    if (minutes < 2) return "à l'instant";
+    if (minutes < 60) return `il y a ${minutes} min`;
+    if (minutes < 48 * 60) return `il y a ${Math.floor(minutes / 60)} h`;
+    return `il y a ${Math.floor(minutes / 1440)} j`;
+};
 
 /**
  * La barre de Paramètres — **deux formes, et aucun sous-titre** (R16).
@@ -370,7 +348,13 @@ const SettingsBar: React.FC<{
 
     if (variant === 'fiche') {
         /* La barre commune du téléphone (24/09) : le titre à 56 / 16, comme l'index. */
-        return <BarreDePage className="sticky top-0 z-20" title={title} onBack={onBack} />;
+        return (
+            <BarreDePage
+                className="barre-repliable sticky top-0 z-20"
+                title={title}
+                onBack={onBack}
+            />
+        );
     }
 
     /* `.top .tt` — la rangée du titre rentre sa flèche de 12, et le titre tombe à 56 : huit
@@ -378,10 +362,10 @@ const SettingsBar: React.FC<{
        retrait de 8 ne venait que de 17.9, et posait le titre à 60 sur toutes les pages du
        menu (relevé du 13/09). */
     return (
-        <div className="border-outline-variant bg-surface sticky top-0 z-20 flex flex-col gap-3 border-b px-4 pt-2 pb-3">
-            <div className="flex min-h-12 items-center gap-1">
+        <div className="barre-repliable border-outline-variant bg-surface sticky top-0 z-20 flex flex-col gap-3 border-b px-4 pt-2 pb-3">
+            <div className="barre-repliable-rangee flex min-h-12 items-center gap-1">
                 {retour && <span className="-ml-3 flex shrink-0">{retour}</span>}
-                <h1 className="font-brand text-on-surface text-ts-page leading-ts-page min-w-0 flex-1 font-semibold tracking-[-0.02em]">
+                <h1 className="barre-repliable-titre font-brand text-on-surface text-ts-page leading-ts-page min-w-0 flex-1 font-semibold tracking-[-0.02em]">
                     {title}
                 </h1>
             </div>
@@ -402,6 +386,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
     onNavigate,
     initialSection,
     onBack,
+    domaine = 'preferences',
 }) => {
     /* Les groupes de réglages entrent en cascade à l'arrivée (26/09). */
     const entree = useEntree();
@@ -413,12 +398,16 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
       de 1 008 posait des cartes d'une rangée d'un bord à l'autre.
     */
     const deuxColonnes = useMediaQuery(MEDIA.twoColumn);
+    /* **À la tablette debout, deux volets** (10/10) : le sommaire à gauche, le réglage ouvert
+       à droite, au lieu d'une pile de groupes qu'on quitte à chaque rangée. */
+    const tablette = useMediaQuery(MEDIA.tablette);
     const { currentUser } = useAuth();
     const {
         settings,
         updateSettings,
         categories,
         detectedDevices,
+        etatDeLaCollecte,
         ingestAgentCheckIn,
         setUserPin,
         updateUser,
@@ -431,13 +420,37 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
         if (initialSection) setView(initialSection);
     }, [initialSection]);
 
-    /** La feuille d'une source — le seul endroit de l'écran qui garde un pied. */
+    /** La feuille d'une source : son interrupteur, et ce que le serveur de collecte dit de lui. */
     const [openSource, setOpenSource] = useState<AutoCollectionSource | null>(null);
-    const [sourceDraft, setSourceDraft] = useState<AppSettings>(settings);
-    const [sourceError, setSourceError] = useState<string | null>(null);
 
     const [passwordSheetOpen, setPasswordSheetOpen] = useState(false);
     const [pinSheetOpen, setPinSheetOpen] = useState(false);
+
+    /**
+     * **Les notifications** (10/10) — ce que la personne reçoit sur cet appareil, et ce que
+     * le navigateur autorise. L'autorisation se relit au retour sur l'onglet : on la change
+     * dans les réglages du navigateur, pas ici.
+     */
+    const [avis, reglerLesAvis] = usePreferencesDAvis(currentUser?.id);
+    const [permission, setPermission] = useState(permissionDesNotifications);
+    useEffect(() => {
+        const relire = () => setPermission(permissionDesNotifications());
+        document.addEventListener('visibilitychange', relire);
+        return () => document.removeEventListener('visibilitychange', relire);
+    }, []);
+    const autoriserLesNotifications = async () => {
+        setPermission(await demanderLesNotifications());
+    };
+    /** Le thème de cet appareil : clair, sombre, ou celui que l'appareil s'est donné. */
+    const [theme, choisirLeTheme] = useTheme();
+    const naturesRecues = [avis.taches, avis.avancees, avis.clotures].filter(Boolean).length;
+    /** L'état que la rangée « Notifications » porte au sommaire — un mot, comme le code PIN. */
+    const etatDesAvis: { tone?: RuleRowTone; icon?: PhosphorGlyph; label: string } =
+        naturesRecues === 0
+            ? { tone: 'muted', label: 'Aucune' }
+            : permission === 'default'
+              ? { tone: 'pending', icon: BellSlash, label: 'À autoriser' }
+              : { label: 'Activées' };
 
     /**
      * **La signature enregistrée** — 07.1, lot 28. Trois états, et un seul fait les
@@ -528,10 +541,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
     );
     const [feedSheetOpen, setFeedSheetOpen] = useState(false);
 
-    useEffect(() => {
-        if (!openSource) setSourceDraft(settings);
-    }, [openSource, settings]);
-
     /** Un réglage s'applique **au geste** : il n'attend pas un bouton (14.1). */
     const apply = (patch: Partial<AppSettings>) => updateSettings({ ...settings, ...patch });
     /** Le réglage ouvert en feuille sur le sommaire ; la feuille garde son contenu en se refermant. */
@@ -542,13 +551,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
         apply(patch);
         setReglage(null);
     };
-
-    const fiscalMonth = useMemo(
-        () =>
-            FISCAL_MONTHS.find((month) => month.value === settings.fiscalYearStart) ??
-            FISCAL_MONTHS[0],
-        [settings.fiscalYearStart],
-    );
 
     const typesWithOwnPlan = useMemo(
         () => categories.filter((category) => Boolean(category.defaultDepreciation?.years)).length,
@@ -598,10 +600,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
         return bySource;
     }, [detectedDevices]);
 
-    const enabledSources = useMemo(
-        () => SOURCES.filter((source) => Boolean(settings[source.enabledKey])).length,
-        [settings],
-    );
+    /** L'agent est la seule source qui s'allume : c'est d'elle que le sommaire parle. */
+    const agentActif = settings.autoCollectionAgentEnabled;
 
     /**
      * La source dont l'état mérite d'être remonté au sommaire : celle qui est active
@@ -610,7 +610,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
     const stalestSource = useMemo(() => {
         let worst: { title: string; days: number } | null = null;
         SOURCES.forEach((source) => {
-            if (!settings[source.enabledKey]) return;
+            if (!source.enabledKey || !settings[source.enabledKey]) return;
             const last = sourceState.get(source.id)?.last;
             const days = last ? daysSince(last) : Infinity;
             if (days < 2) return;
@@ -644,53 +644,24 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
           { tone: 'positive', icon: CheckCircle, label: 'Défini' }
         : { tone: 'pending', icon: ShieldWarning, label: 'À définir' };
 
-    const openSourceSheet = (id: AutoCollectionSource) => {
-        setSourceDraft(settings);
-        setSourceError(null);
-        setOpenSource(id);
-    };
-
-    const saveSource = () => {
-        updateSettings(sourceDraft);
-        setOpenSource(null);
-        setSourceError(null);
-        showToast('Source enregistrée.', 'success');
-    };
-
-    const testApiConnection = async () => {
-        if (!sourceDraft.autoCollectionApiBaseUrl.trim()) {
-            setSourceError("L'URL de l'API est vide : rien à joindre.");
-            return;
-        }
-        const health = await checkAgentApiHealth(sourceDraft.autoCollectionApiBaseUrl);
-        if (!health.ok) {
-            setSourceError(
-                'L’API n’a pas répondu. Vos deux réglages restent écrits — aucune source n’a été enregistrée.',
-            );
-            return;
-        }
-        setSourceError(null);
-        showToast(`API joignable (${health.service || 'service check-in'}).`, 'success');
-    };
-
-    const ingestWithOptionalApiForwarding = async (rawPayload: AgentCheckInPayload) => {
-        const payload: AgentCheckInPayload = {
-            ...rawPayload,
-            apiKey: rawPayload.apiKey || settings.autoCollectionAgentApiKey,
+    /**
+     * Ce que le serveur de collecte dit de lui. Il se signale toutes les demi-heures dans
+     * `meta/collecte` : passé deux heures de silence, il est muet.
+     */
+    const serveurDeCollecte = useMemo(() => {
+        if (!etatDeLaCollecte) return null;
+        const minutes = minutesDepuis(etatDeLaCollecte.vuLe);
+        return {
+            muet: minutes === null || minutes > 120,
+            vu: ilYA(etatDeLaCollecte.vuLe),
+            machines: etatDeLaCollecte.machines,
+            remontee: etatDeLaCollecte.derniereRemontee
+                ? ilYA(etatDeLaCollecte.derniereRemontee)
+                : undefined,
+            enAttente: etatDeLaCollecte.enAttente,
+            version: etatDeLaCollecte.version,
         };
-        const forward =
-            settings.autoCollectionForwardToApi &&
-            Boolean(settings.autoCollectionApiBaseUrl.trim());
-
-        if (forward) {
-            await postAgentCheckIn(
-                settings.autoCollectionApiBaseUrl,
-                payload,
-                settings.autoCollectionAgentApiKey,
-            );
-        }
-        return ingestAgentCheckIn(payload);
-    };
+    }, [etatDeLaCollecte]);
 
     const importCheckInFiles = async (files: File[]) => {
         if (!files.length) return;
@@ -701,7 +672,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
             for (const file of files) {
                 const parsed = parseAgentBatchContent(await file.text());
                 for (const payload of parsed.payloads) {
-                    const result = await ingestWithOptionalApiForwarding(payload);
+                    const result = ingestAgentCheckIn(payload);
                     if (result.ok) accepted += 1;
                     else rejected += 1;
                 }
@@ -724,6 +695,21 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
 
     /* Un écran de second rang revient à celui qui l'a ouvert, pas au sommaire. */
     const goBack = () => setView(view === 'depreciation_types' ? 'depreciation' : 'index');
+
+    /* Le recadrage d'une signature prend tout l'écran : pas de volets autour de lui. */
+    const enVolets = tablette && view !== 'signature';
+    /* En volets, le sommaire ne laisse pas la droite vide : il y montre son premier réglage. */
+    const vue: SettingsView =
+        enVolets && view === 'index'
+            ? domaine === 'organisation'
+                ? 'depreciation'
+                : 'account'
+            : view;
+    /** Le creux de la rangée dont le réglage est ouvert à côté. */
+    const ouverte = (cible: SettingsView) =>
+        enVolets && (vue === cible || (cible === 'depreciation' && vue === 'depreciation_types'))
+            ? 'bg-surface-muted-strong'
+            : undefined;
 
     /** Le plan d'un type — la rangée de la carte de l'amortissement, et de sa page. */
     const rangeeDePlan = (category: (typeof typesParPlan)[number]) => {
@@ -752,9 +738,15 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
            entière qui défilait, titre compris. */
         <div className={cn('flex min-h-0 w-full flex-1 flex-col', PAGE_BUREAU)}>
             <SettingsBar
-                title={VIEW_TITLE[view]}
-                variant={view === 'index' || view === 'account' ? 'liste' : 'fiche'}
-                onBack={view === 'index' ? onBack : goBack}
+                title={
+                    view === 'index' || enVolets
+                        ? domaine === 'organisation'
+                            ? 'Règles de l’organisation'
+                            : 'Mes préférences'
+                        : VIEW_TITLE[view]
+                }
+                variant={view === 'index' || view === 'account' || enVolets ? 'liste' : 'fiche'}
+                onBack={view === 'index' || enVolets ? onBack : goBack}
             />
 
             {/* `.page` de 14.1 — `16px 16px 24px`. La gouttière valait 20 : quatre pixels
@@ -769,21 +761,24 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                 <Reading
                     desk
                     className={cn(
-                        'flex flex-col gap-4 pb-16',
-                        (view === 'currency' || view === 'sources') && COLONNES_FORMULAIRE,
+                        'flex gap-4 pb-16',
+                        enVolets ? 'items-start' : 'flex-col',
+                        (view === 'notifications' || view === 'sources') && COLONNES_FORMULAIRE,
                         (view === 'signature' || view === 'depreciation_types') &&
                             'deux:mx-auto deux:max-w-[560px]',
                     )}
                 >
-                    {view === 'index' && (
+                    {(view === 'index' || enVolets) && (
                         <div
                             className={cn(
-                                deuxColonnes
-                                    ? /* Des colonnes de texte, pas une grille : chaque groupe
+                                enVolets
+                                    ? 'flex w-[300px] shrink-0 flex-col gap-4'
+                                    : deuxColonnes
+                                      ? /* Des colonnes de texte, pas une grille : chaque groupe
                                          garde sa hauteur, et la seconde colonne commence où la
                                          première s'arrête — pas de trou sous un groupe court. */
-                                      'columns-2 gap-4 [&>*]:mb-4 [&>*]:break-inside-avoid'
-                                    : 'contents',
+                                        'columns-2 gap-4 [&>*]:mb-4 [&>*]:break-inside-avoid'
+                                      : 'contents',
                                 entree && 'mvt-cascade-cartes',
                             )}
                         >
@@ -795,191 +790,249 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                             {/* **Ni vignette.** Les rangées de 14.1 ouvrent sur leur titre, à
                                 16 du bord de la carte : les glyphes le poussaient à 68 et
                                 ajoutaient six pixels à chaque rangée (relevé du 13/09). */}
-                            <RuleGroup form="grp" header="Vous">
-                                <RuleGroup.Row
-                                    title="Mon compte"
-                                    /* **Pas de sous-ligne quand la valeur dit déjà l'état.**
-                                       Elle en portait une, et la valeur « Code PIN à définir »
-                                       ne lui laissait qu'une centaine de pixels : la phrase
-                                       tombait sur trois lignes et la rangée passait de 60 à
-                                       104. Ce que le sous-titre disait — que sans code la
-                                       remise se trace — la valeur le dit en un mot. */
-                                    status={{ icon: codePin.icon, tone: codePin.tone }}
-                                    value={codePin.label}
-                                    valueTone={codePin.tone}
-                                    onOpen={() => setView('account')}
-                                />
-                            </RuleGroup>
+                            {domaine === 'preferences' && (
+                                <>
+                                    {/* **Chaque groupe dit à qui le réglage s'applique** (10/10) :
+                                        à la personne, à l'appareil qu'elle tient. Ce qui
+                                        s'applique à tous est sur l'autre page. */}
+                                    <RuleGroup form="grp" header="Vous">
+                                        <RuleGroup.Row
+                                            title="Mon compte"
+                                            /* **Pas de sous-ligne quand la valeur dit déjà l'état.**
+                                               Elle en portait une, et la valeur « Code PIN à définir »
+                                               ne lui laissait qu'une centaine de pixels : la phrase
+                                               tombait sur trois lignes et la rangée passait de 60 à
+                                               104. Ce que le sous-titre disait — que sans code la
+                                               remise se trace — la valeur le dit en un mot. */
+                                            status={{ icon: codePin.icon, tone: codePin.tone }}
+                                            value={codePin.label}
+                                            valueTone={codePin.tone}
+                                            onOpen={() => setView('account')}
+                                            className={ouverte('account')}
+                                        />
+                                    </RuleGroup>
 
-                            <RuleGroup form="grp" header="L'entreprise">
-                                <RuleGroup.Row
-                                    title="Devise et année fiscale"
-                                    /* 14.1 ne lui donne aucune sous-ligne : la valeur
-                                       « XOF · 1ᵉʳ janv. » se suffit, et la phrase se coupait
-                                       à « Tout montant du produit s'écrit avec ». */
-                                    /* 14.1 écrit `XOF · 1<sup>er</sup> janv.` — et
-                                       l'exposant n'est pas un ornement : sans lui la
-                                       valeur prenait trois pixels de trop et coupait
-                                       « Devise et année fisc… ». */
-                                    value={
-                                        <>
-                                            {settings.currency} · {fiscalMonth.short}
-                                        </>
-                                    }
-                                    onOpen={() => setView('currency')}
-                                />
-                                <RuleGroup.Row
-                                    title="Amortissement par défaut"
-                                    value={`${settings.defaultDepreciationYears} ans`}
-                                    onOpen={() => setView('depreciation')}
-                                />
-                                {/* Les deux bornes ajoutées à la planche le 05/09. Elles
-                                    existaient dans le code — l'une nulle part, l'autre en
-                                    dur dans `lib/fileImport.ts` — mais ne se réglaient
-                                    d'aucun écran. */}
-                                <RuleGroup.Row
-                                    title="Périodicité de l'inventaire"
-                                    value={`${settings.inventoryPeriodMonths} mois`}
-                                    onOpen={() => setReglage('inventory')}
-                                />
-                                <RuleGroup.Row
-                                    title="Validation des devis"
-                                    value={
-                                        seuilDevis(settings) === 0
-                                            ? 'toujours'
-                                            : `${seuilDevis(settings).toLocaleString('fr-FR')} ${settings.currency}`
-                                    }
-                                    onOpen={() => setReglage('repair')}
-                                />
-                                <RuleGroup.Row
-                                    title="Taille maximale d'un fichier"
-                                    value={`${settings.maxImportFileMb} Mo`}
-                                    onOpen={() => setReglage('files')}
-                                />
-                            </RuleGroup>
+                                    <RuleGroup form="grp" header="Cet appareil">
+                                        {/* **Notifications s'ouvre** (10/10). La rangée disait
+                                            « Réceptions, relances » et ne menait nulle part : le
+                                            produit avertissait sans qu'on puisse rien régler. */}
+                                        <RuleGroup.Row
+                                            title="Notifications"
+                                            status={
+                                                etatDesAvis.icon && etatDesAvis.tone
+                                                    ? {
+                                                          icon: etatDesAvis.icon,
+                                                          tone: etatDesAvis.tone,
+                                                      }
+                                                    : undefined
+                                            }
+                                            value={etatDesAvis.label}
+                                            valueTone={etatDesAvis.tone}
+                                            onOpen={() => setView('notifications')}
+                                            className={ouverte('notifications')}
+                                        />
+                                        {/* **Le thème se choisit** (10/10). La rangée disait
+                                            « Clair » et ne s'ouvrait pas : il n'existait qu'une
+                                            palette. Trois choix, en feuille. */}
+                                        <RuleGroup.Row
+                                            title="Thème"
+                                            value={LIBELLE_DU_THEME[theme]}
+                                            onOpen={() => setReglage('theme')}
+                                        />
+                                    </RuleGroup>
 
-                            <RuleGroup form="grp" header="L'informatique">
-                                <RuleGroup.Row
-                                    title="Sources de collecte"
-                                    /* Sans source muette, la valeur — « Aucune active »,
-                                       « 2 actives sur 3 » — dit tout : la liste des trois
-                                       sources ne tenait pas dans les 113 px que la valeur
-                                       lui laisse, et repassait à la ligne. */
-                                    subtitle={
-                                        stalestSource
-                                            ? `${stalestSource.title} muet depuis ${stalestSource.days} j`
-                                            : undefined
-                                    }
-                                    status={
-                                        stalestSource ? { icon: Clock, tone: 'pending' } : undefined
-                                    }
-                                    value={
-                                        enabledSources === 0
-                                            ? 'Aucune active'
-                                            : `${enabledSources} active${enabledSources > 1 ? 's' : ''} sur ${SOURCES.length}`
-                                    }
-                                    valueTone={
-                                        enabledSources === 0
-                                            ? 'muted'
-                                            : stalestSource
-                                              ? 'pending'
-                                              : undefined
-                                    }
-                                    onOpen={() => setView('sources')}
-                                />
-                                {/* Le titre dit « à valider » et la flèche dit qu'on sort :
-                                    « Elles attendent dans Tâches » ne faisait que nommer la
-                                    destination une seconde fois. */}
-                                {pendingDevices > 0 && (
-                                    <RuleGroup.Row
-                                        title={`${pendingDevices} machine${pendingDevices > 1 ? 's' : ''} détectée${pendingDevices > 1 ? 's' : ''} à valider`}
-                                        external
-                                        onOpen={() => onNavigate?.('tasks')}
-                                    />
-                                )}
-                            </RuleGroup>
+                                    {/* **« Langue » n'y est plus** (10/10) : le produit n'en a
+                                        qu'une, et une rangée « Français » qui ne s'ouvre pas
+                                        promettait un choix. Elle reviendra avec une traduction. */}
+                                    <RuleGroup form="grp" header="L'application">
+                                        {APP_CONFIG.supportEmail && (
+                                            /* `Aide` — 07.1 la range ici, et elle ne promet pas de
+                                               « documentation », le produit n'en ayant aucune à
+                                               ouvrir. L'adresse ne s'écrit pas non plus dans la
+                                               rangée : la flèche de sortie dit qu'on part écrire, et
+                                               le client de messagerie la montrera de toute façon.
+                                               L'objet du courriel porte la version (10/10). */
+                                            <RuleGroup.Row
+                                                title="Aide"
+                                                onOpen={() => {
+                                                    window.location.href = adresseDuSupport();
+                                                }}
+                                                external
+                                            />
+                                        )}
+                                        {/* La version, et le jour où elle a été publiée (10/10). */}
+                                        <RuleGroup.Row
+                                            title="Version"
+                                            value={
+                                                APP_CONFIG.publishedAt
+                                                    ? `${APP_CONFIG.version} · ${new Date(
+                                                          APP_CONFIG.publishedAt,
+                                                      ).toLocaleDateString('fr-FR', {
+                                                          day: 'numeric',
+                                                          month: 'long',
+                                                      })}`
+                                                    : APP_CONFIG.version
+                                            }
+                                        />
+                                    </RuleGroup>
+                                </>
+                            )}
 
-                            {/*
-                              **L'application** — la carte que 07.1 dessine dans sa dernière
-                              colonne. Elle répond à trois questions qu'on se pose sur le
-                              produit lui-même, et non sur le parc : de quoi me préviendra-t-il,
-                              dans quelle langue et sur quel périmètre je le lis, à qui
-                              m'adresser.
+                            {domaine === 'organisation' && (
+                                <>
+                                    <RuleGroup form="grp" header="L'entreprise">
+                                        {/* **La devise, et la devise seule** (10/10). La rangée
+                                            ouvrait un écran pour un interrupteur — la notation
+                                            compacte — et un mois de début d'exercice que seul
+                                            l'Historique lisait. L'interrupteur est ici ; l'année
+                                            fiscale est partie. */}
+                                        <RuleGroup.Row title="Devise" value={settings.currency} />
+                                        <RuleGroup.Row
+                                            title="Notation compacte"
+                                            titreEntier={enVolets}
+                                            subtitle="1 200 000 s'écrit 1,2 M"
+                                            trailing={
+                                                <Toggle
+                                                    nom="Notation compacte"
+                                                    checked={settings.compactNotation}
+                                                    onChange={(value) =>
+                                                        apply({ compactNotation: value })
+                                                    }
+                                                />
+                                            }
+                                        />
+                                        <RuleGroup.Row
+                                            title="Amortissement par défaut"
+                                            titreEntier={enVolets}
+                                            value={`${settings.defaultDepreciationYears} ans`}
+                                            onOpen={() => setView('depreciation')}
+                                            className={ouverte('depreciation')}
+                                        />
+                                        {/* Les deux bornes ajoutées à la planche le 05/09. Elles
+                                            existaient dans le code — l'une nulle part, l'autre en
+                                            dur dans `lib/fileImport.ts` — mais ne se réglaient
+                                            d'aucun écran. */}
+                                        <RuleGroup.Row
+                                            title="Périodicité de l'inventaire"
+                                            titreEntier={enVolets}
+                                            value={`${settings.inventoryPeriodMonths} mois`}
+                                            onOpen={() => setReglage('inventory')}
+                                        />
+                                        <RuleGroup.Row
+                                            title="Validation des devis"
+                                            titreEntier={enVolets}
+                                            value={
+                                                seuilDevis(settings) === 0
+                                                    ? 'toujours'
+                                                    : `${seuilDevis(settings).toLocaleString('fr-FR')} ${settings.currency}`
+                                            }
+                                            onOpen={() => setReglage('repair')}
+                                        />
+                                        <RuleGroup.Row
+                                            title="Taille maximale d'un fichier"
+                                            titreEntier={enVolets}
+                                            value={`${settings.maxImportFileMb} Mo`}
+                                            onOpen={() => setReglage('files')}
+                                        />
+                                    </RuleGroup>
 
-                              **Deux de ses rangées ne s'ouvrent pas, et c'est exact.** Rien
-                              n'est réglable derrière : les deux notifications sont celles que
-                              le produit émet, la langue est le français et le site vient de la
-                              fiche, où un gestionnaire le change (05.2). Leur poser un chevron
-                              promettrait un écran qui n'existe pas — c'est précisément ce que
-                              14.1 a fait tomber du Centre d'aide. Une rangée qui se lit sans
-                              s'ouvrir est le cas ordinaire d'« À propos », pas une exception.
-                            */}
-                            <RuleGroup form="grp" header="L'application">
-                                <RuleGroup.Row title="Notifications" value="Réceptions, relances" />
-                                {/* **« Langue »**, et la langue seule. Le titre portait
-                                    « Langue et site » pour une valeur « français · Lomé
-                                    Siège » : deux faits dans une rangée, dont un — le site —
-                                    que le héro de Mon compte affiche déjà sous le nom. */}
-                                <RuleGroup.Row title="Langue" value="Français" />
-                                {APP_CONFIG.supportEmail && (
-                                    /* `Aide` — 07.1 la range ici, et elle ne promet pas de
-                                       « documentation », le produit n'en ayant aucune à
-                                       ouvrir. L'adresse ne s'écrit pas non plus dans la
-                                       rangée : la flèche de sortie dit qu'on part écrire, et
-                                       le client de messagerie la montrera de toute façon. */
-                                    <RuleGroup.Row
-                                        title="Aide"
-                                        onOpen={() => {
-                                            window.location.href = `mailto:${APP_CONFIG.supportEmail}`;
-                                        }}
-                                        external
-                                    />
-                                )}
-                            </RuleGroup>
-
-                            {/* La note disait que les objets de démonstration revenaient à
-                                chaque chargement. Le jeu de démonstration a été retiré et le
-                                parc est désormais celui du tableur : la phrase décrivait un
-                                produit qui n'existe plus, et un écran de réglages est le
-                                dernier endroit où l'on peut se permettre de mentir. */}
-                            <RuleGroup form="grp" header="À propos">
-                                <RuleGroup.Row title="Version" value={APP_CONFIG.version} />
-                                {/* « Clair », pas « Clair — identité Neemba » : la seconde
-                                    moitié justifiait le choix, et une rangée d'« À propos »
-                                    se lit, elle ne se plaide pas. */}
-                                <RuleGroup.Row title="Thème" value="Clair" />
-                            </RuleGroup>
+                                    <RuleGroup form="grp" header="L'informatique">
+                                        <RuleGroup.Row
+                                            title="Sources de collecte"
+                                            titreEntier={enVolets}
+                                            /* La valeur ne compte que ce qui s'allume : l'agent.
+                                               « 1 active sur 3 » comptait deux sources qu'aucun
+                                               connecteur ne sert. */
+                                            subtitle={
+                                                stalestSource
+                                                    ? `${stalestSource.title} muet depuis ${stalestSource.days} j`
+                                                    : undefined
+                                            }
+                                            status={
+                                                stalestSource
+                                                    ? { icon: Clock, tone: 'pending' }
+                                                    : undefined
+                                            }
+                                            value={agentActif ? 'Agent actif' : 'Aucune active'}
+                                            valueTone={
+                                                !agentActif
+                                                    ? 'muted'
+                                                    : stalestSource
+                                                      ? 'pending'
+                                                      : undefined
+                                            }
+                                            onOpen={() => setView('sources')}
+                                            className={ouverte('sources')}
+                                        />
+                                        {/* Le titre dit « à valider » et la flèche dit qu'on sort :
+                                            « Elles attendent dans Tâches » ne faisait que nommer la
+                                            destination une seconde fois. */}
+                                        {pendingDevices > 0 && (
+                                            <RuleGroup.Row
+                                                title={`${pendingDevices} machine${pendingDevices > 1 ? 's' : ''} détectée${pendingDevices > 1 ? 's' : ''} à valider`}
+                                                external
+                                                onOpen={() => onNavigate?.('tasks')}
+                                            />
+                                        )}
+                                    </RuleGroup>
+                                </>
+                            )}
                         </div>
                     )}
 
-                    {view === 'account' && (
-                        <div
-                            className={
-                                deuxColonnes ? 'grid grid-cols-12 items-start gap-4' : 'contents'
-                            }
-                        >
-                            <div className={deuxColonnes ? 'col-span-5' : 'contents'}>
-                                {/* `.prof` de 07.1 — **le héro ne porte que l'identité**.
-                                *« Un acte n'a qu'une entrée, dans sa carte »* : pas de
-                                geste ici, pas de qualifiant chiffré. */}
-                                <DetailHero
-                                    /* Les initiales nues : `DetailHero` pose déjà la fonte de marque,
-                                   20 sur 30 et la graisse d'appui, comme 07.1 les dessine. Les
-                                   redéclarer ici ajoutait un second style au même texte. */
-                                    avatar={initiales(currentUser?.name)}
-                                    label={identiteLabel}
-                                    subject={currentUser?.name ?? 'Mon compte'}
-                                    subtitle={currentUser?.email}
-                                />
+                    {/* Le réglage ouvert : la page au téléphone et au bureau, le volet de droite
+                        à la tablette debout — sous son nom, puisque la barre garde celui de
+                        la page. */}
+                    <div className={enVolets ? 'flex min-w-0 flex-1 flex-col gap-4' : 'contents'}>
+                        {enVolets && (
+                            <div className="flex min-h-10 items-center gap-1">
+                                {vue === 'depreciation_types' && (
+                                    <Button
+                                        variant="text"
+                                        iconOnly
+                                        aria-label="Retour"
+                                        onClick={goBack}
+                                        className="-ml-2 shrink-0"
+                                    >
+                                        <Icon glyph={ArrowLeft} size={20} />
+                                    </Button>
+                                )}
+                                <h2 className="font-brand text-on-surface text-ts-sheet leading-ts-sheet min-w-0 truncate font-semibold tracking-[-0.015em]">
+                                    {vue === 'index' ? '' : VIEW_TITLE[vue]}
+                                </h2>
                             </div>
+                        )}
 
+                        {vue === 'account' && (
                             <div
                                 className={
-                                    deuxColonnes ? 'col-span-7 flex flex-col gap-4' : 'contents'
+                                    deuxColonnes
+                                        ? 'grid grid-cols-12 items-start gap-4'
+                                        : 'contents'
                                 }
                             >
-                                <ActionCard title="Me connecter">
-                                    {/* **La sous-ligne dit l'état, pas la règle** — 07.1 :
+                                <div className={deuxColonnes ? 'col-span-5' : 'contents'}>
+                                    {/* `.prof` de 07.1 — **le héro ne porte que l'identité**.
+                                *« Un acte n'a qu'une entrée, dans sa carte »* : pas de
+                                geste ici, pas de qualifiant chiffré. */}
+                                    <DetailHero
+                                        /* Les initiales nues : `DetailHero` pose déjà la fonte de marque,
+                                   20 sur 30 et la graisse d'appui, comme 07.1 les dessine. Les
+                                   redéclarer ici ajoutait un second style au même texte. */
+                                        avatar={initiales(currentUser?.name)}
+                                        label={identiteLabel}
+                                        subject={currentUser?.name ?? 'Mon compte'}
+                                        subtitle={currentUser?.email}
+                                    />
+                                </div>
+
+                                <div
+                                    className={
+                                        deuxColonnes ? 'col-span-7 flex flex-col gap-4' : 'contents'
+                                    }
+                                >
+                                    <ActionCard title="Me connecter">
+                                        {/* **La sous-ligne dit l'état, pas la règle** — 07.1 :
                                     *« chaque acte n'a qu'une entrée, l'état se lit en
                                     sous-ligne »*, et la planche y écrit « changé il y a
                                     4 mois ». Elle portait « il ouvre la session, il ne
@@ -989,142 +1042,227 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                                     « jamais changé depuis l'ouverture du compte » se
                                     coupait d'ailleurs à « …du comp » : l'état tient en
                                     deux mots. */}
-                                    <ActionCard.Row
-                                        glyph={LockKey}
-                                        title="Changer mon mot de passe"
-                                        subtitle={
-                                            currentUser?.passwordChangedAt
-                                                ? `changé le ${new Date(
-                                                      currentUser.passwordChangedAt,
-                                                  ).toLocaleDateString('fr-FR', {
-                                                      day: 'numeric',
-                                                      month: 'long',
-                                                  })}`
-                                                : 'jamais changé'
-                                        }
-                                        onOpen={() => setPasswordSheetOpen(true)}
-                                    />
-                                </ActionCard>
+                                        <ActionCard.Row
+                                            glyph={LockKey}
+                                            title="Changer mon mot de passe"
+                                            subtitle={
+                                                currentUser?.passwordChangedAt
+                                                    ? `changé le ${new Date(
+                                                          currentUser.passwordChangedAt,
+                                                      ).toLocaleDateString('fr-FR', {
+                                                          day: 'numeric',
+                                                          month: 'long',
+                                                      })}`
+                                                    : 'jamais changé'
+                                            }
+                                            onOpen={() => setPasswordSheetOpen(true)}
+                                        />
+                                    </ActionCard>
 
-                                {/* La carte que 07.1 appelle « Prouver une remise », et qui
+                                    {/* La carte que 07.1 appelle « Prouver une remise », et qui
                                 manquait entièrement. `NavigationBar` promettait déjà
                                 *« code PIN à définir »* sur la rangée « Mon compte » de
                                 la feuille « Plus » — la destination ne tenait pas la
                                 promesse : aucune rangée n'y parlait du code. */}
-                                <ActionCard title="Prouver une remise">
-                                    <ActionCard.Row
-                                        glyph={Key}
-                                        title={
-                                            currentUser?.pin
-                                                ? 'Remplacer mon code PIN'
-                                                : 'Définir mon code PIN'
-                                        }
-                                        /* **Le même mot que dans Paramètres** — « défini » /
+                                    <ActionCard title="Prouver une remise">
+                                        <ActionCard.Row
+                                            glyph={Key}
+                                            title={
+                                                currentUser?.pin
+                                                    ? 'Remplacer mon code PIN'
+                                                    : 'Définir mon code PIN'
+                                            }
+                                            /* **Le même mot que dans Paramètres** — « défini » /
                                        « à définir » —, les deux écrans étant atteints par
                                        le même menu. Elle portait la conséquence (« sans
                                        lui, chaque remise se trace »), que la feuille du
                                        code énonce déjà au moment de le poser. */
-                                        subtitle={currentUser?.pin ? 'défini' : 'à définir'}
-                                        onOpen={() => setPinSheetOpen(true)}
-                                    />
-                                    {/* **Ma signature** — 07.1, lot 28. Trois états, un seul
+                                            subtitle={currentUser?.pin ? 'défini' : 'à définir'}
+                                            onOpen={() => setPinSheetOpen(true)}
+                                        />
+                                        {/* **Ma signature** — 07.1, lot 28. Trois états, un seul
                                     fait les sépare : y a-t-il une image enregistrée. Sans
                                     elle, la rangée ouvre le choix de la source ; avec
                                     elle, la feuille qui la montre, la remplace ou la
                                     supprime. Le refus d'un fichier se lit ici même. */}
-                                    <ActionCard.Row
-                                        glyph={Signature}
-                                        title="Ma signature"
-                                        tone={refusFichier ? 'refus' : undefined}
-                                        subtitle={
-                                            refusFichier ??
-                                            (signatureSavedAt
-                                                ? `importée le ${new Date(signatureSavedAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}`
-                                                : 'aucune')
-                                        }
-                                        onOpen={() => {
-                                            setRefusFichier(null);
-                                            if (signatureBlob) setSignatureSheetOpen(true);
-                                            else setSourceSheetOpen(true);
-                                        }}
-                                    />
-                                </ActionCard>
+                                        <ActionCard.Row
+                                            glyph={Signature}
+                                            title="Ma signature"
+                                            tone={refusFichier ? 'refus' : undefined}
+                                            subtitle={
+                                                refusFichier ??
+                                                (signatureSavedAt
+                                                    ? `importée le ${new Date(signatureSavedAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}`
+                                                    : 'aucune')
+                                            }
+                                            onOpen={() => {
+                                                setRefusFichier(null);
+                                                if (signatureBlob) setSignatureSheetOpen(true);
+                                                else setSourceSheetOpen(true);
+                                            }}
+                                        />
+                                    </ActionCard>
 
-                                <ActionCard title="Où je suis connecté">
-                                    {/* Aucun état à dire : « de cet appareil seulement »
+                                    <ActionCard title="Où je suis connecté">
+                                        {/* Aucun état à dire : « de cet appareil seulement »
                                     commentait l'acte, et la carte « Où je suis connecté »
                                     le situe déjà. */}
-                                    <ActionCard.Row
-                                        glyph={SignOut}
-                                        title="Se déconnecter"
-                                        onOpen={onLogout}
-                                    />
-                                </ActionCard>
-                            </div>
-                        </div>
-                    )}
-                    {view === 'signature' && imageAImporter && (
-                        <SignatureCrop
-                            fichier={imageAImporter}
-                            onAutreImage={() => {
-                                setImageAImporter(null);
-                                setView('account');
-                                setSourceSheetOpen(true);
-                            }}
-                            onAnnuler={() => {
-                                setImageAImporter(null);
-                                setView('account');
-                            }}
-                            onEnregistrer={enregistrerLaSignature}
-                        />
-                    )}
-
-                    {view === 'currency' && (
-                        <>
-                            <RuleGroup form="grp" header="Lecture des montants">
-                                <RuleGroup.Row title="Devise" value={settings.currency} />
-                                <RuleGroup.Row
-                                    title="Notation compacte"
-                                    subtitle="1 200 000 s'écrit 1,2 M"
-                                    trailing={
-                                        <Toggle
-                                            checked={settings.compactNotation}
-                                            onChange={(value) => apply({ compactNotation: value })}
+                                        <ActionCard.Row
+                                            glyph={SignOut}
+                                            title="Se déconnecter"
+                                            onOpen={onLogout}
                                         />
-                                    }
-                                />
-                            </RuleGroup>
+                                    </ActionCard>
+                                </div>
+                            </div>
+                        )}
+                        {vue === 'signature' && imageAImporter && (
+                            <SignatureCrop
+                                fichier={imageAImporter}
+                                onAutreImage={() => {
+                                    setImageAImporter(null);
+                                    setView('account');
+                                    setSourceSheetOpen(true);
+                                }}
+                                onAnnuler={() => {
+                                    setImageAImporter(null);
+                                    setView('account');
+                                }}
+                                onEnregistrer={enregistrerLaSignature}
+                            />
+                        )}
 
-                            <RuleGroup form="grp" header="Début de l'année fiscale">
-                                {FISCAL_MONTHS.map((month) => (
+                        {vue === 'notifications' && (
+                            <>
+                                <RuleGroup form="grp" header="Sur cet appareil">
+                                    {/* L'autorisation appartient au navigateur : on la demande d'un
+                                    geste, et une fois refusée elle ne se rend que dans ses
+                                    réglages — la rangée le dit, elle ne propose pas un bouton
+                                    que le navigateur ignorerait. */}
                                     <RuleGroup.Row
-                                        key={month.value}
-                                        title={month.label}
+                                        title="Notifications du système"
+                                        /* Un refus se lit dessous, pas à droite : « Bloquées par
+                                       le navigateur » y prenait la place du titre, coupé à
+                                       « Notifications … » au téléphone. */
+                                        subtitle={
+                                            permission === 'denied'
+                                                ? 'bloquées par le navigateur'
+                                                : permission === 'indisponible'
+                                                  ? 'indisponibles sur cet appareil'
+                                                  : 'quand l’application est en arrière-plan'
+                                        }
                                         status={
-                                            settings.fiscalYearStart === month.value
-                                                ? { icon: CheckCircle, tone: 'positive' }
+                                            permission === 'denied'
+                                                ? { icon: BellSlash, tone: 'pending' }
                                                 : undefined
                                         }
-                                        value={
-                                            settings.fiscalYearStart === month.value
-                                                ? 'Retenu'
-                                                : undefined
+                                        trailing={
+                                            permission === 'granted' ? (
+                                                <Toggle
+                                                    nom="Notifications du système"
+                                                    checked={avis.systeme}
+                                                    onChange={(value) =>
+                                                        reglerLesAvis({ systeme: value })
+                                                    }
+                                                />
+                                            ) : permission === 'default' ? (
+                                                <Button
+                                                    variant="tonal"
+                                                    size="sm"
+                                                    onClick={() => void autoriserLesNotifications()}
+                                                >
+                                                    Autoriser
+                                                </Button>
+                                            ) : undefined
                                         }
-                                        valueTone={
-                                            settings.fiscalYearStart === month.value
-                                                ? 'positive'
-                                                : undefined
-                                        }
-                                        onOpen={() => apply({ fiscalYearStart: month.value })}
-                                        choice
                                     />
-                                ))}
-                            </RuleGroup>
-                        </>
-                    )}
+                                    <RuleGroup.Row
+                                        title="Son"
+                                        trailing={
+                                            <Toggle
+                                                nom="Son"
+                                                checked={avis.son}
+                                                onChange={(value) => reglerLesAvis({ son: value })}
+                                            />
+                                        }
+                                    />
+                                    {/* Android seulement : iOS n'expose pas la vibration aux pages. */}
+                                    {typeof navigator !== 'undefined' && 'vibrate' in navigator && (
+                                        <RuleGroup.Row
+                                            title="Vibration"
+                                            trailing={
+                                                <Toggle
+                                                    nom="Vibration"
+                                                    checked={avis.vibration}
+                                                    onChange={(value) =>
+                                                        reglerLesAvis({ vibration: value })
+                                                    }
+                                                />
+                                            }
+                                        />
+                                    )}
+                                </RuleGroup>
 
-                    {view === 'depreciation' && (
-                        /*
+                                <RuleGroup form="grp" header="Être averti quand">
+                                    <RuleGroup.Row
+                                        title="Une tâche m’arrive"
+                                        trailing={
+                                            <Toggle
+                                                nom="Une tâche m’arrive"
+                                                checked={avis.taches}
+                                                onChange={(value) =>
+                                                    reglerLesAvis({ taches: value })
+                                                }
+                                            />
+                                        }
+                                    />
+                                    <RuleGroup.Row
+                                        title="Une demande que je suis avance"
+                                        trailing={
+                                            <Toggle
+                                                nom="Une demande que je suis avance"
+                                                checked={avis.avancees}
+                                                onChange={(value) =>
+                                                    reglerLesAvis({ avancees: value })
+                                                }
+                                            />
+                                        }
+                                    />
+                                    <RuleGroup.Row
+                                        title="Une demande que je suis se clôt"
+                                        trailing={
+                                            <Toggle
+                                                nom="Une demande que je suis se clôt"
+                                                checked={avis.clotures}
+                                                onChange={(value) =>
+                                                    reglerLesAvis({ clotures: value })
+                                                }
+                                            />
+                                        }
+                                    />
+                                </RuleGroup>
+
+                                {/* **L'essai** : le bandeau, les deux notes, la notification, tels
+                                que réglés ci-dessus. */}
+                                <RuleGroup form="grp">
+                                    <RuleGroup.Row
+                                        title="Avis d’essai"
+                                        trailing={
+                                            <Button
+                                                variant="tonal"
+                                                size="sm"
+                                                onClick={essayerLAvis}
+                                            >
+                                                Envoyer
+                                            </Button>
+                                        }
+                                    />
+                                </RuleGroup>
+                            </>
+                        )}
+
+                        {vue === 'depreciation' && (
+                            /*
                           **Amortissement, refondu** (25/09). C'était une page de réglages comme
                           les autres : deux rangées « Retenue », deux cases numériques de 96 px
                           sans unité, quinze types sous leur clé technique (« Laptop »,
@@ -1133,200 +1271,222 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                           L'aperçu le dessine, la méthode se choisit sur sa courbe, la durée et le
                           résiduel se règlent d'un cran, et chaque type ouvre sa fiche.
                         */
-                        <div className="deux:grid deux:grid-cols-2 deux:items-start flex flex-col gap-4">
-                            <div className="flex flex-col gap-4">
-                                <section className="rounded-card bg-surface px-4 pt-4 pb-4">
-                                    <p className="text-on-surface-variant text-[0.75rem] leading-4 font-medium">
-                                        Ce que devient un objet, en part de son prix
-                                    </p>
-                                    <p className="text-on-surface text-ts-body leading-ts-body mt-1 text-pretty">
-                                        {phraseDuPlan(
-                                            settings.defaultDepreciationMethod,
-                                            echeancierParDefaut,
-                                        )}
-                                    </p>
-                                    <CourbeDeValeur
-                                        valeurs={echeancierParDefaut}
-                                        className="mt-4"
-                                    />
-                                    {settings.defaultDepreciationMethod === 'degressive' && (
-                                        <p className="text-on-surface-variant text-ts-sub leading-ts-sub mt-3 flex items-start gap-2">
-                                            <Icon
-                                                glyph={Info}
-                                                size={18}
-                                                className="text-text-tertiary mt-px shrink-0"
-                                            />
-                                            Les valeurs du parc se calculent encore en linéaire.
+                            <div className="deux:grid deux:grid-cols-2 deux:items-start flex flex-col gap-4">
+                                <div className="flex flex-col gap-4">
+                                    <section className="rounded-card bg-surface px-4 pt-4 pb-4">
+                                        <p className="text-on-surface-variant text-[0.75rem] leading-4 font-medium">
+                                            Ce que devient un objet, en part de son prix
                                         </p>
-                                    )}
-                                </section>
+                                        <p className="text-on-surface text-ts-body leading-ts-body mt-1 text-pretty">
+                                            {phraseDuPlan(
+                                                settings.defaultDepreciationMethod,
+                                                echeancierParDefaut,
+                                            )}
+                                        </p>
+                                        <CourbeDeValeur
+                                            valeurs={echeancierParDefaut}
+                                            className="mt-4"
+                                        />
+                                    </section>
 
-                                <RuleGroup form="grp" header="Méthode">
-                                    <div className="grid grid-cols-2 gap-3 px-4 pt-1 pb-4">
-                                        {DEPRECIATION_METHODS.map((method) => (
-                                            <CarteMethode
-                                                key={method.value}
-                                                titre={method.label}
-                                                phrase={
-                                                    method.value === 'linear'
-                                                        ? 'La même part chaque année'
-                                                        : 'Plus forte les premières années'
+                                    <RuleGroup form="grp" header="Méthode">
+                                        <div className="grid grid-cols-2 gap-3 px-4 pt-1 pb-4">
+                                            {DEPRECIATION_METHODS.map((method) => (
+                                                <CarteMethode
+                                                    key={method.value}
+                                                    titre={method.label}
+                                                    phrase={
+                                                        method.value === 'linear'
+                                                            ? 'La même part chaque année'
+                                                            : 'Plus forte les premières années'
+                                                    }
+                                                    valeurs={echeancierAmortissement(
+                                                        method.value,
+                                                        settings.defaultDepreciationYears,
+                                                        settings.salvageValuePercent,
+                                                    )}
+                                                    choisie={
+                                                        settings.defaultDepreciationMethod ===
+                                                        method.value
+                                                    }
+                                                    onChoisir={() =>
+                                                        apply({
+                                                            defaultDepreciationMethod: method.value,
+                                                        })
+                                                    }
+                                                />
+                                            ))}
+                                        </div>
+                                    </RuleGroup>
+
+                                    <RuleGroup form="grp" header="Durée et fin de vie">
+                                        <RuleGroup.Row
+                                            title="Durée"
+                                            trailing={
+                                                <Stepper
+                                                    label="Durée"
+                                                    value={settings.defaultDepreciationYears}
+                                                    min={1}
+                                                    max={20}
+                                                    format={(annees) =>
+                                                        `${annees} an${annees > 1 ? 's' : ''}`
+                                                    }
+                                                    onChange={(annees) =>
+                                                        apply({ defaultDepreciationYears: annees })
+                                                    }
+                                                />
+                                            }
+                                        />
+                                        <RuleGroup.Row
+                                            title="Valeur résiduelle"
+                                            subtitle="Ce qu'il vaut encore à la fin"
+                                            trailing={
+                                                <Stepper
+                                                    label="Valeur résiduelle"
+                                                    value={settings.salvageValuePercent}
+                                                    min={0}
+                                                    max={50}
+                                                    step={5}
+                                                    format={(part) => `${part} %`}
+                                                    onChange={(part) =>
+                                                        apply({ salvageValuePercent: part })
+                                                    }
+                                                />
+                                            }
+                                        />
+                                    </RuleGroup>
+                                </div>
+
+                                <div className="flex flex-col gap-4">
+                                    <RuleGroup
+                                        form="grp"
+                                        header="Ce que porte chaque type"
+                                        headerTrailing={`${typesWithOwnPlan} sur ${categories.length} ont leur plan`}
+                                    >
+                                        {/* Ceux qui prennent le défaut d'abord : ce sont eux que la
+                                        page règle. Chaque type ouvre sa fiche, où son plan se
+                                        modifie. */}
+                                        {/* **Une part, puis sa page** (09/10) : la carte défilait
+                                        dans sa hauteur. */}
+                                        {typesParPlan
+                                            .slice(0, PLANS_SUR_LA_CARTE)
+                                            .map(rangeeDePlan)}
+                                        {typesParPlan.length > PLANS_SUR_LA_CARTE && (
+                                            <PiedDeCarte className="px-4">
+                                                <ToutVoir
+                                                    libelle="Tous les types"
+                                                    total={typesParPlan.length}
+                                                    onOuvrir={() => setView('depreciation_types')}
+                                                />
+                                            </PiedDeCarte>
+                                        )}
+                                    </RuleGroup>
+                                </div>
+                            </div>
+                        )}
+
+                        {vue === 'depreciation_types' && (
+                            <RuleGroup
+                                form="grp"
+                                header="Ce que porte chaque type"
+                                headerTrailing={`${typesWithOwnPlan} sur ${categories.length} ont leur plan`}
+                            >
+                                {typesParPlan.map(rangeeDePlan)}
+                            </RuleGroup>
+                        )}
+
+                        {vue === 'sources' && (
+                            <>
+                                <RuleGroup form="grp">
+                                    {SOURCES.map((source) => {
+                                        /* **Sans connecteur, la rangée le dit et ne s'ouvre pas**
+                                       (10/10). Elle ouvrait un hôte, un compte de service ou
+                                       des plages IP qu'aucun code ne lisait. */
+                                        const state = sourceState.get(source.id);
+                                        const days = state?.last ? daysSince(state.last) : null;
+                                        if (!source.enabledKey) {
+                                            /* Un export déposé au serveur se voit ici : la
+                                               rangée dit ce qu'il a apporté, et quand. */
+                                            const apporte = state?.count ?? 0;
+                                            return (
+                                                <RuleGroup.Row
+                                                    key={source.id}
+                                                    title={source.title}
+                                                    subtitle={source.subtitle}
+                                                    value={
+                                                        apporte === 0
+                                                            ? 'Non branché'
+                                                            : `${apporte} machine${apporte > 1 ? 's' : ''} · ${days ? `${days} j` : "aujourd'hui"}`
+                                                    }
+                                                    valueTone="muted"
+                                                />
+                                            );
+                                        }
+                                        const enabled = Boolean(settings[source.enabledKey]);
+                                        const stale = enabled && (days === null || days >= 2);
+
+                                        return (
+                                            <RuleGroup.Row
+                                                key={source.id}
+                                                title={source.title}
+                                                subtitle={source.subtitle}
+                                                status={
+                                                    !enabled
+                                                        ? undefined
+                                                        : stale
+                                                          ? { icon: Clock, tone: 'pending' }
+                                                          : { icon: CheckCircle, tone: 'positive' }
                                                 }
-                                                valeurs={echeancierAmortissement(
-                                                    method.value,
-                                                    settings.defaultDepreciationYears,
-                                                    settings.salvageValuePercent,
-                                                )}
-                                                choisie={
-                                                    settings.defaultDepreciationMethod ===
-                                                    method.value
+                                                value={
+                                                    !enabled
+                                                        ? 'Désactivée'
+                                                        : days === null
+                                                          ? 'Rien reçu'
+                                                          : days === 0
+                                                            ? `${state?.count} machines aujourd'hui`
+                                                            : `Rien depuis ${days} j`
                                                 }
-                                                onChoisir={() =>
+                                                valueTone={
+                                                    !enabled
+                                                        ? 'muted'
+                                                        : stale
+                                                          ? 'pending'
+                                                          : 'positive'
+                                                }
+                                                onOpen={() => setOpenSource(source.id)}
+                                            />
+                                        );
+                                    })}
+                                </RuleGroup>
+
+                                <RuleGroup form="grp" header="Alimenter à la main">
+                                    <RuleGroup.Row
+                                        title="Importer des fichiers de remontée"
+                                        subtitle="JSON, tableau, ou NDJSON"
+                                        onOpen={() => setFeedSheetOpen(true)}
+                                    />
+                                    <RuleGroup.Row
+                                        title="Validation manuelle obligatoire"
+                                        subtitle="Sans elle, une machine reconnue entre au parc sans être vue"
+                                        trailing={
+                                            <Toggle
+                                                nom="Validation manuelle obligatoire"
+                                                checked={
+                                                    settings.autoCollectionRequireManualValidation
+                                                }
+                                                onChange={(value) =>
                                                     apply({
-                                                        defaultDepreciationMethod: method.value,
+                                                        autoCollectionRequireManualValidation:
+                                                            value,
                                                     })
                                                 }
                                             />
-                                        ))}
-                                    </div>
-                                </RuleGroup>
-
-                                <RuleGroup form="grp" header="Durée et fin de vie">
-                                    <RuleGroup.Row
-                                        title="Durée"
-                                        trailing={
-                                            <Stepper
-                                                label="Durée"
-                                                value={settings.defaultDepreciationYears}
-                                                min={1}
-                                                max={20}
-                                                format={(annees) =>
-                                                    `${annees} an${annees > 1 ? 's' : ''}`
-                                                }
-                                                onChange={(annees) =>
-                                                    apply({ defaultDepreciationYears: annees })
-                                                }
-                                            />
-                                        }
-                                    />
-                                    <RuleGroup.Row
-                                        title="Valeur résiduelle"
-                                        subtitle="Ce qu'il vaut encore à la fin"
-                                        trailing={
-                                            <Stepper
-                                                label="Valeur résiduelle"
-                                                value={settings.salvageValuePercent}
-                                                min={0}
-                                                max={50}
-                                                step={5}
-                                                format={(part) => `${part} %`}
-                                                onChange={(part) =>
-                                                    apply({ salvageValuePercent: part })
-                                                }
-                                            />
                                         }
                                     />
                                 </RuleGroup>
-                            </div>
-
-                            <div className="flex flex-col gap-4">
-                                <RuleGroup
-                                    form="grp"
-                                    header="Ce que porte chaque type"
-                                    headerTrailing={`${typesWithOwnPlan} sur ${categories.length} ont leur plan`}
-                                >
-                                    {/* Ceux qui prennent le défaut d'abord : ce sont eux que la
-                                        page règle. Chaque type ouvre sa fiche, où son plan se
-                                        modifie. */}
-                                    {/* **Une part, puis sa page** (09/10) : la carte défilait
-                                        dans sa hauteur. */}
-                                    {typesParPlan.slice(0, PLANS_SUR_LA_CARTE).map(rangeeDePlan)}
-                                    {typesParPlan.length > PLANS_SUR_LA_CARTE && (
-                                        <PiedDeCarte className="px-4">
-                                            <ToutVoir
-                                                libelle="Tous les types"
-                                                total={typesParPlan.length}
-                                                onOuvrir={() => setView('depreciation_types')}
-                                            />
-                                        </PiedDeCarte>
-                                    )}
-                                </RuleGroup>
-                            </div>
-                        </div>
-                    )}
-
-                    {view === 'depreciation_types' && (
-                        <RuleGroup
-                            form="grp"
-                            header="Ce que porte chaque type"
-                            headerTrailing={`${typesWithOwnPlan} sur ${categories.length} ont leur plan`}
-                        >
-                            {typesParPlan.map(rangeeDePlan)}
-                        </RuleGroup>
-                    )}
-
-                    {view === 'sources' && (
-                        <>
-                            <RuleGroup form="grp">
-                                {SOURCES.map((source) => {
-                                    const enabled = Boolean(settings[source.enabledKey]);
-                                    const state = sourceState.get(source.id);
-                                    const days = state?.last ? daysSince(state.last) : null;
-                                    const stale = enabled && (days === null || days >= 2);
-
-                                    return (
-                                        <RuleGroup.Row
-                                            key={source.id}
-                                            title={source.title}
-                                            subtitle={source.subtitle}
-                                            status={
-                                                !enabled
-                                                    ? undefined
-                                                    : stale
-                                                      ? { icon: Clock, tone: 'pending' }
-                                                      : { icon: CheckCircle, tone: 'positive' }
-                                            }
-                                            value={
-                                                !enabled
-                                                    ? 'Désactivée'
-                                                    : days === null
-                                                      ? 'Rien reçu'
-                                                      : days === 0
-                                                        ? `${state?.count} machines aujourd'hui`
-                                                        : `Rien depuis ${days} j`
-                                            }
-                                            valueTone={
-                                                !enabled ? 'muted' : stale ? 'pending' : 'positive'
-                                            }
-                                            onOpen={() => openSourceSheet(source.id)}
-                                        />
-                                    );
-                                })}
-                            </RuleGroup>
-
-                            <RuleGroup form="grp" header="Alimenter à la main">
-                                <RuleGroup.Row
-                                    title="Importer des fichiers de remontée"
-                                    subtitle="JSON, tableau, ou NDJSON"
-                                    onOpen={() => setFeedSheetOpen(true)}
-                                />
-                                <RuleGroup.Row
-                                    title="Validation manuelle obligatoire"
-                                    subtitle="Sans elle, une machine reconnue entre au parc sans être vue"
-                                    trailing={
-                                        <Toggle
-                                            checked={settings.autoCollectionRequireManualValidation}
-                                            onChange={(value) =>
-                                                apply({
-                                                    autoCollectionRequireManualValidation: value,
-                                                })
-                                            }
-                                        />
-                                    }
-                                />
-                            </RuleGroup>
-                        </>
-                    )}
+                            </>
+                        )}
+                    </div>
                 </Reading>
             </div>
 
@@ -1339,6 +1499,32 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                 subtitle={reglageMontre ? REGLAGE[reglageMontre].sens : undefined}
             >
                 <div className="-mx-1 pb-2">
+                    {reglageMontre === 'theme' && (
+                        <RuleGroup form="grp">
+                            {(Object.keys(LIBELLE_DU_THEME) as ThemeChoisi[]).map((choix) => {
+                                const retenu = theme === choix;
+                                return (
+                                    <RuleGroup.Row
+                                        key={choix}
+                                        title={LIBELLE_DU_THEME[choix]}
+                                        status={
+                                            retenu
+                                                ? { icon: CheckCircle, tone: 'positive' }
+                                                : undefined
+                                        }
+                                        value={retenu ? 'Retenu' : undefined}
+                                        valueTone={retenu ? 'positive' : undefined}
+                                        onOpen={() => {
+                                            /* Le thème se répand depuis la rangée ; la
+                                               feuille se referme quand l'écran est posé. */
+                                            void choisirLeTheme(choix).then(() => setReglage(null));
+                                        }}
+                                        choice
+                                    />
+                                );
+                            })}
+                        </RuleGroup>
+                    )}
                     {reglageMontre === 'repair' && (
                         <RuleGroup form="grp">
                             {SEUILS_DEVIS.map((seuil) => {
@@ -1417,147 +1603,56 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                 </div>
             </BottomSheet>
 
-            {/* ── La feuille d'une source : la seule exception au geste ─────────────
-                Une clé d'API et une URL **valent ensemble ou pas du tout** — à moitié
-                saisies, elles cassent la collecte. C'est le seul pied de l'écran. */}
+            {/* ── La feuille de l'agent ─────────────────────────────────────────────
+                Son interrupteur s'applique au geste, comme les autres : le serveur de
+                collecte le lit et refuse les remontées quand il est éteint. La clé, l'adresse
+                et la fréquence ne se règlent plus ici (10/10) : la clé était lisible dans la
+                base, et les deux autres se posent sur le serveur et dans la stratégie de
+                déploiement. */}
             <BottomSheet
                 open={openSource !== null}
                 onClose={() => setOpenSource(null)}
                 title={SOURCES.find((source) => source.id === openSource)?.title}
             >
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-3 pb-2">
                     <div className="flex items-center justify-between gap-3">
                         <span className="text-on-surface text-ts-sub font-medium">
                             Source active
                         </span>
                         <Toggle
-                            checked={Boolean(
-                                sourceDraft[
-                                    SOURCES.find((source) => source.id === openSource)
-                                        ?.enabledKey ?? 'autoCollectionAgentEnabled'
-                                ],
-                            )}
-                            onChange={(value) => {
-                                const key = SOURCES.find(
-                                    (source) => source.id === openSource,
-                                )?.enabledKey;
-                                if (key) setSourceDraft((draft) => ({ ...draft, [key]: value }));
-                            }}
+                            nom="Source active"
+                            checked={settings.autoCollectionAgentEnabled}
+                            onChange={(value) => apply({ autoCollectionAgentEnabled: value })}
                         />
                     </div>
 
-                    {openSource === 'agent' && (
-                        <>
-                            <InputField
-                                label="Clé d'API"
-                                value={sourceDraft.autoCollectionAgentApiKey}
-                                onChange={(event) =>
-                                    setSourceDraft((draft) => ({
-                                        ...draft,
-                                        autoCollectionAgentApiKey: event.target.value,
-                                    }))
-                                }
-                                placeholder="NEEMBA_AGENT_KEY"
-                            />
-                            <InputField
-                                mesure="courte"
-                                label="Fréquence de remontée (minutes)"
-                                type="number"
-                                value={String(sourceDraft.autoCollectionHeartbeatMinutes)}
-                                onChange={(event) =>
-                                    setSourceDraft((draft) => ({
-                                        ...draft,
-                                        autoCollectionHeartbeatMinutes: Number(event.target.value),
-                                    }))
-                                }
-                            />
-                            <InputField
-                                label="URL de l'API"
-                                value={sourceDraft.autoCollectionApiBaseUrl}
-                                onChange={(event) =>
-                                    setSourceDraft((draft) => ({
-                                        ...draft,
-                                        autoCollectionApiBaseUrl: event.target.value,
-                                    }))
-                                }
-                                placeholder="http://localhost:8787"
-                            />
-                            <div className="flex items-center justify-between gap-3">
-                                <span className="text-on-surface text-ts-sub">
-                                    Renvoyer les remontées à l'API
-                                </span>
-                                <Toggle
-                                    checked={sourceDraft.autoCollectionForwardToApi}
-                                    onChange={(value) =>
-                                        setSourceDraft((draft) => ({
-                                            ...draft,
-                                            autoCollectionForwardToApi: value,
-                                        }))
-                                    }
-                                />
-                            </div>
-                            <Button
-                                variant="text"
-                                size="sm"
-                                onClick={testApiConnection}
-                                className="self-start"
-                            >
-                                Tester la connexion
-                            </Button>
-                        </>
-                    )}
-
-                    {openSource === 'active_directory' && (
-                        <>
-                            <InputField
-                                label="Contrôleur de domaine"
-                                value={sourceDraft.autoCollectionAdHost}
-                                onChange={(event) =>
-                                    setSourceDraft((draft) => ({
-                                        ...draft,
-                                        autoCollectionAdHost: event.target.value,
-                                    }))
-                                }
-                                placeholder="dc01.tracker.local"
-                            />
-                            <InputField
-                                label="Base DN"
-                                value={sourceDraft.autoCollectionAdBaseDn}
-                                onChange={(event) =>
-                                    setSourceDraft((draft) => ({
-                                        ...draft,
-                                        autoCollectionAdBaseDn: event.target.value,
-                                    }))
-                                }
-                                placeholder="OU=Computers,DC=tracker,DC=local"
-                            />
-                            <InputField
-                                label="Compte de service"
-                                value={sourceDraft.autoCollectionAdServiceAccount}
-                                onChange={(event) =>
-                                    setSourceDraft((draft) => ({
-                                        ...draft,
-                                        autoCollectionAdServiceAccount: event.target.value,
-                                    }))
-                                }
-                                placeholder="svc-neemba-ldap"
-                            />
-                        </>
-                    )}
-
-                    {openSource === 'network_scan' && (
-                        <InputField
-                            label="Plages IP (séparées par une virgule)"
-                            value={sourceDraft.autoCollectionNetworkRanges}
-                            onChange={(event) =>
-                                setSourceDraft((draft) => ({
-                                    ...draft,
-                                    autoCollectionNetworkRanges: event.target.value,
-                                }))
-                            }
-                            placeholder="10.10.0.0/24, 10.20.0.0/24"
-                        />
-                    )}
+                    <ListeDeFaits
+                        label="Le serveur de collecte"
+                        faits={
+                            serveurDeCollecte
+                                ? [
+                                      [
+                                          'Serveur',
+                                          serveurDeCollecte.muet
+                                              ? `Muet, vu ${serveurDeCollecte.vu}`
+                                              : `Vu ${serveurDeCollecte.vu}`,
+                                      ],
+                                      ['Dernière remontée', serveurDeCollecte.remontee],
+                                      [
+                                          'Machines connues',
+                                          serveurDeCollecte.machines?.toLocaleString('fr-FR'),
+                                      ],
+                                      [
+                                          'En attente d’écriture',
+                                          serveurDeCollecte.enAttente
+                                              ? serveurDeCollecte.enAttente.toLocaleString('fr-FR')
+                                              : undefined,
+                                      ],
+                                      ['Version', serveurDeCollecte.version],
+                                  ]
+                                : [['Serveur', 'Jamais vu']]
+                        }
+                    />
 
                     <Notice>
                         Une machine remontée{' '}
@@ -1566,22 +1661,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                         </strong>{' '}
                         : elle attend une validation dans Tâches.
                     </Notice>
-
-                    {sourceError && (
-                        <p className="text-error text-ts-sub leading-ts-sub flex gap-2">
-                            <Icon glyph={Warning} size={18} className="mt-px shrink-0" />
-                            <span>{sourceError}</span>
-                        </p>
-                    )}
-
-                    <div className="border-outline-variant mt-3 flex items-center gap-3 border-t pt-3.5">
-                        <Button variant="text" onClick={() => setOpenSource(null)}>
-                            Annuler
-                        </Button>
-                        <Button variant="filled" onClick={saveSource} className="flex-1">
-                            Enregistrer la source
-                        </Button>
-                    </div>
                 </div>
             </BottomSheet>
 

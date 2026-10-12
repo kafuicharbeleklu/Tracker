@@ -118,7 +118,7 @@ const PinField: React.FC<PinFieldProps> = ({
         <div
             className="etroit:gap-2 flex justify-center gap-2.5"
             role="group"
-            aria-label={`${label} — ${PIN_LENGTH} chiffres`}
+            aria-label={`${label}, ${PIN_LENGTH} chiffres`}
         >
             {Array.from({ length: PIN_LENGTH }, (_, index) => {
                 const digit = value[index] ?? '';

@@ -20,7 +20,7 @@ import { FabContainer } from '../../../components/ui/FabContainer';
 import Icon from '../../../components/ui/Icon';
 import InputField from '../../../components/ui/InputField';
 import FactRow from '../../../components/ui/FactRow';
-import GlobePointille from '../components/GlobePointille';
+import CarteDuReferentiel from '../components/CarteDuReferentiel';
 import { codeDuPays, positionDuPays } from '../lib/paysCoordonnees';
 import CardEmptyState from '../../../components/ui/CardEmptyState';
 import BoutonDeRecherche from '../../../components/ui/BoutonDeRecherche';
@@ -118,7 +118,11 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
     const { showToast } = useToast();
     const isCompact = useMediaQuery(MEDIA.compact);
     /* Les sites en grille de cartes au-delà de 840 (23/09). */
-    const enGrille = useMediaQuery(MEDIA.expandedUp);
+    /* **À la tablette debout, les pays vont par deux** (10/10) : chaque pays est une carte qui
+       porte ses sites, en rangées. Les sites en cartes (23/09) valaient de 840 à 999, quand
+       un pays tenait toute la largeur ; cette plage est désormais celle des deux colonnes. */
+    const paysParDeux = useMediaQuery(MEDIA.tablette);
+    const enGrille = useMediaQuery(MEDIA.expandedUp) && !paysParDeux;
 
     const [searchQuery, setSearchQuery] = useState('');
     const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
@@ -201,10 +205,11 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
 
     const isFiltered = Boolean(debouncedSearch);
 
-    /* **Le globe au bureau** (24/09, essai) : dès 1 280, la grille de cartes laissait le
-       tiers droit vide ; les pays passent sur un globe en pointillés, et le pays choisi
-       ouvre sa carte à côté. */
-    const avecGlobe = useMediaQuery(MEDIA.twoColumn);
+    /* **La carte, et le pays choisi à côté** (24/09, puis 10/10) : dès 1 000, les pays se
+       lisent sur la carte du référentiel et le pays choisi ouvre ses sites à droite. Le
+       globe en pointillés du 24/09 a laissé la place à une carte à plat : cinq pays y
+       tenaient sur 2 % du disque. En deçà, la carte coiffe la liste, en bandeau. */
+    const enDeuxZones = useMediaQuery(MEDIA.twoColumn);
     const statsParPays = useMemo(
         () =>
             families.map(({ country, items, code }) => ({
@@ -217,10 +222,32 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
             })),
         [families],
     );
-    const [paysChoisi, setPaysChoisi] = useState<string | null>(null);
+    const [paysVoulu, setPaysChoisi] = useState<string | null>(null);
+    /* Un pays que la recherche vient d'écarter n'est plus choisi. */
+    const paysChoisi = statsParPays.some((pays) => pays.country === paysVoulu) ? paysVoulu : null;
     const paysAffiche =
         statsParPays.find((pays) => pays.country === paysChoisi) ??
         [...statsParPays].sort((a, b) => b.actifs - a.actifs)[0];
+    const paysDeLaCarte = useMemo(
+        () =>
+            statsParPays.flatMap((pays) =>
+                pays.position
+                    ? [
+                          {
+                              id: pays.country,
+                              label: pays.country,
+                              code: codeDuPays(pays.country),
+                              lat: pays.position[0],
+                              lng: pays.position[1],
+                              poids: pays.actifs,
+                              detail: `${pays.actifs} actif${pays.actifs > 1 ? 's' : ''}`,
+                          },
+                      ]
+                    : [],
+            ),
+        [statsParPays],
+    );
+    const paysNonPlaces = statsParPays.filter((pays) => !pays.position);
     const isReferentialEmpty = sites.length === 0 && locationData.countries.length === 0;
 
     /* Le parent possible du nouvel emplacement : un pays pour un site, un site pour
@@ -439,11 +466,11 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                     className={cn(
                         /* Repliée ou dépliée, la barre garde les marges de toute barre de
                            téléphone (8 au-dessus, 12 dessous) : 69 avec le titre seul. */
-                        'border-outline-variant bg-surface sticky top-0 z-20 flex flex-col border-b px-4 pt-2 pb-3',
+                        'barre-repliable border-outline-variant bg-surface sticky top-0 z-20 flex flex-col border-b px-4 pt-2 pb-3',
                         !isReferentialEmpty && repli.ouverte && 'gap-3',
                     )}
                 >
-                    <div className="flex min-h-12 items-center gap-1">
+                    <div className="barre-repliable-rangee flex min-h-12 items-center gap-1">
                         {onBack && (
                             <Button
                                 variant="text"
@@ -455,7 +482,7 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                                 <Icon glyph={ArrowLeft} size={24} />
                             </Button>
                         )}
-                        <h1 className="font-brand text-on-surface text-ts-page leading-ts-page min-w-0 shrink font-semibold tracking-[-0.02em]">
+                        <h1 className="barre-repliable-titre font-brand text-on-surface text-ts-page leading-ts-page min-w-0 shrink font-semibold tracking-[-0.02em]">
                             {GLOSSARY.LOCATIONS}
                         </h1>
                         {/* **Le compte à côté du titre, plus de ligne de service** (24/09) — la
@@ -547,58 +574,20 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                             visibleSites.length > 0 ? CORPS_BUREAU : cn('flex-1', CADRE_BUREAU),
                         )}
                     >
-                        {visibleSites.length > 0 && avecGlobe && paysAffiche ? (
+                        {visibleSites.length > 0 && enDeuxZones && paysAffiche ? (
                             <div className="grid grid-cols-12 items-start gap-4">
-                                {/* **Le globe, sans carte autour** (24/09) : la sphère porte sa
-                                    propre nuit et flotte sur la page ; « Vue d'ensemble » se pose
-                                    sur elle quand un pays est choisi. */}
                                 <div className="col-span-7 flex flex-col gap-3">
-                                    <div className="relative">
-                                        <GlobePointille
-                                            className="mx-auto max-w-[34rem]"
-                                            noeuds={statsParPays.flatMap((pays) =>
-                                                pays.position
-                                                    ? [
-                                                          {
-                                                              id: pays.country,
-                                                              label: pays.country,
-                                                              lat: pays.position[0],
-                                                              lng: pays.position[1],
-                                                              poids: pays.actifs,
-                                                              detail: `${pays.actifs} actif${pays.actifs > 1 ? 's' : ''}`,
-                                                              code: codeDuPays(pays.country),
-                                                          },
-                                                      ]
-                                                    : [],
-                                            )}
-                                            /* Rien de choisi : la vue d'ensemble ; un choix
-                                               fait pivoter et approcher le globe. */
-                                            selection={paysChoisi}
-                                            onSelect={setPaysChoisi}
-                                        />
-                                        {paysChoisi && (
-                                            <Button
-                                                variant="text"
-                                                size="sm"
-                                                onClick={() => setPaysChoisi(null)}
-                                                icon={
-                                                    <Icon glyph={GlobeHemisphereWest} size={18} />
-                                                }
-                                                className="bg-surface text-on-surface hover:bg-surface-container absolute top-2 right-2 rounded-md px-2.5 shadow-[0_2px_8px_rgba(10,25,29,0.18)]"
-                                            >
-                                                Vue d’ensemble
-                                            </Button>
-                                        )}
-                                    </div>
-                                    <p className="text-text-muted px-1 text-center text-[0.75rem] leading-4">
-                                        La taille d’un point suit le nombre d’actifs · faites
-                                        tourner le globe, choisissez un pays.
-                                        {statsParPays.some((pays) => !pays.position) &&
-                                            ` Nom non reconnu, donc non placé : ${statsParPays
-                                                .filter((pays) => !pays.position)
-                                                .map((pays) => pays.country)
-                                                .join(', ')}.`}
-                                    </p>
+                                    <CarteDuReferentiel
+                                        pays={paysDeLaCarte}
+                                        selection={paysChoisi}
+                                        onSelect={setPaysChoisi}
+                                    />
+                                    {paysNonPlaces.length > 0 && (
+                                        <p className="text-text-muted px-1 text-[0.75rem] leading-4">
+                                            Nom non reconnu, donc non placé :{' '}
+                                            {paysNonPlaces.map((pays) => pays.country).join(', ')}.
+                                        </p>
+                                    )}
                                 </div>
 
                                 <div className="col-span-5 flex flex-col gap-4">
@@ -676,40 +665,70 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                                 </div>
                             </div>
                         ) : visibleSites.length > 0 ? (
-                            families.map(({ country, items, code, tint }) => (
-                                /* `.fam` — l'en-tête coiffe la carte sans être dedans
+                            <>
+                                {/* **La carte en bandeau** (10/10) : au téléphone et à la
+                                    tablette, où le globe n'existait pas. Un pays touché y
+                                    réduit la liste à ses sites. */}
+                                {paysDeLaCarte.length > 0 && (
+                                    <CarteDuReferentiel
+                                        pays={paysDeLaCarte}
+                                        selection={paysChoisi}
+                                        onSelect={setPaysChoisi}
+                                        bandeau
+                                    />
+                                )}
+                                <div
+                                    className={cn(
+                                        'flex flex-col gap-4',
+                                        /* Un pays choisi sur la carte reste seul : il prend
+                                           la largeur. */
+                                        paysParDeux &&
+                                            !paysChoisi &&
+                                            'grid grid-cols-2 items-start',
+                                    )}
+                                >
+                                    {families
+                                        .filter(
+                                            ({ country }) => !paysChoisi || country === paysChoisi,
+                                        )
+                                        .map(({ country, items, code, tint }) => (
+                                            /* `.fam` — l'en-tête coiffe la carte sans être dedans
                                    (§2.36), et n'en est séparé que de 8. */
-                                <section key={country} className="flex flex-col gap-2">
-                                    <div className="flex items-center gap-3 px-1">
-                                        {/* `.fh .si` — la pastille de code. Sans code relevé,
+                                            <section key={country} className="flex flex-col gap-2">
+                                                <div className="flex items-center gap-3 px-1">
+                                                    {/* `.fh .si` — la pastille de code. Sans code relevé,
                                             le globe : *ce qui n'est pas relevé n'est pas
                                             inventé*, et trois lettres tirées du nom du pays
                                             en seraient une. */}
-                                        <span
-                                            className={cn(
-                                                'flex h-8 w-8 shrink-0 items-center justify-center rounded-[4px]',
-                                                code
-                                                    ? tint
-                                                    : 'bg-surface-container text-on-surface-variant',
-                                            )}
-                                        >
-                                            {code ? (
-                                                <span className="font-brand text-[0.8125rem] font-semibold tracking-[0.02em]">
-                                                    {code}
-                                                </span>
-                                            ) : (
-                                                <Icon glyph={GlobeHemisphereWest} size={18} />
-                                            )}
-                                        </span>
-                                        <span className="text-on-surface text-ts-head leading-ts-head min-w-0 flex-1 truncate font-medium">
-                                            {country}
-                                        </span>
-                                        <span className="text-text-secondary text-ts-sub leading-ts-sub shrink-0 tabular-nums">
-                                            {items.length} site{items.length > 1 ? 's' : ''}
-                                        </span>
-                                    </div>
-                                    {enGrille ? (
-                                        /*
+                                                    <span
+                                                        className={cn(
+                                                            'flex h-8 w-8 shrink-0 items-center justify-center rounded-[4px]',
+                                                            code
+                                                                ? tint
+                                                                : 'bg-surface-container text-on-surface-variant',
+                                                        )}
+                                                    >
+                                                        {code ? (
+                                                            <span className="font-brand text-[0.8125rem] font-semibold tracking-[0.02em]">
+                                                                {code}
+                                                            </span>
+                                                        ) : (
+                                                            <Icon
+                                                                glyph={GlobeHemisphereWest}
+                                                                size={18}
+                                                            />
+                                                        )}
+                                                    </span>
+                                                    <span className="text-on-surface text-ts-head leading-ts-head min-w-0 flex-1 truncate font-medium">
+                                                        {country}
+                                                    </span>
+                                                    <span className="text-text-secondary text-ts-sub leading-ts-sub shrink-0 tabular-nums">
+                                                        {items.length} site
+                                                        {items.length > 1 ? 's' : ''}
+                                                    </span>
+                                                </div>
+                                                {enGrille ? (
+                                                    /*
                                           **Au bureau, un site est une carte** (23/09). Les rangées
                                           de 64 couraient sur 1 008 px pour porter un nom et deux
                                           chiffres : le nom à gauche, le vide au milieu. Les sites
@@ -718,149 +737,173 @@ const LocationsPage: React.FC<LocationsPageProps> = ({ onViewChange, onSiteClick
                                           chiffres qu'on compare d'une carte à l'autre. Un site
                                           qui n'a jamais servi s'éteint et le dit en ambre.
                                         */
-                                        <ul className="large:grid-cols-3 grid grid-cols-2 gap-3">
-                                            {items.map((site) => (
-                                                <li key={site.name}>
-                                                    {/* **La carte d'un site, en deux étages** (24/09) :
+                                                    <ul className="large:grid-cols-3 grid grid-cols-2 gap-3">
+                                                        {items.map((site) => (
+                                                            <li key={site.name}>
+                                                                {/* **La carte d'un site, en deux étages** (24/09) :
                                                         le nom et le chevron, puis un filet et deux
                                                         cases égales — le mot au-dessus, le nombre en
                                                         22 dessous. Les deux chiffres se serraient à
                                                         gauche sous le nom, en 17, avec leur mot en
                                                         12 collé dessous : on lisait « 8 8 ». */}
-                                                    <Button
-                                                        variant="text"
-                                                        onClick={() => onSiteClick?.(site.name)}
-                                                        className="rounded-card bg-surface hover:bg-surface-container h-full w-full flex-col items-stretch justify-start gap-0 p-0 text-left font-normal whitespace-normal"
-                                                    >
-                                                        <span className="flex min-h-16 items-center gap-3 px-4 py-3">
-                                                            <span
-                                                                className={cn(
-                                                                    'rounded-vignette flex h-10 w-10 shrink-0 items-center justify-center',
-                                                                    site.neverServed
-                                                                        ? 'bg-surface-container text-text-muted'
-                                                                        : 'bg-tint-ambre text-on-tint-ambre',
-                                                                )}
-                                                            >
-                                                                <Icon glyph={MapPin} size={20} />
-                                                            </span>
-                                                            <span
-                                                                className={cn(
-                                                                    'text-ts-body leading-ts-body min-w-0 flex-1 truncate font-medium',
-                                                                    site.neverServed
-                                                                        ? 'text-text-secondary'
-                                                                        : 'text-on-surface',
-                                                                )}
-                                                            >
-                                                                {site.name}
-                                                            </span>
-                                                            <Icon
-                                                                glyph={CaretRight}
-                                                                size={20}
-                                                                className="text-text-tertiary shrink-0"
-                                                            />
-                                                        </span>
-                                                        {site.neverServed ? (
-                                                            <span className="border-outline-variant text-ts-sub leading-ts-sub flex min-h-[4.25rem] items-center gap-2 border-t px-4 text-[var(--tk-color-on-tint-ambre)]">
-                                                                <Icon
-                                                                    glyph={Hourglass}
-                                                                    size={18}
-                                                                    className="shrink-0"
-                                                                />
-                                                                <b className="font-medium">
-                                                                    Jamais servi
-                                                                </b>
-                                                                <span className="text-text-tertiary">
-                                                                    · aucun actif, personne
-                                                                </span>
-                                                            </span>
-                                                        ) : (
-                                                            <span className="border-outline-variant divide-outline-variant grid grid-cols-2 divide-x border-t">
-                                                                {[
-                                                                    {
-                                                                        cle: 'actifs',
-                                                                        n: site.assetCount,
-                                                                        mot: 'Actifs',
-                                                                    },
-                                                                    {
-                                                                        cle: 'personnes',
-                                                                        n: site.userCount,
-                                                                        mot: 'Personnes',
-                                                                    },
-                                                                ].map((chiffre) => (
-                                                                    <span
-                                                                        key={chiffre.cle}
-                                                                        className="flex flex-col gap-1 px-4 py-3"
-                                                                    >
-                                                                        <span className="text-on-surface-variant text-[0.75rem] leading-4">
-                                                                            {chiffre.mot}
+                                                                <Button
+                                                                    variant="text"
+                                                                    onClick={() =>
+                                                                        onSiteClick?.(site.name)
+                                                                    }
+                                                                    className="rounded-card bg-surface hover:bg-surface-container h-full w-full flex-col items-stretch justify-start gap-0 p-0 text-left font-normal whitespace-normal"
+                                                                >
+                                                                    <span className="flex min-h-16 items-center gap-3 px-4 py-3">
+                                                                        <span
+                                                                            className={cn(
+                                                                                'rounded-vignette flex h-10 w-10 shrink-0 items-center justify-center',
+                                                                                site.neverServed
+                                                                                    ? 'bg-surface-container text-text-muted'
+                                                                                    : 'bg-tint-ambre text-on-tint-ambre',
+                                                                            )}
+                                                                        >
+                                                                            <Icon
+                                                                                glyph={MapPin}
+                                                                                size={20}
+                                                                            />
                                                                         </span>
                                                                         <span
                                                                             className={cn(
-                                                                                'font-brand text-ts-sheet leading-ts-sheet font-semibold tracking-[-0.015em] tabular-nums',
-                                                                                chiffre.n === 0
-                                                                                    ? 'text-text-tertiary'
+                                                                                'text-ts-body leading-ts-body min-w-0 flex-1 truncate font-medium',
+                                                                                site.neverServed
+                                                                                    ? 'text-text-secondary'
                                                                                     : 'text-on-surface',
                                                                             )}
                                                                         >
-                                                                            {chiffre.n}
+                                                                            {site.name}
                                                                         </span>
+                                                                        <Icon
+                                                                            glyph={CaretRight}
+                                                                            size={20}
+                                                                            className="text-text-tertiary shrink-0"
+                                                                        />
                                                                     </span>
-                                                                ))}
-                                                            </span>
-                                                        )}
-                                                    </Button>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    ) : (
-                                        /* **La rangée à chiffre** (24/09) : les actifs à
+                                                                    {site.neverServed ? (
+                                                                        <span className="border-outline-variant text-ts-sub leading-ts-sub flex min-h-[4.25rem] items-center gap-2 border-t px-4 text-[var(--tk-color-on-tint-ambre)]">
+                                                                            <Icon
+                                                                                glyph={Hourglass}
+                                                                                size={18}
+                                                                                className="shrink-0"
+                                                                            />
+                                                                            <b className="font-medium">
+                                                                                Jamais servi
+                                                                            </b>
+                                                                            <span className="text-text-tertiary">
+                                                                                · aucun actif,
+                                                                                personne
+                                                                            </span>
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="border-outline-variant divide-outline-variant grid grid-cols-2 divide-x border-t">
+                                                                            {[
+                                                                                {
+                                                                                    cle: 'actifs',
+                                                                                    n: site.assetCount,
+                                                                                    mot: 'Actifs',
+                                                                                },
+                                                                                {
+                                                                                    cle: 'personnes',
+                                                                                    n: site.userCount,
+                                                                                    mot: 'Personnes',
+                                                                                },
+                                                                            ].map((chiffre) => (
+                                                                                <span
+                                                                                    key={
+                                                                                        chiffre.cle
+                                                                                    }
+                                                                                    className="flex flex-col gap-1 px-4 py-3"
+                                                                                >
+                                                                                    <span className="text-on-surface-variant text-[0.75rem] leading-4">
+                                                                                        {
+                                                                                            chiffre.mot
+                                                                                        }
+                                                                                    </span>
+                                                                                    <span
+                                                                                        className={cn(
+                                                                                            'font-brand text-ts-sheet leading-ts-sheet font-semibold tracking-[-0.015em] tabular-nums',
+                                                                                            chiffre.n ===
+                                                                                                0
+                                                                                                ? 'text-text-tertiary'
+                                                                                                : 'text-on-surface',
+                                                                                        )}
+                                                                                    >
+                                                                                        {chiffre.n}
+                                                                                    </span>
+                                                                                </span>
+                                                                            ))}
+                                                                        </span>
+                                                                    )}
+                                                                </Button>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                ) : (
+                                                    /* **La rangée à chiffre** (24/09) : les actifs à
                                            droite, en chiffre qu'on compare d'un site à
                                            l'autre ; les personnes et les locaux en fait
                                            dessous. « 8 actifs · 8 personnes » se lisait,
                                            ne se comparait pas. Un site jamais servi
                                            s'éteint et le dit en ambre. */
-                                        <div className="rounded-card bg-surface px-4 py-1">
-                                            {items.map((site) => (
-                                                <FactRow
-                                                    key={site.name}
-                                                    glyph={site.neverServed ? Hourglass : MapPin}
-                                                    tint={site.neverServed ? undefined : 'ambre'}
-                                                    muted={site.neverServed}
-                                                    title={site.name}
-                                                    subtitle={
-                                                        site.neverServed ? (
-                                                            <b className="font-medium text-[var(--tk-color-on-tint-ambre)]">
-                                                                Jamais servi
-                                                            </b>
-                                                        ) : (
-                                                            [
-                                                                `${site.userCount} personne${site.userCount > 1 ? 's' : ''}`,
-                                                                site.locals.length > 0
-                                                                    ? `${site.locals.length} ${site.locals.length > 1 ? 'locaux' : 'local'}`
-                                                                    : null,
-                                                            ]
-                                                                .filter(Boolean)
-                                                                .join(' · ')
-                                                        )
-                                                    }
-                                                    figure={
-                                                        site.neverServed
-                                                            ? undefined
-                                                            : {
-                                                                  value: site.assetCount,
-                                                                  unit:
-                                                                      site.assetCount > 1
-                                                                          ? 'actifs'
-                                                                          : 'actif',
-                                                              }
-                                                    }
-                                                    onOpen={() => onSiteClick?.(site.name)}
-                                                />
-                                            ))}
-                                        </div>
-                                    )}
-                                </section>
-                            ))
+                                                    <div className="rounded-card bg-surface px-4 py-1">
+                                                        {items.map((site) => (
+                                                            <FactRow
+                                                                key={site.name}
+                                                                glyph={
+                                                                    site.neverServed
+                                                                        ? Hourglass
+                                                                        : MapPin
+                                                                }
+                                                                tint={
+                                                                    site.neverServed
+                                                                        ? undefined
+                                                                        : 'ambre'
+                                                                }
+                                                                muted={site.neverServed}
+                                                                title={site.name}
+                                                                subtitle={
+                                                                    site.neverServed ? (
+                                                                        <b className="font-medium text-[var(--tk-color-on-tint-ambre)]">
+                                                                            Jamais servi
+                                                                        </b>
+                                                                    ) : (
+                                                                        [
+                                                                            `${site.userCount} personne${site.userCount > 1 ? 's' : ''}`,
+                                                                            site.locals.length > 0
+                                                                                ? `${site.locals.length} ${site.locals.length > 1 ? 'locaux' : 'local'}`
+                                                                                : null,
+                                                                        ]
+                                                                            .filter(Boolean)
+                                                                            .join(' · ')
+                                                                    )
+                                                                }
+                                                                figure={
+                                                                    site.neverServed
+                                                                        ? undefined
+                                                                        : {
+                                                                              value: site.assetCount,
+                                                                              unit:
+                                                                                  site.assetCount >
+                                                                                  1
+                                                                                      ? 'actifs'
+                                                                                      : 'actif',
+                                                                          }
+                                                                }
+                                                                onOpen={() =>
+                                                                    onSiteClick?.(site.name)
+                                                                }
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </section>
+                                        ))}
+                                </div>
+                            </>
                         ) : (
                             <div className="bg-surface flex flex-1 flex-col rounded-xl">
                                 {isFiltered ? (

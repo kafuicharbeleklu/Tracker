@@ -23,6 +23,13 @@ import DataTable, { type DataColumn } from '../../../components/ui/DataTable';
 import { useListView } from '../../../hooks/useListView';
 import { passerALaPage, useListeEtFiche } from '../../../hooks/useListeEtFiche';
 import PanneauDeFiche from '../../../components/layout/PanneauDeFiche';
+import { useMediaQuery } from '../../../hooks/useMediaQuery';
+import { MEDIA } from '../../../constants/breakpoints';
+import {
+    COLONNES_DE_LA_GRILLE,
+    HAUTEUR_D_UNE_LIGNE_DE_GRILLE,
+    enGrilleDeCartes,
+} from '../../../components/ui/GrilleDeCartes';
 import CardEmptyState from '../../../components/ui/CardEmptyState';
 import BulkOverflow from '../../../components/ui/BulkOverflow';
 import Button from '../../../components/ui/Button';
@@ -285,12 +292,6 @@ const UsersPage: React.FC<UsersPageProps> = ({
             .sort((a, b) => (ascending ? 1 : -1) * a.name.localeCompare(b.name, 'fr'));
     }, [users, debouncedSearch, roleFilter, departmentFilter, siteFilter, statusFilter, ascending]);
 
-    /* **La liste ne monte que ce qui se voit** (23/09) — même fenêtre que les Actifs. */
-    const liste = useVirtualWindow<HTMLDivElement>({
-        count: filteredUsers.length,
-        estimateSize: () => 72,
-    });
-
     /** Les puces de rôle — descendues de la bande de tête dans la feuille (05.1). */
     const roleOptions = useMemo(() => {
         const counts = new Map<string, number>();
@@ -325,6 +326,19 @@ const UsersPage: React.FC<UsersPageProps> = ({
     const listeEtFiche = useListeEtFiche(Boolean(renderFiche) && !enTableau, versLaPage);
     const ouvrirFiche = (id: string) =>
         listeEtFiche.actif ? listeEtFiche.ouvrir(id) : onUserClick?.(id);
+
+    /* À la tablette debout, sans personne ouverte : deux colonnes de cartes (10/10), comme
+       Actifs. */
+    const tablette = useMediaQuery(MEDIA.tablette);
+    const enGrille = tablette && listeEtFiche.actif && !listeEtFiche.ouvert;
+    const parLigne = enGrille ? COLONNES_DE_LA_GRILLE : 1;
+
+    /* **La liste ne monte que ce qui se voit** (23/09) — même fenêtre que les Actifs. En
+       grille, elle compte en lignes. */
+    const liste = useVirtualWindow<HTMLDivElement>({
+        count: Math.ceil(filteredUsers.length / parLigne),
+        estimateSize: () => (enGrille ? HAUTEUR_D_UNE_LIGNE_DE_GRILLE : 72),
+    });
 
     const colonnes = useMemo<DataColumn<User>[]>(
         () => [
@@ -602,8 +616,11 @@ const UsersPage: React.FC<UsersPageProps> = ({
                 }}
                 hasRows={filteredUsers.length > 0}
                 listeEtFiche={listeEtFiche.actif}
+                body={enGrille ? 'cartes' : undefined}
                 panel={
-                    listeEtFiche.actif && (filteredUsers.length > 0 || listeEtFiche.ouvert) ? (
+                    !enGrille &&
+                    listeEtFiche.actif &&
+                    (filteredUsers.length > 0 || listeEtFiche.ouvert) ? (
                         <PanneauDeFiche
                             cle={listeEtFiche.ouvert}
                             onPleinePage={
@@ -727,46 +744,51 @@ const UsersPage: React.FC<UsersPageProps> = ({
                         {liste.before > 0 && (
                             <div {...VIRTUAL_SPACER} style={{ height: liste.before }} />
                         )}
-                        {filteredUsers.slice(liste.start, liste.end).map((user) => {
-                            const held = holdings(user);
-                            /* Le lieu d'abord — c'est le fait que la planche met sous le nom.
+                        {enGrilleDeCartes(
+                            filteredUsers
+                                .slice(liste.start * parLigne, liste.end * parLigne)
+                                .map((user) => {
+                                    const held = holdings(user);
+                                    /* Le lieu d'abord — c'est le fait que la planche met sous le nom.
                        À défaut de site, le service prend sa place : c'est déjà la
                        substitution que la planche dessine sur la vue « choisir un
                        destinataire », où le site est l'en-tête du groupe. */
-                            const place = user.site || user.department || '—';
-                            return (
-                                <ListRow
-                                    key={user.id}
-                                    vignette={
-                                        <span
-                                            className={cn(
-                                                'font-brand text-ts-control flex h-full w-full items-center justify-center font-semibold',
-                                                VIGNETTE_TONE[user.role],
-                                            )}
-                                        >
-                                            {initials(user.name)}
-                                        </span>
-                                    }
-                                    title={user.name}
-                                    person
-                                    /* Deux faits, une seule phrase : « Lomé Siège · 2 objets ».
+                                    const place = user.site || user.department || '—';
+                                    return (
+                                        <ListRow
+                                            key={user.id}
+                                            vignette={
+                                                <span
+                                                    className={cn(
+                                                        'font-brand text-ts-control flex h-full w-full items-center justify-center font-semibold',
+                                                        VIGNETTE_TONE[user.role],
+                                                    )}
+                                                >
+                                                    {initials(user.name)}
+                                                </span>
+                                            }
+                                            title={user.name}
+                                            person
+                                            /* Deux faits, une seule phrase : « Lomé Siège · 2 objets ».
                                La charge disparaît quand elle est nulle — « aucun
                                équipement » sur six rangées sur onze était du bruit. */
-                                    holder={
-                                        held > 0
-                                            ? `${place} · ${held} objet${held > 1 ? 's' : ''}`
-                                            : place
-                                    }
-                                    mark={accountMark(user)}
-                                    onOpen={() => ouvrirFiche(user.id)}
-                                    ouverte={listeEtFiche.ouvert === user.id}
-                                    selectionActive={selection.isActive}
-                                    selected={selection.isSelected(user.id)}
-                                    onToggle={() => selection.toggle(user.id)}
-                                    onLongPress={() => selection.enter(user.id)}
-                                />
-                            );
-                        })}
+                                            holder={
+                                                held > 0
+                                                    ? `${place} · ${held} objet${held > 1 ? 's' : ''}`
+                                                    : place
+                                            }
+                                            mark={accountMark(user)}
+                                            onOpen={() => ouvrirFiche(user.id)}
+                                            ouverte={listeEtFiche.ouvert === user.id}
+                                            selectionActive={selection.isActive}
+                                            selected={selection.isSelected(user.id)}
+                                            onToggle={() => selection.toggle(user.id)}
+                                            onLongPress={() => selection.enter(user.id)}
+                                        />
+                                    );
+                                }),
+                            enGrille,
+                        )}
                         {liste.after > 0 && (
                             <div {...VIRTUAL_SPACER} style={{ height: liste.after }} />
                         )}
@@ -844,7 +866,7 @@ const UsersPage: React.FC<UsersPageProps> = ({
                         <button
                             type="button"
                             onClick={() => setIsFilterSheetOpen(false)}
-                            className="bg-inverse-surface text-inverse-on-surface hover:bg-inverse-surface/90 text-ts-body flex h-12 cursor-pointer items-center justify-center rounded-md font-medium transition-colors"
+                            className="bg-contrast-fill text-on-contrast-fill hover:bg-contrast-fill/90 text-ts-body flex h-12 cursor-pointer items-center justify-center rounded-md font-medium transition-colors"
                         >
                             Voir {filteredUsers.length} personnes
                         </button>

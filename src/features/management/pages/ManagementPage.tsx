@@ -44,6 +44,7 @@ import { useToast } from '../../../context/ToastContext';
 import { CATEGORY_ICONS, renderCategoryIcon } from '../../../constants/categoryIcons';
 import { useDebounce } from '../../../hooks/useDebounce';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
+import SelectableRow from '../../../components/ui/SelectableRow';
 import { IconGestureSizeContext } from '../../../hooks/useIconGestureSize';
 import { cn } from '../../../lib/utils';
 import { CADRE_BUREAU, CORPS_BUREAU, PAGE_BUREAU } from '../../../lib/regimeBureau';
@@ -715,7 +716,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
             */}
             {/* **Le bloc fixe l'est vraiment** (17.8) : titre, recherche, ligne de tri
                 restent quand le référentiel défile. Il partait avec lui. */}
-            <div className="bg-background large:max-w-[calc(63rem+2*var(--tk-space-page))] large:mx-auto sticky top-0 z-20 w-full">
+            <div className="barre-repliable bg-background large:max-w-[calc(63rem+2*var(--tk-space-page))] large:mx-auto sticky top-0 z-20 w-full">
                 {isCompact && selection.isActive ? (
                     /* 17.2 — la barre du haut est **remplacée**, à hauteur égale : l'écran
                    change de régime, il ne gagne pas un palier. */
@@ -753,7 +754,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                         elle, y est : on arrive ici depuis « Plus », comme sur 18.1. */}
                         <div
                             className={cn(
-                                'flex items-center gap-1',
+                                'barre-repliable-rangee flex items-center gap-1',
                                 isCompact ? 'min-h-12' : 'min-h-[52px]',
                             )}
                         >
@@ -765,7 +766,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                                     className={isCompact ? undefined : 'mr-1'}
                                 />
                             )}
-                            <h1 className="font-brand text-on-surface text-ts-page leading-ts-page min-w-0 shrink font-semibold tracking-[-0.02em]">
+                            <h1 className="barre-repliable-titre font-brand text-on-surface text-ts-page leading-ts-page min-w-0 shrink font-semibold tracking-[-0.02em]">
                                 Catalogue
                             </h1>
                             {/* `.cnt2` du téléphone — le compte à droite du titre : c'est la
@@ -897,7 +898,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                                                                 (prev + 1) % SORT_OPTIONS.length,
                                                         )
                                                     }
-                                                    aria-label={`Trier — ${SORT_OPTIONS[sortIndex].label}`}
+                                                    aria-label={`Trier : ${SORT_OPTIONS[sortIndex].label}`}
                                                     title={SORT_OPTIONS[sortIndex].label}
                                                     className="bg-surface-container text-on-surface hover:bg-surface-container-high focus-visible:ring-primary flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-hidden"
                                                 >
@@ -1043,7 +1044,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                                                   modèle s'éteint et le dit, en ambre, avec
                                                   l'horloge de l'attente.
                                                 */
-                                                <ul className="large:grid-cols-3 grid grid-cols-2 gap-4">
+                                                <ul className="deux:grid-cols-3 grid grid-cols-2 gap-4">
                                                     {items.map((cat) => {
                                                         const modelCount =
                                                             modelCountByType.get(cat.name) ?? 0;
@@ -1052,12 +1053,25 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                                                         const unusable = modelCount === 0;
                                                         return (
                                                             <li key={cat.id}>
-                                                                <Button
-                                                                    variant="text"
-                                                                    onClick={() =>
+                                                                {/* **Une tuile s'appuie longuement, comme une
+                                                                    rangée** (10/10) : l'appui long est la
+                                                                    seule entrée de la sélection (17.2), et la
+                                                                    tuile, un simple bouton, ne l'entendait
+                                                                    pas — sur une tablette, le catalogue ne se
+                                                                    sélectionnait plus. */}
+                                                                <SelectableRow
+                                                                    onOpen={() =>
                                                                         onCategoryClick?.(cat.id)
                                                                     }
-                                                                    className="rounded-card bg-surface hover:bg-surface-container h-full min-h-28 w-full flex-col items-stretch justify-between gap-3 p-4 text-left font-normal whitespace-normal"
+                                                                    selectionActive={false}
+                                                                    selected={false}
+                                                                    onToggle={() =>
+                                                                        selection.toggle(cat.id)
+                                                                    }
+                                                                    onLongPress={() =>
+                                                                        selection.enter(cat.id)
+                                                                    }
+                                                                    className="rounded-card bg-surface hover:bg-surface-container focus-visible:ring-focus-ring flex h-full min-h-28 w-full cursor-pointer flex-col items-stretch justify-between gap-3 p-4 text-left transition-colors outline-none focus-visible:ring-2"
                                                                 >
                                                                     <span className="flex items-center gap-3">
                                                                         <span
@@ -1121,7 +1135,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                                                                             </span>
                                                                         </span>
                                                                     </span>
-                                                                </Button>
+                                                                </SelectableRow>
                                                             </li>
                                                         );
                                                     })}
@@ -1254,7 +1268,7 @@ const ManagementPage: React.FC<ManagementPageProps> = ({
                                                 ? `${unusableTypes.length} types n'ont aucun modèle`
                                                 : "1 type n'a aucun modèle"}
                                         </b>
-                                        {` — ${unusableTypes.map((cat) => getCategoryLabel(cat.name)).join(', ')}.`}
+                                        {` : ${unusableTypes.map((cat) => getCategoryLabel(cat.name)).join(', ')}.`}
                                     </p>
                                 )}
                             </>

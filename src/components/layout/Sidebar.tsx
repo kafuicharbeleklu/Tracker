@@ -15,6 +15,7 @@ import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { MEDIA } from '../../constants/breakpoints';
 import { useAccountMenu } from '../../hooks/useAccountMenu';
 import { usePendingTasks } from '../../hooks/usePendingTasks';
+import { useCompteRetenu } from '../../hooks/useCompteRetenu';
 import { APP_CONFIG } from '../../config';
 import Icon from '../ui/Icon';
 import Menu from '../ui/Menu';
@@ -110,9 +111,14 @@ const RAIL_PROMUES: DestinationId[] = [
 ];
 
 /**
- * **Une case du rail** — 56 de haut au moins, le glyphe de 24 dans un creux de 56 × 32,
- * le mot en 12 sur 16 dessous, sur deux lignes au plus. Elle transmet ce qu'on lui passe :
- * « Plus » la reçoit du menu qui s'y greffe.
+ * **Une case du rail** — le glyphe de 24, le mot en 12 sur 16 dessous, sur deux lignes au
+ * plus. Elle transmet ce qu'on lui passe : « Plus » la reçoit du menu qui s'y greffe.
+ *
+ * **Le creux de la destination choisie tient le glyphe et son mot** (10/10, relevé du
+ * commanditaire : *« le conteneur du bouton actif sur tablette couvre uniquement l'icône et
+ * pas le libellé »*). Il mesurait 56 × 32, sur le glyphe seul — la pastille de Material — et
+ * le mot restait dessous, hors de la forme : on lisait un glyphe choisi et un mot orphelin.
+ * Le creux prend maintenant toute la case, 68 de large à 6 des bords du rail.
  */
 const RailCase: React.FC<
     React.ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -128,39 +134,45 @@ const RailCase: React.FC<
         {...rest}
         aria-current={active && !rest['aria-haspopup'] ? 'page' : undefined}
         className={cn(
-            /* Le bouton du DS, défait de sa boîte : la case est une colonne, le creux est
-               sur le glyphe, et l'anneau de focus aussi. */
-            'group flex h-auto min-h-14 w-full min-w-0 flex-col items-center justify-start gap-1 rounded-none px-0 pt-1 pb-1.5 text-center text-[0.75rem] leading-4 whitespace-normal shadow-none hover:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0',
+            /* Le bouton du DS, défait de sa boîte : la case est une colonne, et c'est le
+               creux — pas le bouton, large comme le rail — qui porte la forme et l'anneau. */
+            'group flex h-auto min-h-14 w-full min-w-0 flex-col items-center justify-start rounded-none px-1.5 py-px text-center text-[0.75rem] leading-4 whitespace-normal shadow-none hover:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0',
             active
                 ? 'text-on-surface font-medium'
                 : 'text-on-surface-variant hover:text-on-surface font-normal',
             className,
         )}
     >
-        <span
-            className={cn(
-                'group-focus-visible:ring-focus-ring relative flex h-8 w-14 shrink-0 items-center justify-center rounded-md transition-colors group-focus-visible:ring-2',
-                /* Le creux de la destination choisie se déploie depuis son centre (26/09). */
-                active
-                    ? 'bg-surface-muted-strong mvt-indicateur'
-                    : 'group-hover:bg-surface-container',
-            )}
-        >
-            <Icon glyph={glyph} size={24} emphasis={active ? 'fill' : 'regular'} />
-            {count !== undefined && count > 0 && (
-                /* La clé suit le nombre : il rebondit quand une tâche arrive (08/10). */
-                <span
-                    key={count}
-                    className={cn(
-                        'mvt-pop text-on-surface absolute -top-1 -right-1 rounded-xs px-[5px] text-[0.6875rem] leading-4 font-normal tabular-nums',
-                        active ? 'bg-surface' : 'bg-surface-muted-strong',
-                    )}
-                >
-                    {count}
-                </span>
-            )}
+        <span className="group-focus-visible:ring-focus-ring relative flex w-full flex-col items-center gap-1 rounded-md px-0.5 py-2 group-focus-visible:ring-2">
+            {/* Le fond est une couche à part : il se déploie depuis son centre (26/09) sans
+                entraîner le glyphe ni le mot. */}
+            <span
+                aria-hidden="true"
+                className={cn(
+                    'absolute inset-0 rounded-md transition-colors',
+                    active
+                        ? 'bg-surface-muted-strong mvt-indicateur'
+                        : 'group-hover:bg-surface-container',
+                )}
+            />
+            <span className="relative flex h-6 w-14 shrink-0 items-center justify-center">
+                <Icon glyph={glyph} size={24} emphasis={active ? 'fill' : 'regular'} />
+                {count !== undefined && count > 0 && (
+                    /* La clé suit le nombre : il rebondit quand une tâche arrive (08/10). */
+                    <span
+                        key={count}
+                        data-compteur="taches"
+                        className={cn(
+                            'mvt-pop text-on-surface absolute -top-1.5 -right-0.5 rounded-xs px-[5px] text-[0.6875rem] leading-4 font-normal tabular-nums',
+                            active ? 'bg-surface' : 'bg-surface-muted-strong',
+                        )}
+                    >
+                        {count}
+                    </span>
+                )}
+            </span>
+            <span className="relative line-clamp-2 w-full">{label}</span>
         </span>
-        <span className="line-clamp-2 w-full px-0.5">{label}</span>
     </Button>
 );
 
@@ -245,6 +257,7 @@ const SideRow: React.FC<{
             {count !== undefined && count > 0 && (
                 <span
                     key={count}
+                    data-compteur="taches"
                     className={cn(
                         'mvt-pop text-on-surface shrink-0 rounded-xs px-[5px] text-[0.6875rem] leading-4 tabular-nums',
                         active ? 'bg-surface' : 'bg-surface-muted-strong',
@@ -267,7 +280,8 @@ const Sidebar: React.FC<SidebarProps> = ({
     className,
 }) => {
     const { principales, groupes, libelles } = useNavigationDestinations();
-    const { count: pendingCount } = usePendingTasks();
+    /* Le chiffre attend la pastille qui vole vers lui (11/10). */
+    const pendingCount = useCompteRetenu(usePendingTasks().count, 'taches');
     const compte = useAccountMenu();
     const section = sectionOfView(currentView);
     const souris = useMediaQuery(MEDIA.hoverCapable);
@@ -439,7 +453,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                     glyph={List}
                                     label="Plus"
                                     active={plusCourant}
-                                    aria-label="Plus — autres destinations"
+                                    aria-label="Plus : autres destinations"
                                 />
                             }
                         />
@@ -498,7 +512,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                             <Button
                                 variant="text"
                                 iconOnly
-                                aria-label={`Compte — ${compte.nom}`}
+                                aria-label={`Compte : ${compte.nom}`}
                                 className="h-8 w-8 shrink-0 rounded-full bg-[var(--tk-color-inverse-surface)] text-[0.75rem] font-medium text-white shadow-none hover:bg-[var(--tk-color-inverse-surface)] hover:opacity-90"
                             >
                                 {compte.initiales}
@@ -520,7 +534,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                             <Button
                                 variant="text"
                                 layout="card"
-                                aria-label={`Compte — ${compte.nom}`}
+                                aria-label={`Compte : ${compte.nom}`}
                                 className="hover:bg-surface-container flex h-auto min-h-12 w-full min-w-0 items-center justify-start gap-2.5 rounded-md px-2 py-2 text-left font-normal shadow-none"
                             >
                                 {/* `.av` — Inter 12 en 500 : l'Archivo est la voix du produit, pas celle des initiales (17.11). */}

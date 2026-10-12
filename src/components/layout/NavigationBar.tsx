@@ -12,6 +12,7 @@ import { ViewType } from '../../types';
 import { useAccessControl } from '../../hooks/useAccessControl';
 import { useAuth } from '../../context/AuthContext';
 import { usePendingTasks } from '../../hooks/usePendingTasks';
+import { useCompteRetenu } from '../../hooks/useCompteRetenu';
 import { useRouter } from '../../hooks/useRouter';
 import { usePresence } from '../../hooks/usePresence';
 import { LIBELLE_MON_HISTORIQUE } from '../../hooks/useNavigationDestinations';
@@ -195,7 +196,8 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
     const { permissions } = useAccessControl();
     const { currentUser } = useAuth();
     const { navigate } = useRouter();
-    const { count: pendingCount } = usePendingTasks();
+    /* Le chiffre attend la pastille qui vole vers lui (11/10). */
+    const pendingCount = useCompteRetenu(usePendingTasks().count, 'taches');
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     /* La feuille monte de derrière la barre et y redescend (26/09) : sa classe
        `slide-in-from-bottom` n'existait pas, elle apparaissait sans bouger. */
@@ -251,6 +253,8 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
         // « Rôles & accès » ne s'affichait donc JAMAIS. Administrer les rôles est un
         // acte d'administration système — c'est `canManageSystem` qui le garde.
         if (permissions.canManageSystem) administration.push(row('rbac'));
+        /* Les règles de l'organisation (10/10) : à qui a le droit de les régler. */
+        if (permissions.canManageSettings) administration.push(row('organisation'));
         /* **Paramètres revient dans cette feuille, à la place de « Mon compte »** (09/10,
            revue de navigation acceptée par le commanditaire). Le 06/09 il l'avait fait
            sortir — *« deux portes vers le même réglage en font une de trop »* — et la
@@ -275,6 +279,7 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
         onViewChange,
         pinToDefine,
         permissions.canManageInventory,
+        permissions.canManageSettings,
         permissions.canManageSystem,
         permissions.canViewAudit,
         permissions.canViewFinance,
@@ -539,7 +544,7 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
                             aria-haspopup={isMore ? 'menu' : undefined}
                             aria-label={
                                 item.badge !== undefined
-                                    ? `${item.ariaLabel ?? item.label} — ${item.badge} en attente`
+                                    ? `${item.ariaLabel ?? item.label}, ${item.badge} en attente`
                                     : (item.ariaLabel ?? item.label)
                             }
                             title={item.label}
@@ -573,7 +578,8 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
                                 <span
                                     key={item.badge}
                                     aria-hidden="true"
-                                    className="mvt-pop absolute top-2 left-[calc(50%+6px)] flex h-4 min-w-4 items-center justify-center rounded-lg bg-[var(--tk-color-danger)] px-1 text-[0.6875rem] leading-4 font-medium text-white tabular-nums"
+                                    data-compteur={item.id === 'tasks' ? 'taches' : undefined}
+                                    className="mvt-pop absolute top-2 left-[calc(50%+6px)] flex h-4 min-w-4 items-center justify-center rounded-lg bg-[var(--tk-color-danger)] px-1 text-[0.6875rem] leading-4 font-medium text-[var(--tk-color-on-error)] tabular-nums"
                                 >
                                     {item.badge > 99 ? '99+' : item.badge}
                                 </span>

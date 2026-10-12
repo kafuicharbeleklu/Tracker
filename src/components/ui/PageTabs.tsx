@@ -34,7 +34,7 @@ const BADGE_ATTENTION_CLASS = 'bg-[var(--tk-color-st-orange)] text-white';
  * registre y demande la surface inversée pour fond et l'encre claire par-dessus.
  */
 const activeBadgeClass = (isNeutral: boolean) =>
-    isNeutral ? 'bg-inverse-surface text-inverse-on-surface' : 'bg-on-primary text-primary';
+    isNeutral ? 'bg-contrast-fill text-on-contrast-fill' : 'bg-on-primary text-primary';
 
 const sanitizeIdPart = (value: string): string => value.replace(/[^a-zA-Z0-9_-]/g, '-');
 export const getTabElementId = (idBase: string, itemId: string): string =>

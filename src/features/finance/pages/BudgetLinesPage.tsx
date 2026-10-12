@@ -782,7 +782,7 @@ const BudgetLinesPage: React.FC<BudgetLinesPageProps> = ({ year, onBack }) => {
                 ) : (
                     /* La barre commune du téléphone (24/09) ; « Enregistrer » en coche nommée. */
                     <BarreDePage
-                        className="sticky top-0 z-20"
+                        className="barre-repliable sticky top-0 z-20"
                         title="Lignes du budget"
                         onBack={onBack}
                         backLabel="Retour aux finances"

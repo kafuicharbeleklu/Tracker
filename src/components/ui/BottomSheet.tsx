@@ -3,6 +3,7 @@ import { cn } from '../../lib/utils';
 import CloseButton from './CloseButton';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { MEDIA } from '../../constants/breakpoints';
+import { useHauteurQuiSuit } from '../../hooks/useHauteurQuiSuit';
 
 interface BottomSheetProps {
     /** Optional id for aria-controls linkage */
@@ -33,6 +34,11 @@ interface BottomSheetProps {
      * reste visible et se mette à jour à chaque pastille.
      */
     emploi?: 'acte' | 'filtre';
+    /**
+     * Ce que la feuille montre, quand elle a plusieurs temps (« recap », « attester »). Quand
+     * la clé change, la feuille garde son bord et prend la hauteur de la suite (11/10).
+     */
+    etape?: string;
     /** Custom class */
     className?: string;
 }
@@ -66,9 +72,11 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
     subtitle,
     titleClassName,
     emploi = 'acte',
+    etape,
     className,
 }) => {
     const sheetRef = useRef<HTMLDivElement>(null);
+    const corpsRef = useRef<HTMLDivElement>(null);
     const previousFocusRef = useRef<HTMLElement | null>(null);
     const previousBodyOverflowRef = useRef<string>('');
     const dragStartYRef = useRef<number | null>(null);
@@ -216,6 +224,8 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
         };
     }, [visible, closing, onClose, getFocusableElements]);
 
+    useHauteurQuiSuit(sheetRef, visible && etape !== undefined ? etape : null, corpsRef);
+
     if (!visible) return null;
 
     return (
@@ -339,6 +349,7 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
                     qui dépassait de 3 (relevé du 13/09). Le pied `.sfoot` d'une feuille court
                     d'un bord à l'autre : il reprend les 20 de côté par une marge négative. */}
                 <div
+                    ref={corpsRef}
                     className={cn(
                         'custom-scrollbar flex-1 overflow-y-auto overscroll-contain px-5 py-3',
                         /* Le panneau de filtre court sur toute la hauteur : son pied (`data-pied`,

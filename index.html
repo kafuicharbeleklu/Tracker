@@ -13,6 +13,19 @@
   <link rel="manifest" href="./manifest.webmanifest" />
   <meta name="theme-color" content="#FDC910" />
 
+  <!--
+    Le thème se pose avant le premier rendu : sans cela, un écran réglé sur « Sombre »
+    s'ouvre sur un éclair blanc le temps que l'application démarre. La même règle que
+    `src/lib/theme.ts`, en trois lignes.
+  -->
+  <script>
+    try {
+      var theme = localStorage.getItem('tracker.theme');
+      var sombre = theme === 'sombre' || (theme === 'appareil' && matchMedia('(prefers-color-scheme: dark)').matches);
+      document.documentElement.dataset.theme = sombre ? 'dark' : 'light';
+    } catch (e) { }
+  </script>
+
   <!-- Tailwind utilities are compiled at build time (Vite + @tailwindcss/vite). -->
 
   <!--

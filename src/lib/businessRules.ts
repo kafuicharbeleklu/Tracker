@@ -72,6 +72,20 @@ export const canManageSystemByRole = (
 ): BusinessRuleDecision =>
     buildPermissionGuardDecision(access, RBAC_PERMISSIONS.actions.managementManage, 'Catalogue');
 
+/**
+ * **Régler l'organisation** (10/10) — la devise, l'amortissement, les seuils, la collecte.
+ * Le droit existait dans les rôles (`action.settings.manage`) sans que rien ne le lise :
+ * chacun pouvait changer la règle de tous.
+ */
+export const canManageSettingsByRole = (
+    access?: EffectiveAccessProfile | null,
+): BusinessRuleDecision =>
+    buildPermissionGuardDecision(
+        access,
+        RBAC_PERMISSIONS.actions.settingsManage,
+        'Règles de l’organisation',
+    );
+
 export const canManageLocationsByRole = (
     access?: EffectiveAccessProfile | null,
 ): BusinessRuleDecision =>

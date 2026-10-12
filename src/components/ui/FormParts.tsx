@@ -366,7 +366,7 @@ export const GlyphTile: React.FC<{
         className={cn(
             'flex aspect-square items-center justify-center rounded-[4px]',
             selected
-                ? 'bg-inverse-surface text-inverse-on-surface'
+                ? 'bg-contrast-fill text-on-contrast-fill'
                 : 'bg-surface-container text-on-surface-variant',
         )}
     >
@@ -392,7 +392,7 @@ export const ChoiceTile: React.FC<{
         className={cn(
             'flex min-h-[88px] flex-col justify-between gap-3 rounded-[4px] p-3.5 text-left',
             selected
-                ? 'bg-inverse-surface text-inverse-on-surface'
+                ? 'bg-contrast-fill text-on-contrast-fill'
                 : 'bg-surface-container text-on-surface',
         )}
     >

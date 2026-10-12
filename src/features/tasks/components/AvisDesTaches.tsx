@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 import BandeauDAvis from '../../../components/ui/BandeauDAvis';
+import { useAuth } from '../../../context/AuthContext';
 import { useData } from '../../../context/DataContext';
 import {
     demanderLesNotifications,
@@ -10,6 +11,7 @@ import {
     sonner,
     vibrer,
 } from '../../../lib/avis';
+import { ecouterLEssai, usePreferencesDAvis } from '../../../lib/preferencesDAvis';
 import { useFileDeTaches } from '../hooks/useFileDeTaches';
 import { NATURE_MOT, type Task } from '../lib/file';
 
@@ -23,6 +25,10 @@ import { NATURE_MOT, type Task } from '../lib/file';
  * - une tâche entre dans « À faire » — « Nouvelle tâche » ;
  * - une demande suivie avance — elle change de main ;
  * - une demande suivie se clôt — reçue, refusée ou annulée.
+ *
+ * **Chacun règle ce qu'il reçoit** (10/10), par appareil : les trois natures, le son, la
+ * vibration, la notification du système — « Mes préférences › Notifications ». Un avis
+ * d'essai, demandé de là, passe par le même chemin.
  */
 
 interface Avis {
@@ -47,6 +53,11 @@ const ligneDe = (tache: Task) =>
 const AvisDesTaches: React.FC = () => {
     const taches = useFileDeTaches();
     const { approvals, isHydrating, dernierChangementDistant } = useData();
+    const { currentUser } = useAuth();
+    const [preferences] = usePreferencesDAvis(currentUser?.id);
+    /* Lues au moment de l'avis : un réglage changé ne doit pas rejouer la comparaison. */
+    const reglees = useRef(preferences);
+    reglees.current = preferences;
 
     const connues = useRef<Map<string, Task> | null>(null);
     const distantVu = useRef<number | null>(null);
@@ -70,11 +81,12 @@ const AvisDesTaches: React.FC = () => {
         /* La première lecture fait l'état connu ; un geste d'ici ne sonne pas. */
         if (!precedentes || !distant) return;
 
+        const voulus = reglees.current;
         const avisRecus: Avis[] = [];
         const arrivees = taches.filter(
             (tache) => tache.scope === 'todo' && !precedentes.has(tache.id),
         );
-        if (arrivees.length > 0) {
+        if (voulus.taches && arrivees.length > 0) {
             const premiere = arrivees[0];
             avisRecus.push({
                 id: `arrivee-${premiere.id}`,
@@ -82,7 +94,7 @@ const AvisDesTaches: React.FC = () => {
                     arrivees.length > 1
                         ? `${arrivees.length} nouvelles tâches`
                         : `Nouvelle tâche · ${NATURE_MOT[premiere.nature]}`,
-                corps: [premiere.title, ligneDe(premiere)].filter(Boolean).join(' — '),
+                corps: [premiere.title, ligneDe(premiere)].filter(Boolean).join(' · '),
                 adresse: adresseDe(premiere),
             });
         }
@@ -90,6 +102,7 @@ const AvisDesTaches: React.FC = () => {
         for (const tache of taches) {
             const avant = precedentes.get(tache.id);
             if (
+                !voulus.avancees ||
                 tache.scope !== 'following' ||
                 !avant ||
                 (avant.nature === tache.nature && avant.context === tache.context)
@@ -99,13 +112,18 @@ const AvisDesTaches: React.FC = () => {
             avisRecus.push({
                 id: `avance-${tache.id}-${tache.nature}-${tache.context}`,
                 titre: `Demande mise à jour · ${NATURE_MOT[tache.nature]}`,
-                corps: [tache.title, tache.context].filter(Boolean).join(' — '),
+                corps: [tache.title, tache.context].filter(Boolean).join(' · '),
                 adresse: adresseDe(tache),
             });
         }
 
         for (const avant of precedentes.values()) {
-            if (avant.scope !== 'following' || actuelles.has(avant.id) || !avant.approvalId) {
+            if (
+                !voulus.clotures ||
+                avant.scope !== 'following' ||
+                actuelles.has(avant.id) ||
+                !avant.approvalId
+            ) {
                 continue;
             }
             /* Passée dans « À faire », elle est déjà annoncée comme nouvelle tâche. */
@@ -132,9 +150,9 @@ const AvisDesTaches: React.FC = () => {
         if (avisRecus.length === 0) return;
         const principal = avisRecus[0];
         setAvis(principal);
-        sonner();
-        vibrer();
-        if (document.visibilityState === 'hidden') {
+        if (voulus.son) sonner();
+        if (voulus.vibration) vibrer();
+        if (voulus.systeme && document.visibilityState === 'hidden') {
             avisRecus.forEach(
                 (recu) =>
                     void notifierLeSysteme({
@@ -146,6 +164,33 @@ const AvisDesTaches: React.FC = () => {
             );
         }
     }, [taches, approvals, isHydrating, dernierChangementDistant]);
+
+    /* **L'essai** — le même bandeau, les mêmes notes : ce que la personne recevra. La
+       notification du système part aussi, application ouverte, pour qu'on la voie. */
+    useEffect(
+        () =>
+            ecouterLEssai(() => {
+                const voulus = reglees.current;
+                const essai: Avis = {
+                    id: `essai-${Date.now()}`,
+                    titre: 'Essai',
+                    corps: 'Un avis ressemble à ceci.',
+                    adresse: '/settings',
+                };
+                setAvis(essai);
+                if (voulus.son) sonner();
+                if (voulus.vibration) vibrer();
+                if (voulus.systeme) {
+                    void notifierLeSysteme({
+                        titre: essai.titre,
+                        corps: essai.corps,
+                        adresse: essai.adresse,
+                        etiquette: 'essai',
+                    });
+                }
+            }),
+        [],
+    );
 
     /* Le bandeau s'efface seul ; le toucher ouvre la tâche. */
     useEffect(() => {

@@ -48,7 +48,7 @@ const LEGACY_VARIANT_MAP: Record<LegacyButtonVariant, CanonicalButtonVariant> = 
 */
 const VARIANT_STYLES: Record<CanonicalButtonVariant, string> = {
     filled: 'bg-primary text-on-primary hover:bg-primary-hover disabled:bg-on-surface/[0.12] disabled:text-on-surface/[0.38]',
-    tonal: 'bg-neutral-fill text-inverse-on-surface hover:bg-neutral-fill-hover disabled:bg-on-surface/[0.12] disabled:text-on-surface/[0.38]',
+    tonal: 'bg-neutral-fill text-on-neutral-fill hover:bg-neutral-fill-hover disabled:bg-on-surface/[0.12] disabled:text-on-surface/[0.38]',
     outlined:
         'bg-surface text-on-surface border border-outline-variant hover:bg-background hover:border-outline disabled:border-on-surface/[0.12] disabled:text-on-surface/[0.38]',
     /* `.btn-ghost` des planches — **le creux, pas le filet.** Quatre écrans le

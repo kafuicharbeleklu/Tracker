@@ -104,7 +104,9 @@ const FacetChip: React.FC<FacetChipProps> = ({
                     className={cn(
                         'tabular-nums',
                         dense ? 'font-normal' : 'font-medium',
-                        selected ? 'text-[var(--tk-color-on-dark-2)]' : 'text-text-muted',
+                        selected
+                            ? 'text-[var(--tk-color-on-contrast-fill-muted)]'
+                            : 'text-text-muted',
                     )}
                 >
                     {count}
@@ -119,7 +121,7 @@ const FacetChip: React.FC<FacetChipProps> = ({
         return (
             <span
                 className={cn(
-                    'bg-inverse-surface text-inverse-on-surface flex min-h-10 shrink-0 items-center rounded-md whitespace-nowrap',
+                    'bg-contrast-fill text-on-contrast-fill flex min-h-10 shrink-0 items-center rounded-md whitespace-nowrap',
                     dense
                         ? 'doigt:text-ts-control doigt:leading-ts-control text-[0.8125rem] leading-[1.125rem] font-medium'
                         : 'text-ts-control leading-ts-control',
@@ -174,10 +176,7 @@ const FacetChip: React.FC<FacetChipProps> = ({
                         'text-ts-control leading-ts-control gap-1.5 px-3.5',
                 focusRing,
                 selected
-                    ? cn(
-                          'bg-inverse-surface text-inverse-on-surface',
-                          dense && 'border-inverse-surface',
-                      )
+                    ? cn('bg-contrast-fill text-on-contrast-fill', dense && 'border-contrast-fill')
                     : dense
                       ? 'bg-surface border-outline-variant text-on-surface hover:bg-surface-container'
                       : onCanvas

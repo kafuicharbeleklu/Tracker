@@ -15,6 +15,9 @@ export default defineConfig(({ mode }) => {
     define: {
       'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
+      // La date de la publication, lue par « Mes préférences ». Vide hors production : une
+      // date qui change à chaque lancement ferait bouger les références visuelles.
+      __DATE_DE_PUBLICATION__: JSON.stringify(mode === 'production' ? new Date().toISOString() : ''),
     },
     build: {
       rollupOptions: {

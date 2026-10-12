@@ -37,7 +37,11 @@ import { HAUTEUR_DU_PIED, PiedDeCarte, ToutVoir } from '../../../components/ui/T
 import ScanView, { type ScanHit } from '../../../components/ui/ScanView';
 import { SelectionBox } from '../../../components/ui/SelectableRow';
 import { useSelection } from '../../../hooks/useSelection';
+import { useAuth } from '../../../context/AuthContext';
+import { celebrer, origineDuGesteCourant } from '../../../lib/celebration';
 import FicheDeComptage from '../components/FicheDeComptage';
+import IncidentSheet from '../../inventory/components/IncidentSheet';
+import { useDerniereValeur } from '../../../hooks/useDerniereValeur';
 import TuilesDeCampagne, { type TuileDeCampagne } from '../components/TuilesDeCampagne';
 import EtapesDeCampagne from '../components/EtapesDeCampagne';
 import ActiviteDeCampagne, { type FaitDeCampagne } from '../components/ActiviteDeCampagne';
@@ -65,6 +69,7 @@ import {
     AuditScanResult,
     Equipment,
     HistoryEvent,
+    IncidentOutcome,
     ViewType,
 } from '../../../types';
 import { useConfirmation } from '../../../context/ConfirmationContext';
@@ -350,11 +355,13 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
         deleteEquipment,
         consignerCampagne,
         enregistrerComptage,
+        declareIncident,
         users,
         locationData,
     } = useData();
     /* Compter et clôturer : `audit.scan` ; valider, renvoyer : `audit.manage` (27/09). */
     const { permissions } = useAccessControl();
+    const { currentUser } = useAuth();
     const peutCompter = permissions.canScanAudit || permissions.canManageInventory;
     const peutValider = permissions.canManageAudit;
     /* Corriger une fiche pendant le comptage : le droit de gérer l'inventaire. */
@@ -407,6 +414,16 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
         id: string;
         mode: 'compter' | 'corriger';
     } | null>(null);
+    /**
+     * L'incident à déclarer sur un actif qu'on vient de compter (10/10) : retrouvé, mais pas
+     * en état. La fiche de comptage en choisit le cran, la déclaration s'ouvre dessus.
+     */
+    const [incidentADeclarer, setIncidentADeclarer] = useState<{
+        id: string;
+        outcome: IncidentOutcome;
+        comment: string;
+    } | null>(null);
+    const incidentMontre = useDerniereValeur(incidentADeclarer);
     /** La validation d'un lot : plusieurs actifs retrouvés d'un geste. */
     const selection = useSelection();
     /** Le renvoi d'une campagne clôturée : son motif est demandé, il sera lu par l'opérateur. */
@@ -418,7 +435,8 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
      * telles quelles, plus d'écran « Écarts » ni de carte de tension — la file est sous
      * les yeux, c'est elle qui tient lieu d'alerte »*.
      */
-    const enDeuxNiveaux = useMediaQuery(MEDIA.twoColumn);
+    /* Dès la tablette debout (10/10 ; 1 000 avant) : la liste 5 huitièmes, la campagne 3. */
+    const enDeuxNiveaux = useMediaQuery(MEDIA.expandedUp);
     /** La caméra sur un appareil qu'on tient (téléphone, tablette), la saisie à la souris. */
     const scanPossible = useScanPossible();
     const [scanRawValue, setScanRawValue] = useState('');
@@ -446,7 +464,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
     const selectedHorsLocal = Boolean(storedScope.horsLocal);
     /** Ce que le titre et les phrases nomment : le local s'il y en a un, sinon le site. */
     const selectedPlace = selectedHorsLocal
-        ? `${selectedSite} — hors local`
+        ? `${selectedSite} (hors local)`
         : selectedLocal || selectedSite;
     /**
      * **Le lieu dans le site** — « Hors local », ou le local (23/09). Le titre de la page
@@ -1001,12 +1019,16 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                     : []),
             ],
             onConfirm: () => {
+                /* Lu avant l'écriture : le bouton qu'on vient d'actionner est encore là. */
+                const origine = origineDuGesteCourant();
                 const decision = consignerCampagne('validation', currentScope, {
                     missingIds,
                     clotureId: campagne.cloture?.id,
                     found: sessionFound,
                     missing: manquants,
                 });
+                /* Tout le parc attendu a été retrouvé : la seule célébration du produit (11/10). */
+                if (decision.allowed && manquants === 0 && sessionFound > 0) celebrer(origine);
                 showToast(
                     decision.allowed
                         ? 'Inventaire validé.'
@@ -1145,14 +1167,14 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
             registerScanHit(
                 result.equipmentName || scannedCode,
                 scannedCode,
-                'écart — à trancher',
+                'écart à trancher',
                 'exception',
             );
         } else {
             registerScanHit(
                 result.equipmentName || scannedCode,
                 scannedCode,
-                'attendu — retrouvé',
+                'attendu, retrouvé',
                 'expected',
             );
             setActiveTab('scanned');
@@ -1679,7 +1701,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                         variant="text"
                         iconOnly
                         size="sm"
-                        aria-label={`${libelle} — ${titre}`}
+                        aria-label={`${libelle} : ${titre}`}
                         onClick={() => setFicheOuverte({ id: item.id, mode: ficheMode })}
                         /* La rangée survolée est déjà grise : le crayon fonce d'un cran. */
                         className="text-text-secondary hover:bg-surface-muted-strong hover:text-on-surface h-9 w-9"
@@ -1752,7 +1774,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                             <Button
                                 variant="text"
                                 iconOnly
-                                aria-label={`Retrouvé — ${titre}`}
+                                aria-label={`Retrouvé : ${titre}`}
                                 onClick={() => retrouveEnUnGeste(item)}
                                 className="bg-tint-vert text-on-tint-vert h-11 max-h-11 min-h-11 w-11 max-w-11 min-w-11 shrink-0 rounded-full border-[1.5px] border-[color-mix(in_srgb,var(--tk-color-st-vert)_35%,var(--tk-color-surface))] hover:bg-[color-mix(in_srgb,var(--tk-color-st-vert)_22%,var(--tk-color-surface))] active:scale-[0.92] active:bg-[color-mix(in_srgb,var(--tk-color-st-vert)_32%,var(--tk-color-surface))]"
                             >
@@ -2335,10 +2357,11 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                             </>
                         ) : entry.decision === 'left' ? (
                             <>
-                                Laissé à son lieu d'origine{' '}
+                                Laissé à son lieu d'origine
                                 {registeredAt ? (
                                     <>
-                                        — <strong className="font-medium">{registeredAt}</strong>
+                                        {' : '}
+                                        <strong className="font-medium">{registeredAt}</strong>
                                     </>
                                 ) : null}
                                 .
@@ -2411,7 +2434,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                             {entry.decision === 'attached'
                                 ? 'Annuler ce rattachement'
                                 : 'Annuler cette décision'}{' '}
-                            — possible jusqu'à la clôture
+                            (possible jusqu'à la clôture)
                         </Button>
                     ))}
             </section>
@@ -2480,7 +2503,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                             value={recherche}
                             onChange={setRecherche}
                             placeholder="Modèle, code, porteur"
-                            className="w-[240px] min-w-[9rem] shrink"
+                            className="w-[240px] min-w-[7rem] shrink"
                         />
                         {selectionPossible && (
                             <Button
@@ -2489,7 +2512,9 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                 onClick={() => selection.enter()}
                                 className="text-on-surface text-ts-sub h-9 min-h-9 shrink-0 px-2.5"
                             >
-                                Sélectionner plusieurs
+                                {/* À la tablette debout la liste tient 400 px : le mot seul. */}
+                                Sélectionner
+                                <span className="deux:inline hidden">&nbsp;plusieurs</span>
                             </Button>
                         )}
                     </>
@@ -2666,7 +2691,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
             ) : (
                 /* **Fixe, comme l'en-tête de toute liste** (17.8, 25/09) : le lieu, son état,
                    la jauge et les puces ne partent pas au premier défilement. */
-                <div className="bg-surface border-outline-variant sticky top-0 z-20 border-b">
+                <div className="barre-repliable bg-surface border-outline-variant sticky top-0 z-20 border-b">
                     <Reading>
                         <BarreDePage
                             className="border-b-0"
@@ -2809,7 +2834,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                             <TuilesDeCampagne tuiles={tuiles} />
                             <div
                                 className={cn(
-                                    'grid flex-1 grid-cols-12 grid-rows-[minmax(0,1fr)] gap-4',
+                                    'deux:grid-cols-12 grid flex-1 grid-cols-8 grid-rows-[minmax(0,1fr)] gap-4',
                                     /* **La hauteur que la colonne de droite demande** (28/09) :
                                        sur un écran bas (1024 × 768, portable de 1366 × 657),
                                        elle recoupait ses cartes. En deçà de ce minimum, c'est
@@ -2822,8 +2847,8 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                 )}
                             >
                                 <section
-                                    aria-label={`Les actifs — ${TITRE_DE_LISTE[ongletAffiche].toLowerCase()}`}
-                                    className="rounded-card bg-surface col-span-8 flex min-h-0 flex-col overflow-hidden"
+                                    aria-label={`Les actifs : ${TITRE_DE_LISTE[ongletAffiche].toLowerCase()}`}
+                                    className="rounded-card bg-surface deux:col-span-8 col-span-5 flex min-h-0 flex-col overflow-hidden"
                                 >
                                     {enteteDeListe}
                                     <div
@@ -2844,7 +2869,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                                            la colonne coupait ses cartes au bas de l'écran (relevé
                                            du 28/09). Son propre défilement ne sert plus que de
                                            repli, sur une fenêtre très basse. */
-                                        'col-span-4 flex min-h-0 flex-col gap-4 overflow-y-auto',
+                                        'deux:col-span-4 col-span-3 flex min-h-0 flex-col gap-4 overflow-y-auto',
                                         entreePage && 'mvt-cascade-cartes',
                                     )}
                                 >
@@ -3147,7 +3172,7 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                         value={scanRawValue}
                         onChange={(e) => setScanRawValue(e.target.value)}
                         className="rounded-card border-outline-variant bg-surface text-body-medium text-on-surface focus:border-primary min-h-40 w-full border px-3 py-2 outline-none"
-                        placeholder={`ASSET-10001\n7QK4XZ2\n\n— ou le contenu d\u2019un QR :\n{ "assetId": "ASSET-10001", "hostname": "PC-HQ-01" }`}
+                        placeholder={`ASSET-10001\n7QK4XZ2\n\nou le contenu d\u2019un QR :\n{ "assetId": "ASSET-10001", "hostname": "PC-HQ-01" }`}
                     />
                     <div className="flex justify-end gap-2">
                         <Button variant="text" onClick={() => setManualOpen(false)}>
@@ -3184,13 +3209,53 @@ const AuditDetailsPage: React.FC<AuditDetailsPageProps> = ({ onBack, onViewChang
                             locaux={locationData?.locals?.[selectedSite] ?? []}
                             peutCorriger={peutCorriger}
                             onFermer={() => setFicheOuverte(null)}
-                            onValider={(corrections, note) => {
+                            onValider={(corrections, note, incident) => {
                                 if (!compterALaMain(item.id, corrections, note)) return;
                                 setFicheOuverte(null);
+                                if (incident) {
+                                    /* Le comptage est écrit ; l'incident se déclare sur
+                                       l'actif tel qu'il vient d'être corrigé. */
+                                    setIncidentADeclarer({
+                                        id: item.id,
+                                        outcome: incident,
+                                        comment: note.trim(),
+                                    });
+                                    return;
+                                }
                                 showToast(
                                     corrections
                                         ? `${item.model || item.name} : fiche corrigée${ficheOuverte.mode === 'compter' ? ', retrouvé' : ''}.`
                                         : `${item.model || item.name} : retrouvé.`,
+                                    'success',
+                                );
+                            }}
+                        />
+                    );
+                })()}
+
+            {incidentMontre &&
+                (() => {
+                    const item = equipment.find((entry) => entry.id === incidentMontre.id);
+                    if (!item) return null;
+                    return (
+                        <IncidentSheet
+                            open={incidentADeclarer !== null}
+                            item={item}
+                            declarerName={currentUser?.name || 'un gestionnaire'}
+                            declarer={{ pin: currentUser?.pin, id: currentUser?.id }}
+                            depart={{
+                                outcome: incidentMontre.outcome,
+                                comment: incidentMontre.comment,
+                            }}
+                            onClose={() => setIncidentADeclarer(null)}
+                            onDeclare={(payload) => {
+                                const decision = declareIncident(item.id, payload);
+                                if (!decision.allowed) {
+                                    showToast(decision.reason || 'Déclaration refusée.', 'error');
+                                    return;
+                                }
+                                showToast(
+                                    `${item.model || item.name} : retrouvé, incident déclaré.`,
                                     'success',
                                 );
                             }}

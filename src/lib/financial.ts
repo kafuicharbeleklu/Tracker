@@ -114,8 +114,8 @@ export function calculateLinearDepreciation(
  * linéaire majoré (×1,25 jusqu'à 4 ans, ×1,75 jusqu'à 6, ×2,25 au-delà) appliqué à ce qui
  * reste à amortir, jusqu'à ce que le linéaire sur les années restantes le rattrape.
  *
- * **Ce n'est pas le calcul du parc** : `calculateLinearDepreciation` reste linéaire quelle
- * que soit la méthode retenue — l'aperçu le dit quand on choisit le dégressif.
+ * `calculateDepreciation` lit le même échéancier pour la valeur d'un actif : l'aperçu des
+ * Paramètres et la fiche d'un objet disent donc la même chose.
  */
 export function echeancierAmortissement(
     method: 'linear' | 'degressive',
@@ -140,6 +140,53 @@ export function echeancierAmortissement(
         valeurs.push(valeur);
     }
     return valeurs;
+}
+
+/**
+ * **La valeur d'un actif selon son plan** (10/10) — linéaire ou dégressif.
+ *
+ * Le produit laissait choisir le dégressif, dans les Paramètres comme sur un type, et
+ * calculait tout en linéaire : la fiche d'un objet, la fin de vie de l'accueil et la part
+ * d'un devis dans la valeur nette. Le dégressif suit ici `echeancierAmortissement` — la
+ * valeur de fin de chaque année —, et l'année en cours se répartit par mois.
+ */
+export function calculateDepreciation(
+    method: 'linear' | 'degressive' | undefined,
+    purchasePrice: number,
+    purchaseDate: string | Date,
+    depreciationYears: number,
+    salvagePercent: number,
+) {
+    if (method !== 'degressive' || depreciationYears <= 0) {
+        return calculateLinearDepreciation(
+            purchasePrice,
+            purchaseDate,
+            depreciationYears,
+            salvagePercent,
+        );
+    }
+    const pDate = typeof purchaseDate === 'string' ? new Date(purchaseDate) : purchaseDate;
+    const salvageValue = purchasePrice * (salvagePercent / 100);
+    const depreciableAmount = purchasePrice - salvageValue;
+    const echeancier = echeancierAmortissement('degressive', depreciationYears, salvagePercent);
+    const duree = echeancier.length - 1;
+    const mois = Math.min(Math.max(0, getMonthsDifference(pDate, new Date())), duree * 12);
+    const annee = Math.min(Math.floor(mois / 12), duree - 1);
+    /* La part du prix qui reste : la valeur de fin d'année, l'année en cours au prorata. */
+    const dotationDeLAnnee = echeancier[annee] - echeancier[annee + 1];
+    const part = echeancier[annee] - (dotationDeLAnnee * (mois - annee * 12)) / 12;
+    const totalDepreciation = Math.min((purchasePrice * (100 - part)) / 100, depreciableAmount);
+
+    return {
+        purchasePrice,
+        salvageValue,
+        currentValue: Number((purchasePrice - totalDepreciation).toFixed(2)),
+        totalDepreciation: Number(totalDepreciation.toFixed(2)),
+        monthlyDepreciation: Number(((purchasePrice * dotationDeLAnnee) / 100 / 12).toFixed(2)),
+        progressPercent:
+            depreciableAmount > 0 ? (totalDepreciation / depreciableAmount) * 100 : 100,
+        isFullyDepreciated: totalDepreciation >= depreciableAmount,
+    };
 }
 
 /**

@@ -734,6 +734,7 @@ export type FormeDePage =
     | 'catalogue'
     | 'emplacements'
     | 'parametres'
+    | 'organisation'
     | 'acces'
     | 'tension'
     | `fiche:${FormeDeFiche}`;
@@ -989,9 +990,14 @@ export const SkeletonPage: React.FC<{
     label?: string;
 }> = ({ forme = 'liste', label = 'Chargement en cours' }) => {
     const fiche = forme.startsWith('fiche:') ? (forme.slice(6) as FormeDeFiche) : null;
-    const centree = ['rapports', 'catalogue', 'emplacements', 'parametres', 'acces'].includes(
-        forme,
-    );
+    const centree = [
+        'rapports',
+        'catalogue',
+        'emplacements',
+        'parametres',
+        'organisation',
+        'acces',
+    ].includes(forme);
     return (
         <div
             data-testid="route-loading-fallback"
@@ -1502,16 +1508,19 @@ export const SkeletonPage: React.FC<{
                         />
                         <OutilsEnAttente />
                         <div className="deux:flex-row mt-4 flex min-h-0 flex-1 flex-col gap-4 overflow-clip">
-                            {/* Le globe — un disque, et sa légende dessous. */}
-                            <div
+                            {/* La carte du référentiel — sa toile, et sa légende dessous.
+                                En bandeau sous 1 000, où elle coiffe la liste. */}
+                            <CarteEnAttente
                                 className={cn(
-                                    'deux:flex hidden min-w-0 flex-col items-center gap-9 pt-5',
+                                    'shrink-0 gap-3 self-start p-3',
                                     DOUZIEMES_DES_DEUX[7],
                                 )}
                             >
-                                <Skeleton className="aspect-square h-auto w-[500px] max-w-full rounded-full" />
-                                <Skeleton className="h-2.5 w-96 max-w-full" />
-                            </div>
+                                <Skeleton className="medium:aspect-[5/2] deux:aspect-[8/5] aspect-[4/3] h-auto w-full rounded-md" />
+                                <div className="deux:h-[18px] flex h-5 items-center px-1">
+                                    <Skeleton className="h-2.5 w-72 max-w-full" />
+                                </div>
+                            </CarteEnAttente>
                             <div
                                 className={cn('flex min-w-0 flex-col gap-4', DOUZIEMES_DES_DEUX[5])}
                             >
@@ -1535,28 +1544,32 @@ export const SkeletonPage: React.FC<{
                     </>
                 )}
 
+                {/* « Mes préférences » : Vous et Cet appareil à gauche, L'application à droite. */}
                 {forme === 'parametres' && (
                     <>
-                        <EnTeteEnAttente titre="w-32" />
+                        <EnTeteEnAttente titre="w-44" />
                         <div className="deux:grid-cols-2 deux:items-start mt-4 grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-clip">
                             <div className="flex min-w-0 flex-col gap-4">
                                 <ReglagesEnAttente index={0} rangees={['h-14']} />
-                                <ReglagesEnAttente
-                                    index={1}
-                                    rangees={[
-                                        'h-14',
-                                        'h-[61px]',
-                                        'h-[61px]',
-                                        'h-[61px]',
-                                        'h-[61px]',
-                                    ]}
-                                />
+                                <ReglagesEnAttente index={1} rangees={['h-14', 'h-14']} />
                             </div>
                             <div className="flex min-w-0 flex-col gap-4">
-                                <ReglagesEnAttente index={2} rangees={['h-[60px]', 'h-14']} />
-                                <ReglagesEnAttente index={3} rangees={['h-14', 'h-14', 'h-14']} />
-                                <ReglagesEnAttente index={4} rangees={['h-14', 'h-14']} />
+                                <ReglagesEnAttente index={2} rangees={['h-14', 'h-14']} />
                             </div>
+                        </div>
+                    </>
+                )}
+
+                {/* « Règles de l'organisation » : L'entreprise à gauche, L'informatique à droite. */}
+                {forme === 'organisation' && (
+                    <>
+                        <EnTeteEnAttente titre="w-64" />
+                        <div className="deux:grid-cols-2 deux:items-start mt-4 grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-clip">
+                            <ReglagesEnAttente
+                                index={0}
+                                rangees={['h-14', 'h-[61px]', 'h-14', 'h-14', 'h-14', 'h-14']}
+                            />
+                            <ReglagesEnAttente index={1} rangees={['h-[60px]', 'h-14']} />
                         </div>
                     </>
                 )}

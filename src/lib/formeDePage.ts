@@ -50,6 +50,7 @@ export const formeDeLAdresse = (): FormeDePage => {
         case 'reports':
             return 'rapports';
         case 'settings':
+            if (second === 'organisation') return troisieme ? 'liste' : 'organisation';
             return second ? 'liste' : 'parametres';
         case 'rbac':
             return troisieme ? fiche('commune') : 'acces';

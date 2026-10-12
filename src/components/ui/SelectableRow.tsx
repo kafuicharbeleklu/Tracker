@@ -26,7 +26,7 @@ export const SelectionBox: React.FC<{
             className={cn(
                 'duration-short3 flex h-6 w-6 shrink-0 items-center justify-center rounded-[4px] transition-[background-color,box-shadow]',
                 selected
-                    ? 'bg-inverse-surface text-surface'
+                    ? 'bg-contrast-fill text-on-contrast-fill'
                     : 'shadow-[inset_0_0_0_1.5px_var(--tk-color-border-strong)]',
             )}
         >

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useToast } from '../../../context/ToastContext';
+import { suivreUnEnvoi } from '../../../lib/activites';
 import ReferentialImportTemplate, {
     type ImportCandidate,
     type ImportColumn,
@@ -35,10 +36,10 @@ const ROLE_BY_CSV: Record<string, UserRole> = {
 };
 
 const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
-    { value: 'User', label: 'Utilisateur — voit ce qu’il détient' },
-    { value: 'Manager', label: 'Manager — valide les demandes de son équipe' },
-    { value: 'Admin', label: 'Admin — gère le parc de son périmètre' },
-    { value: 'SuperAdmin', label: 'Super admin — configure l’application' },
+    { value: 'User', label: 'Utilisateur : voit ce qu’il détient' },
+    { value: 'Manager', label: 'Manager : valide les demandes de son équipe' },
+    { value: 'Admin', label: 'Admin : gère le parc de son périmètre' },
+    { value: 'SuperAdmin', label: 'Super admin : configure l’application' },
 ];
 
 /* Les colonnes se reconnaissent à leur nom, français compris (09/10). */
@@ -103,7 +104,7 @@ const ImportUsersPage: React.FC<ImportUsersPageProps> = ({ onCancel, onSave }) =
             vus.add(email);
             const roleInconnu =
                 draft.role && !ROLE_BY_CSV[draft.role.trim().toLowerCase()]
-                    ? `Rôle « ${draft.role} » inconnu — rôle par défaut appliqué`
+                    ? `Rôle « ${draft.role} » inconnu : rôle par défaut appliqué`
                     : undefined;
             return {
                 line: ligne.line,
@@ -120,7 +121,7 @@ const ImportUsersPage: React.FC<ImportUsersPageProps> = ({ onCancel, onSave }) =
      * L'import écrit, ligne par ligne, par la même porte que la saisie : `addUser`.
      * Une ligne refusée par la règle est nommée, pas avalée. Lot 4, U2.
      */
-    const handleImport = (drafts: UserDraft[]) => {
+    const handleImport = (drafts: UserDraft[], envoi: { fichier?: string; refusees: number }) => {
         let created = 0;
         const refused: string[] = [];
         for (const draft of drafts) {
@@ -144,7 +145,7 @@ const ImportUsersPage: React.FC<ImportUsersPageProps> = ({ onCancel, onSave }) =
             };
             const decision = addUser(user);
             if (!decision.allowed) {
-                refused.push(`${name} — ${decision.reason || 'refusé par la règle'}`);
+                refused.push(`${name} : ${decision.reason || 'refusé par la règle'}`);
                 continue;
             }
             created += 1;
@@ -153,11 +154,20 @@ const ImportUsersPage: React.FC<ImportUsersPageProps> = ({ onCancel, onSave }) =
                 .createUser({ Title: user.name, MicrosoftEmail: user.email, Role: role })
                 .catch(() => undefined);
         }
-        if (created > 0)
+        if (created > 0) {
+            /* Leur départ vers la base se suit dans l'îlot (11/10). */
+            suivreUnEnvoi({
+                titre: 'Import',
+                detail: envoi.fichier,
+                collection: 'users',
+                total: created,
+                refusees: envoi.refusees + refused.length,
+            });
             showToast(
                 `${created} personne${created > 1 ? 's' : ''} créée${created > 1 ? 's' : ''} en attente.`,
                 'success',
             );
+        }
         refused.forEach((r) => showToast(r, 'error'));
         if (created > 0 || refused.length === 0) onSave();
     };

@@ -39,6 +39,7 @@ const VIEW_TITLES: Record<ViewType, string> = {
     finance_expenses: 'Journal des dépenses',
     finance_lines: 'Lignes du budget',
     settings: DESTINATIONS.settings.label,
+    organisation: DESTINATIONS.organisation.label,
     not_found: 'Page introuvable',
 };
 
@@ -141,7 +142,8 @@ export const useAppNavigation = () => {
                l'ouvre. */
             else computedView = 'finance';
         } else if (section === 'settings') {
-            computedView = 'settings';
+            /* `/settings/organisation` — les règles de l'organisation, une page à part. */
+            computedView = action === 'organisation' ? 'organisation' : 'settings';
         } else if (section === 'wizards') {
             if (action === 'assignment') computedView = 'assignment_wizard';
             else if (action === 'return') computedView = 'return_wizard';
@@ -192,6 +194,7 @@ export const useAppNavigation = () => {
                 finance_expenses: '/finance/expenses',
                 finance_lines: '/finance/lines',
                 settings: '/settings',
+                organisation: '/settings/organisation',
                 assignment_wizard: '/wizards/assignment',
                 return_wizard: '/wizards/return',
             };

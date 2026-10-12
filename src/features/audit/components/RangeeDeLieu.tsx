@@ -144,7 +144,7 @@ const RangeeDeLieu: React.FC<{
                 <Button
                     variant="text"
                     iconOnly
-                    aria-label={`Lancer le comptage — ${row.local ?? row.site}`}
+                    aria-label={`Lancer le comptage : ${row.local ?? row.site}`}
                     onClick={(event) => {
                         event.stopPropagation();
                         onLancer(row);

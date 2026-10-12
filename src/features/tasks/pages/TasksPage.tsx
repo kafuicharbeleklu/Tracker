@@ -43,6 +43,9 @@ import PanneauDeTache, { type EtatDuRefus } from '../components/PanneauDeTache';
 import BandeauAnnuler from '../components/BandeauAnnuler';
 import { useDecisionDifferee } from '../hooks/useDecisionDifferee';
 import { useFileDeTaches } from '../hooks/useFileDeTaches';
+import { useArrivees } from '../../../hooks/useArrivees';
+import { fairePartir } from '../../../lib/vol';
+import LibelleMouvant from '../../../components/ui/LibelleMouvant';
 import {
     GROUPE_LABEL,
     NATURE_LABEL,
@@ -148,13 +151,13 @@ const messageDeLaDecision = (task: Task, statut: ApprovalStatus): string => {
         task.who && task.who !== 'ma demande' && !verbe.startsWith('Renvoyée')
             ? ` pour ${task.who}`
             : '';
-    return `${verbe}${pour} · ${task.title}${task.force ? ` — à la place de ${task.force}` : ''}`;
+    return `${verbe}${pour} · ${task.title}${task.force ? `, à la place de ${task.force}` : ''}`;
 };
 
 /** Les touches de la file, telles que l'aide les liste (« ? »). */
 const TOUCHES: [string[], string][] = [
     [['J', 'K'], 'Tâche suivante, tâche précédente'],
-    [['A'], 'L’acte principal — valider, remettre, confirmer'],
+    [['A'], 'L’acte principal : valider, remettre, confirmer'],
     [['R'], 'Refuser, avec son motif'],
     [['X'], 'Sélectionner la tâche'],
     [['Z'], 'Annuler la dernière décision, pendant cinq secondes'],
@@ -203,6 +206,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick, onBack }
         remindApproval,
         promoteDetectedDeviceToInventory,
         markDetectedDeviceAsIgnored,
+        isHydrating,
     } = useData();
     const { user: currentUser, permissions } = useAccessControl();
     const { showToast } = useToast();
@@ -250,6 +254,10 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick, onBack }
     const masques = useMemo(() => new Set(enSuspens?.tachesIds ?? []), [enSuspens]);
 
     const tasks = useFileDeTaches();
+    /* Ce qui entre dans la file pendant qu'on la regarde (une machine remontée, une demande
+       envoyée d'ailleurs) : la file entière, pas le filtre du moment. */
+    const idsDeLaFile = useMemo(() => tasks.map((tache) => tache.id), [tasks]);
+    const arrivees = useArrivees(idsDeLaFile, !isHydrating);
     /* La feuille du téléphone suit la file — un changement venu d'ailleurs s'y lit — et
        garde sa tâche le temps de redescendre. */
     const feuilleAffichee = useDerniereValeur(
@@ -489,6 +497,21 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick, onBack }
     };
 
     /**
+     * **Ce qu'on traite s'en va vers le compteur « Tâches »** (11/10) : une pastille quitte la
+     * rangée, le compteur baisse à son arrivée, la rangée se referme. À appeler dans le geste,
+     * avant que la file ne change. Au téléphone la décision vient d'une feuille : on attend
+     * qu'elle soit redescendue.
+     */
+    const partir = (task: Task | undefined, issue: 'faite' | 'ecartee') => {
+        if (!task || task.scope !== 'todo') return;
+        fairePartir(`tache-${task.id}`, {
+            compteur: 'taches',
+            teinte: issue === 'faite' ? 'var(--tk-color-st-vert)' : 'var(--tk-color-st-gris)',
+            retard: enPanneau ? 0 : 200,
+        });
+    };
+
+    /**
      * **Valider en lot** (26/09) — plusieurs validations **de même nature**, d'un geste,
      * et défaisables comme une seule. Les remises n'en sont pas : chacune s'atteste.
      */
@@ -508,6 +531,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick, onBack }
     const validerEnLot = () => {
         const lot = validationsChoisies;
         const n = lot.length;
+        lot.slice(0, 5).forEach((task) => partir(task, 'faite'));
         decider({
             message: `${n} demande${n > 1 ? 's' : ''} validée${n > 1 ? 's' : ''}`,
             tachesIds: lot.map((task) => task.id),
@@ -537,6 +561,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick, onBack }
     const validerDiffere = (task: Task) => {
         if (!task.transition) return;
         const { approvalId, nextStatus } = task.transition;
+        partir(task, 'faite');
         decider({
             message: messageDeLaDecision(task, nextStatus),
             tachesIds: [task.id],
@@ -556,6 +581,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick, onBack }
     const refuserDiffere = (task: Task, motif: string) => {
         if (!task.refusal) return;
         const { approvalId, nextStatus } = task.refusal;
+        partir(task, 'ecartee');
         decider({
             message: messageDeLaDecision(task, nextStatus),
             tachesIds: [task.id],
@@ -708,6 +734,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick, onBack }
             showToast(decision.reason || 'Refus impossible.', 'error');
             return;
         }
+        partir(task, 'ecartee');
         setRefusing(null);
         showToast(
             task.refusal.nextStatus === 'Rejected'
@@ -741,6 +768,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick, onBack }
             showToast(decision.reason || 'Confirmation refusée.', 'error');
             return false;
         }
+        partir(task, 'faite');
         showToast('Réception confirmée.', 'success');
         return true;
     };
@@ -754,6 +782,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick, onBack }
             showToast(decision.reason || 'Action non autorisée.', 'error');
             return false;
         }
+        partir(task, 'faite');
         showToast(getTransitionSuccessMessage(task.transition.nextStatus), 'success');
         return true;
     };
@@ -761,11 +790,21 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick, onBack }
     /** Importer une machine remontée, ou l'ignorer — de la feuille comme du panneau. */
     const importerLaMachine = (id: string): boolean => {
         const result = promoteDetectedDeviceToInventory(id);
+        if (result.ok)
+            partir(
+                tasks.find((task) => task.deviceId === id),
+                'faite',
+            );
         showToast(result.message, result.ok ? 'success' : 'error');
         return result.ok;
     };
     const ignorerLaMachine = (id: string) => {
         const ok = markDetectedDeviceAsIgnored(id);
+        if (ok)
+            partir(
+                tasks.find((task) => task.deviceId === id),
+                'ecartee',
+            );
         showToast(ok ? 'Machine ignorée.' : 'Action refusée.', ok ? 'success' : 'warning');
     };
 
@@ -878,7 +917,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick, onBack }
                             variant="text"
                             size="sm"
                             onClick={() => setOrder(ORDRE_SUIVANT[order])}
-                            aria-label={`Ordre : ${ORDRE_LABEL[order]} — changer`}
+                            aria-label={`Changer l’ordre (${ORDRE_LABEL[order]})`}
                             className="text-on-surface text-ts-sub leading-ts-sub ml-auto h-8 min-h-8 gap-1 px-1 font-medium hover:bg-transparent"
                         >
                             <Icon glyph={SortAscending} size={18} className="text-text-muted" />
@@ -941,11 +980,19 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick, onBack }
                                 icon={<Icon glyph={Check} size={20} />}
                                 onClick={validerEnLot}
                             >
-                                {selection.count > 1 ? `Valider les ${selection.count}` : 'Valider'}
+                                <LibelleMouvant>
+                                    {selection.count > 1
+                                        ? `Valider les ${selection.count}`
+                                        : 'Valider'}
+                                </LibelleMouvant>
                             </Button>
                         )}
                         <Button variant={enLot ? 'outlined' : 'filled'} onClick={exporterSelection}>
-                            Exporter {selection.count > 1 ? `les ${selection.count}` : ''}
+                            <LibelleMouvant>
+                                {selection.count > 1
+                                    ? `Exporter les ${selection.count}`
+                                    : 'Exporter'}
+                            </LibelleMouvant>
                         </Button>
                     </>
                 ),
@@ -1058,9 +1105,11 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick, onBack }
                                 entete && 'border-t-0',
                                 ouverte &&
                                     (enPanneau
-                                        ? "bg-surface-muted-strong hover:bg-surface-muted-strong before:bg-inverse-surface before:absolute before:top-2 before:bottom-2 before:left-0 before:w-[3px] before:rounded-r-[2px] before:content-['']"
+                                        ? "bg-surface-muted-strong hover:bg-surface-muted-strong before:bg-contrast-fill before:absolute before:top-2 before:bottom-2 before:left-0 before:w-[3px] before:rounded-r-[2px] before:content-['']"
                                         : 'bg-surface-container'),
                                 selection.isSelected(task.id) && 'bg-surface-container',
+                                /* Arrivée d'un autre appareil à l'instant : elle se signale une fois. */
+                                arrivees.has(task.id) && 'mvt-arrivee',
                             )}
                         >
                             {selection.isActive ? (
@@ -1073,6 +1122,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick, onBack }
                             ) : (
                                 <span className="relative shrink-0">
                                     <span
+                                        data-vol-depart
                                         className={cn(
                                             'font-brand flex items-center justify-center rounded-md font-semibold',
                                             enPanneau
@@ -1091,7 +1141,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick, onBack }
                                     {enPanneau && souris && (
                                         <button
                                             type="button"
-                                            aria-label={`Sélectionner — ${task.title}`}
+                                            aria-label={`Sélectionner ${task.title}`}
                                             onClick={(event) => {
                                                 event.stopPropagation();
                                                 selection.enter(task.id);
@@ -1158,7 +1208,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick, onBack }
                                 <Button
                                     variant="text"
                                     size="sm"
-                                    aria-label={`Relancer — ${task.title}`}
+                                    aria-label={`Relancer ${task.title}`}
                                     onClick={(event) => {
                                         event.stopPropagation();
                                         remindTask(task);
@@ -1207,7 +1257,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick, onBack }
                                             variant="text"
                                             iconOnly
                                             size="sm"
-                                            aria-label={`Relancer — ${task.title}`}
+                                            aria-label={`Relancer ${task.title}`}
                                             onClick={() => remindTask(task)}
                                         >
                                             <Icon glyph={BellRinging} size={20} />
@@ -1363,7 +1413,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick, onBack }
                         </Button>
                         <Button
                             variant="tonal"
-                            className="bg-inverse-surface text-inverse-on-surface hover:bg-inverse-surface/90 h-12"
+                            className="bg-contrast-fill text-on-contrast-fill hover:bg-contrast-fill/90 h-12"
                             onClick={() => setIsFilterSheetOpen(false)}
                         >
                             Voir les {filteredTasks.length}
@@ -1499,7 +1549,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onItemClick, onBack }
                             <span className="text-text-muted mb-2 block text-[0.75rem] leading-4 font-medium">
                                 Motif{' '}
                                 <span className="text-text-secondary font-normal">
-                                    — facultatif
+                                    (facultatif)
                                 </span>
                             </span>
                             <textarea

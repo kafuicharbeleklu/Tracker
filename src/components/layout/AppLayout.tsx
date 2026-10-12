@@ -11,6 +11,8 @@ import { cheminPrecedent, remplacerAdresseCourante } from '../../lib/cheminParco
 import { lirePerimetreDuParc, type PerimetreDuParc } from '../../lib/perimetreDuParc';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { scrollAppToTop } from '../../lib/appScroll';
+import { apresLePassage } from '../../lib/passageDeFiche';
+import Ilot from '../ui/Ilot';
 import { APP_SCROLLER_ID } from './MobileFrame';
 import { cn } from '../../lib/utils';
 import { APP_CONFIG } from '../../config';
@@ -68,6 +70,19 @@ const SiteLocauxPage = lazy(() => import('../../features/locations/pages/SiteLoc
 const TypeModelesPage = lazy(() => import('../../features/management/pages/TypeModelesPage'));
 const TypesEnTensionPage = lazy(() => import('../../features/management/pages/TypesEnTensionPage'));
 const AuditDetailsPage = lazy(() => import('../../features/audit/pages/AuditDetailsPage'));
+
+/**
+ * **Le code d'une fiche arrive avant qu'on la demande** (11/10). La rangée qu'on touche
+ * s'agrandit jusqu'à l'en-tête de sa fiche (`lib/passageDeFiche`) : il faut que la fiche
+ * soit là. Sur une liste, le code de sa fiche se charge donc au repos, une seconde après.
+ */
+const FICHE_DE_LA_LISTE: Partial<Record<ViewType, () => Promise<unknown>>> = {
+    dashboard: () => import('../../features/inventory/pages/EquipmentDetailsPage'),
+    equipment: () => import('../../features/inventory/pages/EquipmentDetailsPage'),
+    users: () => import('../../features/users/pages/UserDetailsPage'),
+    locations: () => import('../../features/locations/pages/SiteDetailsPage'),
+    management: () => import('../../features/management/pages/ModelDetailsPage'),
+};
 
 interface AppLayoutProps {
     onLogout: () => void;
@@ -223,6 +238,12 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
        une feuille sur la liste : la page, elle, ne change pas. */
     const contenuRef = useRef<HTMLDivElement>(null);
     useTransitionDePage(contenuRef, `${currentView}:${selectedItemId ?? ''}`);
+    useEffect(() => {
+        const charger = FICHE_DE_LA_LISTE[currentView];
+        if (!charger) return;
+        const delai = window.setTimeout(() => void charger().catch(() => undefined), 1000);
+        return () => window.clearTimeout(delai);
+    }, [currentView]);
 
     /**
      * **La clôture d'un acte engagé depuis une feuille** — 06.3, forme 2 : *« rien de
@@ -311,7 +332,9 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
             return;
         }
         navigate(precedent);
-        scrollAppToTop();
+        /* Une fois la page d'arrivée posée : remontée à l'instant, la page qu'on quitte
+           sautait en tête avant de partir (11/10). */
+        apresLePassage(scrollAppToTop);
     };
     const retourVersObjet = (view: ViewType, id: string) => {
         const precedent = cheminPrecedent();
@@ -320,12 +343,12 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
             return;
         }
         navigate(precedent);
-        scrollAppToTop();
+        apresLePassage(scrollAppToTop);
     };
 
     const handleItemClick = (view: ViewType, id: string) => {
         navigateToItem(view, id);
-        scrollAppToTop();
+        apresLePassage(scrollAppToTop);
     };
 
     const handleNavigate = (path: string) => {
@@ -391,6 +414,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
         'history',
         'reports',
         'settings',
+        'organisation',
     ];
     /*
      * **Le régime de sélection prend le bas de l'écran** (17.2). La barre du haut est
@@ -446,6 +470,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
         'category_models',
         'types_tension',
         'settings',
+        'organisation',
         'rbac',
         'finance_expenses',
         'finance_lines',
@@ -545,6 +570,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                 return DESTINATIONS.reports.label;
             case 'settings':
                 return DESTINATIONS.settings.label;
+            case 'organisation':
+                return DESTINATIONS.organisation.label;
             case 'not_found':
                 /* `.tid .code` de l'état « page introuvable » : le nom commun, court. */
                 return 'Introuvable';
@@ -615,6 +642,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
                 );
             }
             if (view === 'reports') return permissions.canViewReports;
+            /* Les règles de l'organisation se règlent par qui en a le droit (10/10). */
+            if (view === 'organisation') return permissions.canManageSettings;
             return true;
         };
 
@@ -902,8 +931,12 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
             case 'reports':
                 return <ReportsPage onBack={goBack} />;
             case 'settings':
+            case 'organisation':
                 return (
                     <SettingsPage
+                        /* Deux pages, un composant : la clé remonte l'état en changeant de page. */
+                        key={currentView}
+                        domaine={currentView === 'organisation' ? 'organisation' : 'preferences'}
                         onLogout={onLogout}
                         onNavigate={handleViewChange}
                         onBack={goBack}
@@ -1085,6 +1118,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
 
                 {/* Ce qui arrive d'un autre appareil se signale, où que l'on soit (08/10). */}
                 <AvisDesTaches />
+                {/* Ce qui dure, quelle que soit la page (11/10). */}
+                <Ilot />
 
                 {/* Mobile Bottom Navigation Bar */}
                 {showBottomNav && (

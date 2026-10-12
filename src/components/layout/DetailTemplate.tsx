@@ -214,6 +214,15 @@ const DetailTemplate: React.FC<DetailTemplateProps> = ({
     const entree = useEntree();
     const cascade = entree && !panneau && 'mvt-cascade-cartes';
     const twoColumn = !panneau && twoColumnCapable && Boolean(hero || error || aside || banner);
+    /*
+     * **Sur une tablette, les gestes d'une fiche se posent en pied** (10/10). Elle se tient à
+     * deux mains : un bouton dans l'en-tête demande de lâcher l'appareil pour l'atteindre. Les
+     * gestes nommés et le geste d'ajout quittent l'en-tête pour une bande collée au bas de la
+     * page, sous les pouces ; le ⋮ reste en haut. À la souris rien ne change, et la fiche
+     * ouverte dans le panneau d'une liste garde ses gestes dans son en-tête.
+     */
+    const auDoigt = useMediaQuery(MEDIA.doigt);
+    const gestesEnPied = auDoigt && !isCompact && !panneau && Boolean(actions || fab);
 
     const cartes = React.Children.toArray(children);
     const aGauche = twoColumn
@@ -241,7 +250,7 @@ const DetailTemplate: React.FC<DetailTemplateProps> = ({
                 devient l'en-tête : retour, le code, le ⋮ des actes »* — et elle ne part pas avec
                 le corps. Au téléphone, la barre de 56 et son retour restent à portée ; tous deux
                 défilaient avec la page. */}
-            <div className="bg-background sticky top-0 z-20">
+            <div className="barre-repliable bg-background sticky top-0 z-20">
                 {isCompact ? (
                     /* La barre commune du téléphone (24/09) : titre à 56 / 16, comme les listes. */
                     <BarreDePage title={code} onBack={onBack} actions={menu} />
@@ -316,9 +325,9 @@ const DetailTemplate: React.FC<DetailTemplateProps> = ({
                         </div>
                         {/* Au bureau, les gestes d'en-tête sont des carrés de 40 (17.11). */}
                         <IconGestureSizeContext.Provider value={40}>
-                            {actions}
+                            {!gestesEnPied && actions}
                             {/* Le geste d'ajout monte dans l'en-tête, avant le ⋮ (17.11). */}
-                            {!horsLigne && fab && (
+                            {!gestesEnPied && !horsLigne && fab && (
                                 <AddGesturePlacementContext.Provider value="header">
                                     {fab}
                                 </AddGesturePlacementContext.Provider>
@@ -416,7 +425,10 @@ const DetailTemplate: React.FC<DetailTemplateProps> = ({
                             <div className="@container min-w-0 flex-1">
                                 <div
                                     className={cn(
-                                        'grid grid-cols-1 items-start gap-4 @min-[680px]:grid-cols-2 @min-[680px]:[&>[data-largeur=pleine]]:col-span-2',
+                                        /* 600 depuis le 10/10 (680 avant) : la tablette
+                                           debout, 744 et 768, y gagne ses deux colonnes de
+                                           300 à 312 px. */
+                                        'grid grid-cols-1 items-start gap-4 @min-[600px]:grid-cols-2 @min-[600px]:[&>[data-largeur=pleine]]:col-span-2',
                                         cascade,
                                     )}
                                 >
@@ -433,6 +445,19 @@ const DetailTemplate: React.FC<DetailTemplateProps> = ({
                             </div>
                         )}
                     </div>
+                </div>
+            )}
+
+            {gestesEnPied && !showSkeleton && (
+                <div className="bg-background border-outline-variant px-page sticky bottom-0 z-20 mt-auto flex flex-wrap items-center justify-end gap-3 border-t py-3">
+                    <IconGestureSizeContext.Provider value={48}>
+                        {actions}
+                        {!horsLigne && fab && (
+                            <AddGesturePlacementContext.Provider value="header">
+                                {fab}
+                            </AddGesturePlacementContext.Provider>
+                        )}
+                    </IconGestureSizeContext.Provider>
                 </div>
             )}
 

@@ -61,7 +61,7 @@ import ImagePreview from '../../../components/ui/ImagePreview';
 import { getDisplayedEquipmentStatus } from '../../../lib/businessRules';
 import { getStatusPresentation } from '../../../constants/statusPresentation';
 import {
-    calculateLinearDepreciation,
+    calculateDepreciation,
     formatCurrency,
     formatNumber,
     getBudgetCategoryByExpenseType,
@@ -186,7 +186,8 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
 
     const financialStats = useMemo(() => {
         if (!item?.financial) return null;
-        return calculateLinearDepreciation(
+        return calculateDepreciation(
+            item.financial.depreciationMethod,
             item.financial.purchasePrice,
             item.financial.purchaseDate,
             item.financial.depreciationYears,
@@ -353,7 +354,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
         const decision = remindApproval(linked.id);
         showToast(
             decision.allowed
-                ? `${item.user?.name || 'La personne'} est relancée — la date est au journal.`
+                ? `${item.user?.name || 'La personne'} est relancée.`
                 : decision.reason || 'Relance impossible.',
             decision.allowed ? 'success' : 'error',
         );
@@ -593,7 +594,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                       dossier.quoteDecision?.status === 'approved'
                                           ? `validé par ${dossier.quoteDecision.byName ?? '—'}${dossier.quoteDecision.level === 'finance' ? ' (Finance)' : ''}`
                                           : dossier.quoteDecision?.status === 'rejected'
-                                            ? `refusé — ${dossier.quoteDecision.reason ?? ''}`
+                                            ? `refusé : ${dossier.quoteDecision.reason ?? ''}`
                                             : 'en attente de la Finance',
                                   state:
                                       dossier.quoteDecision?.status === 'approved'
@@ -627,7 +628,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
     const handleRetireConfirmed = (reason: RetirementReason, method: AttestationMethod) => {
         if (deleteEquipment(item.id, reason, method)) {
             showToast(
-                `${item.name} est sorti du parc — ${RETIREMENT_REASON_LABELS[reason]}.`,
+                `${item.name} est sorti du parc : ${RETIREMENT_REASON_LABELS[reason]}.`,
                 'success',
             );
             if (isDemoSeedEquipment(item.id)) showToast(DEMO_RESEED_NOTICE, 'info');
@@ -998,7 +999,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                                       <span className="mt-0.5 flex items-center gap-1.5 text-[0.75rem] leading-4 font-medium text-[var(--tk-color-live-ambre)]">
                                                           <span className="h-[7px] w-[7px] shrink-0 rounded-[2px] bg-[var(--tk-color-live-ambre)]" />
                                                           {item.holderAlert.kind === 'suspended'
-                                                              ? `À récupérer — porteur suspendu le ${formatDate(item.holderAlert.since)}`
+                                                              ? `À récupérer : porteur suspendu le ${formatDate(item.holderAlert.since)}`
                                                               : `À récupérer avant son départ le ${formatDate(item.holderAlert.until)}`}
                                                       </span>
                                                   )}
@@ -1256,7 +1257,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                             : undefined
                                     }
                                     value={`${Math.round(financialStats.progressPercent)} %`}
-                                    label={`de la valeur amortie — ${formatCurrency(
+                                    label={`de la valeur amortie · ${formatCurrency(
                                         financialStats.currentValue,
                                         settings.currency,
                                     )} restent à amortir`}
@@ -1420,7 +1421,7 @@ const EquipmentDetailsPage: React.FC<EquipmentDetailsPageProps> = ({ equipmentId
                                      l'écrase pas : ce qui y était dit reste vrai. */
                                   notes: [
                                       item.notes,
-                                      'Réparé, mais diminué — réserve notée à la réception.',
+                                      'Réparé, mais diminué : réserve notée à la réception.',
                                   ]
                                       .filter(Boolean)
                                       .join('\n'),

@@ -26,6 +26,7 @@ import {
     AssignmentStatus,
     AttestationMethod,
     DetectedDevice,
+    EtatDeLaCollecte,
     UserRole,
     EquipmentIncident,
     IncidentOutcome,
@@ -67,6 +68,8 @@ import { waitForPendingWrites } from 'firebase/firestore';
 import { DEMO_RESEED_DISABLED, isDemoSeedEquipment, isDemoSeedUser } from '../lib/demoSeed';
 import { normalizeEquipmentStatus } from '../lib/equipmentStatus';
 import { setImportLimitMb } from '../lib/fileImport';
+import { empreinteDe, idDeMachine, identifiantsDe, memeMachine } from '../lib/identiteDeMachine';
+import { lieuDeLaMachine, personneEnSession } from '../lib/lieuDeLaMachine';
 import { attesteParSignature, prendreLesSignaturesDeLActe } from '../lib/signatureDeLActe';
 import {
     buildRbacAssignmentFromUser,
@@ -93,6 +96,7 @@ import {
     canManageFinanceByRole,
     canManageInventoryByRole,
     canManageLocationsByRole,
+    canManageSettingsByRole,
     canManageSystemByRole,
     canManageUsersByRole,
     canScanAuditByRole,
@@ -200,6 +204,8 @@ interface DataContextType {
     users: User[];
     equipment: Equipment[];
     detectedDevices: DetectedDevice[];
+    /** Ce que le serveur de collecte dit de lui (`meta/collecte`) ; `null` s'il ne s'est jamais signalé. */
+    etatDeLaCollecte: EtatDeLaCollecte | null;
     categories: Category[];
     models: Model[];
     approvals: Approval[];
@@ -413,27 +419,29 @@ const fusionnerJournal = (lus: HistoryEvent[], locaux: HistoryEvent[]): HistoryE
 const DEFAULT_SETTINGS: AppSettings = {
     currency: 'XOF',
     repairQuoteThreshold: 150000,
-    fiscalYearStart: '01',
     defaultDepreciationMethod: 'linear',
     defaultDepreciationYears: 3,
     salvageValuePercent: 0,
-    renewalThreshold: 85,
-    roundingRule: 'standard',
     compactNotation: false,
     inventoryPeriodMonths: 12,
     maxImportFileMb: 5,
     autoCollectionAgentEnabled: false,
-    autoCollectionAgentApiKey: 'NEEMBA_AGENT_KEY',
-    autoCollectionApiBaseUrl: 'http://localhost:8787',
-    autoCollectionForwardToApi: false,
-    autoCollectionHeartbeatMinutes: 240,
-    autoCollectionAdEnabled: false,
-    autoCollectionAdHost: '',
-    autoCollectionAdBaseDn: '',
-    autoCollectionAdServiceAccount: '',
-    autoCollectionNetworkEnabled: false,
-    autoCollectionNetworkRanges: '',
     autoCollectionRequireManualValidation: true,
+};
+
+/**
+ * **Les réglages lus ne gardent que ceux que le produit connaît** (10/10). Le document
+ * enregistré porte encore l'année fiscale, le seuil de renouvellement, la règle d'arrondi et
+ * les identifiants de l'annuaire : aucun écran ne les montrait ou aucun code ne les lisait,
+ * ils ont quitté le type. Sans ce tri, ils resteraient dans l'état et repartiraient à chaque
+ * enregistrement.
+ */
+const reglagesConnus = (lus: Record<string, unknown> | null | undefined): AppSettings => {
+    const connus = { ...DEFAULT_SETTINGS } as Record<string, unknown>;
+    for (const cle of Object.keys(DEFAULT_SETTINGS)) {
+        if (lus && lus[cle] !== undefined) connus[cle] = lus[cle];
+    }
+    return { ...(connus as unknown as AppSettings), currency: 'XOF' };
 };
 
 const STORAGE_KEYS = {
@@ -455,36 +463,33 @@ const STORAGE_KEYS = {
 
 const normalizeMatch = (value?: string) => (value || '').trim().toLowerCase();
 
-const normalizeMacAddress = (value?: string) => normalizeMatch(value).replace(/[^a-z0-9]/g, '');
-
-const normalizeUuid = (value?: string) => normalizeMatch(value).replace(/[^a-z0-9]/g, '');
-
 interface MatchCandidate {
     equipment: Equipment;
     score: number;
 }
 
+/**
+ * À quel point une machine remontée ressemble à un actif du parc.
+ *
+ * Les identifiants passent par `identiteDeMachine` : un numéro de série ou un UUID d'usine
+ * (« Default string », des zéros) que cent machines partagent ne rapproche plus rien, et le
+ * nom se compare sans son domaine (« PC-01 » et « pc-01.neemba.local »).
+ */
 const scoreEquipmentMatch = (payload: AgentCheckInPayload, equipment: Equipment): number => {
+    const machine = identifiantsDe(payload);
+    const actif = identifiantsDe(equipment);
+    const nomDit = normalizeMatch(payload.hostname || payload.machineName);
+    const nomDuParc = normalizeMatch(equipment.hostname || equipment.name);
+    const memeNom =
+        Boolean(nomDit && nomDit === nomDuParc) ||
+        Boolean(machine.hote && machine.hote === actif.hote && !/\s/.test(nomDuParc));
+
     let score = 0;
-
-    const payloadSerial = normalizeMatch(payload.serialNumber);
-    const payloadAssetId = normalizeMatch(payload.assetId);
-    const payloadHostname = normalizeMatch(payload.hostname || payload.machineName);
-    const payloadBiosUuid = normalizeUuid(payload.biosUuid);
-    const payloadMac = normalizeMacAddress(payload.macAddress);
-
-    const equipmentSerial = normalizeMatch(equipment.serialNumber);
-    const equipmentAssetId = normalizeMatch(equipment.assetId);
-    const equipmentHostname = normalizeMatch(equipment.hostname || equipment.name);
-    const equipmentBiosUuid = normalizeUuid(equipment.biosUuid);
-    const equipmentMac = normalizeMacAddress(equipment.macAddress);
-
-    if (payloadBiosUuid && equipmentBiosUuid && payloadBiosUuid === equipmentBiosUuid) score += 100;
-    if (payloadSerial && equipmentSerial && payloadSerial === equipmentSerial) score += 90;
-    if (payloadMac && equipmentMac && payloadMac === equipmentMac) score += 70;
-    if (payloadAssetId && equipmentAssetId && payloadAssetId === equipmentAssetId) score += 65;
-    if (payloadHostname && equipmentHostname && payloadHostname === equipmentHostname) score += 40;
-
+    if (machine.uuid && machine.uuid === actif.uuid) score += 100;
+    if (machine.serie && machine.serie === actif.serie) score += 90;
+    if (machine.mac && machine.mac === actif.mac) score += 70;
+    if (machine.actif && machine.actif === actif.actif) score += 65;
+    if (memeNom) score += 40;
     return score;
 };
 
@@ -498,19 +503,47 @@ const resolveEquipmentMatchCandidates = (
         .sort((a, b) => b.score - a.score);
 };
 
-const buildDetectedFingerprint = (payload: AgentCheckInPayload): string => {
-    const serial = normalizeMatch(payload.serialNumber);
-    const biosUuid = normalizeUuid(payload.biosUuid);
-    const mac = normalizeMacAddress(payload.macAddress);
-    const assetId = normalizeMatch(payload.assetId);
-    const hostname = normalizeMatch(payload.hostname || payload.machineName);
+interface Rapprochement {
+    matchConfidence: NonNullable<DetectedDevice['matchConfidence']>;
+    matchScore: number;
+    candidateEquipmentIds: string[];
+    /** L'actif reconnu, quand la ressemblance suffit à en désigner un. */
+    linked?: Equipment;
+}
 
-    const strong = [serial, biosUuid, mac].filter(Boolean).join('|');
-    if (strong) return `hw:${strong}`;
-    if (assetId) return `asset:${assetId}`;
-    if (hostname) return `host:${hostname}`;
-    return `unknown-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+/**
+ * **Rapprocher une machine du parc** : la même règle pour un fichier déposé à la main et pour
+ * une machine écrite par le serveur de collecte. Elle ne dépend que de la machine et du parc :
+ * deux navigateurs qui la calculent en même temps écrivent la même chose.
+ */
+const rapprocherDuParc = (machine: AgentCheckInPayload, equipment: Equipment[]): Rapprochement => {
+    const candidats = resolveEquipmentMatchCandidates(machine, equipment);
+    const [premier, second] = candidats;
+    const base = {
+        matchScore: premier?.score || 0,
+        candidateEquipmentIds: candidats.slice(0, 3).map((entry) => entry.equipment.id),
+    };
+    if (premier && second && premier.score >= 70 && Math.abs(premier.score - second.score) <= 10) {
+        return { ...base, matchConfidence: 'ambiguous' };
+    }
+    if (premier && premier.score >= 85) {
+        return { ...base, matchConfidence: 'strong', linked: premier.equipment };
+    }
+    if (premier && premier.score >= 60) {
+        return { ...base, matchConfidence: 'weak', linked: premier.equipment };
+    }
+    return { ...base, matchConfidence: 'none' };
 };
+
+/** Le statut qu'un rapprochement donne à une machine que personne n'a encore tranchée. */
+const statutDuRapprochement = (
+    confiance: Rapprochement['matchConfidence'],
+): DetectedDevice['status'] =>
+    confiance === 'strong'
+        ? 'linked_existing'
+        : confiance === 'ambiguous'
+          ? 'ambiguous_match'
+          : 'pending_review';
 
 const buildScanAvatar = (seed: string) =>
     `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(seed || 'user')}`;
@@ -1045,7 +1078,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 STORAGE_KEYS.settings.legacy,
             );
             return saved
-                ? { ...DEFAULT_SETTINGS, ...JSON.parse(saved), currency: 'XOF' }
+                ? reglagesConnus(JSON.parse(saved) as Record<string, unknown>)
                 : DEFAULT_SETTINGS;
         } catch {
             return DEFAULT_SETTINGS;
@@ -1123,6 +1156,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return [];
         }
     });
+
+    const [etatDeLaCollecte, setEtatDeLaCollecte] = useState<EtatDeLaCollecte | null>(null);
 
     // --- CATEGORIES ---
     /** La famille d'origine des types du référentiel, pour rattraper une donnée
@@ -1678,7 +1713,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 const firebaseSettings = metaParNom.get('settings') as
                     Partial<AppSettings> | undefined;
                 if (firebaseSettings) {
-                    const lus = { ...DEFAULT_SETTINGS, ...firebaseSettings, currency: 'XOF' };
+                    const lus = reglagesConnus(firebaseSettings as Record<string, unknown>);
                     documentsIsolesRef.current.settings = JSON.stringify(lus);
                     setSettings(lus);
                 }
@@ -1688,6 +1723,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     const lus = normalizeLocationData(firebaseLocations);
                     documentsIsolesRef.current.locations = JSON.stringify(lus);
                     setLocationData(lus);
+                }
+                /* L'état du serveur de collecte : lu, jamais écrit d'ici. */
+                const collecteLue = metaParNom.get('collecte') as
+                    Partial<EtatDeLaCollecte> | undefined;
+                if (typeof collecteLue?.vuLe === 'string') {
+                    setEtatDeLaCollecte(collecteLue as EtatDeLaCollecte);
                 }
                 const firebaseServiceManagers = metaParNom.get('serviceManagers') as
                     Record<string, string> | undefined;
@@ -1918,6 +1959,43 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ];
         return () => arrets.forEach((arreter) => arreter());
     }, [donneesChargees, sessionOuverte]);
+
+    /*
+     * **Les machines que le serveur de collecte écrit arrivent sans rapprochement** (10/10).
+     * Il ne connaît pas le parc : il pose les faits, en attente. Le premier navigateur d'une
+     * personne qui gère le parc les rapproche (actif reconnu, ressemblance à confirmer, ou
+     * machine nouvelle) ; c'est ce statut qui en fait, ou non, une tâche.
+     *
+     * Le calcul ne dépend que de la machine et du parc : deux navigateurs ouverts ensemble
+     * écrivent la même chose. Il ne crée jamais d'actif : une machine inconnue attend dans
+     * Tâches, quel que soit le réglage de la validation manuelle.
+     */
+    useEffect(() => {
+        if (!donneesChargees || !sessionOuverte) return;
+        if (!canManageInventoryByRole(currentUserAccessRef.current).allowed) return;
+        const aRapprocher = detectedDevices.filter(
+            (machine) =>
+                machine.status === 'pending_review' && machine.matchConfidence === undefined,
+        );
+        if (aRapprocher.length === 0) return;
+        const rapprochees = new Map(
+            aRapprocher.map((machine) => {
+                const rapprochement = rapprocherDuParc(machine, equipment);
+                return [
+                    machine.id,
+                    {
+                        ...machine,
+                        status: statutDuRapprochement(rapprochement.matchConfidence),
+                        matchConfidence: rapprochement.matchConfidence,
+                        matchScore: rapprochement.matchScore,
+                        candidateEquipmentIds: rapprochement.candidateEquipmentIds,
+                        linkedEquipmentId: rapprochement.linked?.id,
+                    } satisfies DetectedDevice,
+                ] as const;
+            }),
+        );
+        setDetectedDevices((prev) => prev.map((machine) => rapprochees.get(machine.id) ?? machine));
+    }, [detectedDevices, donneesChargees, equipment, sessionOuverte]);
 
     // Save to localStorage
     useEffect(() => {
@@ -2199,6 +2277,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, []);
 
     const updateSettings = useCallback((newSettings: Partial<AppSettings>) => {
+        /* Les réglages sont ceux de l'organisation : seul qui en a le droit les change. */
+        if (!canManageSettingsByRole(currentUserAccessRef.current).allowed) return;
         setSettings((prev) => ({ ...prev, ...newSettings, currency: 'XOF' }));
     }, []);
 
@@ -2816,7 +2896,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 targetType: 'USER',
                 targetId: id,
                 targetName: invited.name,
-                description: `Invitation de ${invited.email} — ${payload.role}`,
+                description: `Invitation de ${invited.email} (${payload.role})`,
                 metadata: { role: payload.role, site: payload.site },
                 isSystem: false,
                 isSensitive: false,
@@ -2861,7 +2941,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 targetType: 'USER',
                 targetId: userId,
                 targetName: target.name,
-                description: `Invitation refaite pour ${target.email} — le lien précédent ne vaut plus`,
+                description: `Invitation refaite pour ${target.email} : le lien précédent ne vaut plus`,
                 isSystem: false,
                 isSensitive: false,
             });
@@ -2918,7 +2998,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 targetType: 'USER',
                 targetId: accepted.id,
                 targetName: accepted.name,
-                description: `Compte ouvert par ${accepted.email} — invitation acceptée`,
+                description: `Compte ouvert par ${accepted.email}, invitation acceptée`,
                 isSystem: false,
                 isSensitive: false,
             });
@@ -2956,7 +3036,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 targetType: 'USER',
                 targetId: target.id,
                 targetName: target.name,
-                description: `Nouveau lien demandé par ${target.email} — le précédent avait expiré`,
+                description: `Nouveau lien demandé par ${target.email} : le précédent avait expiré`,
                 isSystem: false,
                 isSensitive: false,
             });
@@ -3481,7 +3561,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                    et c'est ce que la feuille promet en disant « l'historique, lui, est
                    conservé ». */
                 description: reason
-                    ? `Sortie du parc de ${itemToDelete.name} — ${RETIREMENT_REASON_LABELS[reason]}`
+                    ? `Sortie du parc de ${itemToDelete.name} : ${RETIREMENT_REASON_LABELS[reason]}`
                     : `Suppression de l'équipement ${itemToDelete.name}`,
                 metadata:
                     reason || method
@@ -3719,7 +3799,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         if (action.outcome === 'diminished') {
                             updates.notes = [
                                 item.notes,
-                                'Réparé, mais diminué — réserve notée à la réception.',
+                                'Réparé, mais diminué : réserve notée à la réception.',
                             ]
                                 .filter(Boolean)
                                 .join('\n');
@@ -3987,6 +4067,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         [currentUser, equipment, logEvent, updateEquipment, users],
     );
 
+    /**
+     * **Recevoir une remontée déposée à la main** (un fichier, dans les réglages).
+     *
+     * Les remontées des agents n'arrivent plus par ici : le serveur de collecte les écrit
+     * dans `detectedDevices`, et `rapprocherLesMachines` les rapproche du parc à leur arrivée.
+     *
+     * Ce qui a changé le 10/10 :
+     * - la machine se reconnaît à son UUID ou à son numéro de série, pas à leur collage avec
+     *   l'adresse MAC : un portable sur sa station d'accueil n'est plus une seconde machine ;
+     * - **une machine ignorée le reste**. Chaque remontée la remettait « à valider » ;
+     * - le journal ne note que ce qui change (une machine nouvelle, un statut qui bouge),
+     *   plus chaque passage ;
+     * - sans lieu connu, elle n'entre pas seule au parc : elle attend dans Tâches.
+     */
     const ingestAgentCheckIn = useCallback(
         (payload: AgentCheckInPayload): AgentCheckInResult => {
             const permissionDecision = canManageInventoryByRole(currentUserAccessRef.current);
@@ -4000,108 +4094,77 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             const now = payload.scannedAt || new Date().toISOString();
             const source = payload.source || 'agent';
-            const sourceEnabled =
-                (source === 'agent' && settings.autoCollectionAgentEnabled) ||
-                (source === 'active_directory' && settings.autoCollectionAdEnabled) ||
-                (source === 'network_scan' && settings.autoCollectionNetworkEnabled);
-            if (!sourceEnabled) {
+            /* Seul l'agent a un interrupteur : un export d'annuaire ou de scan réseau est
+               un fichier déposé à la main, un geste qui vaut activation. */
+            if (source === 'agent' && !settings.autoCollectionAgentEnabled) {
                 return {
                     ok: false,
-                    message: `Collecte ${source} désactivée dans les paramètres.`,
+                    message: 'Collecte par agent désactivée dans les réglages.',
                 };
             }
 
-            if (source === 'agent') {
-                const expectedApiKey = settings.autoCollectionAgentApiKey.trim();
-                const payloadApiKey = (payload.apiKey || '').trim();
-                if (!payloadApiKey || payloadApiKey !== expectedApiKey) {
-                    return {
-                        ok: false,
-                        message: 'Check-in agent rejeté: clé API invalide ou absente.',
-                    };
-                }
-            }
-
-            const fingerprint = buildDetectedFingerprint(payload);
-
-            const matchCandidates = resolveEquipmentMatchCandidates(payload, equipment);
-            const topCandidate = matchCandidates[0];
-            const secondCandidate = matchCandidates[1];
-            const isAmbiguous = Boolean(
-                topCandidate &&
-                secondCandidate &&
-                topCandidate.score >= 70 &&
-                Math.abs(topCandidate.score - secondCandidate.score) <= 10,
+            const identifiants = identifiantsDe(payload);
+            const existing = detectedDevices.find((item) =>
+                memeMachine(identifiants, identifiantsDe(item)),
             );
-
-            let matchConfidence: DetectedDevice['matchConfidence'] = 'none';
-            let linkedEquipment: Equipment | undefined;
-            if (isAmbiguous) {
-                matchConfidence = 'ambiguous';
-            } else if (topCandidate && topCandidate.score >= 85) {
-                matchConfidence = 'strong';
-                linkedEquipment = topCandidate.equipment;
-            } else if (topCandidate && topCandidate.score >= 60) {
-                matchConfidence = 'weak';
-                linkedEquipment = topCandidate.equipment;
+            const detectedId = existing?.id || idDeMachine(payload);
+            if (!detectedId) {
+                return {
+                    ok: false,
+                    message: 'Aucun identifiant de machine exploitable (série, UUID, MAC ou nom).',
+                };
             }
 
-            const existing = detectedDevices.find((item) => item.fingerprint === fingerprint);
-            const detectedId =
-                existing?.id ||
-                `detected_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
-            let nextStatus: DetectedDevice['status'] =
-                matchConfidence === 'strong'
-                    ? 'linked_existing'
-                    : matchConfidence === 'ambiguous'
-                      ? 'ambiguous_match'
-                      : 'pending_review';
+            const rapprochement = rapprocherDuParc(payload, equipment);
+            let matchConfidence = rapprochement.matchConfidence;
+            const linkedEquipment = rapprochement.linked;
             const machineName =
                 payload.machineName ||
                 payload.hostname ||
                 payload.assetId ||
                 existing?.machineName ||
                 'Machine détectée';
-            let linkedEquipmentId = linkedEquipment?.id || existing?.linkedEquipmentId;
-            let autoImportResult: AuditScanResult | null = null;
-            const candidateEquipmentIds = matchCandidates
-                .slice(0, 3)
-                .map((entry) => entry.equipment.id);
 
+            /* Ce que l'informatique a tranché tient : une machine ignorée le reste, une
+               machine entrée au parc garde son actif tant qu'il existe. */
+            const ignoree = existing?.status === 'ignored';
+            const dejaAuParc =
+                existing?.status === 'imported' &&
+                equipment.some((item) => item.id === existing.linkedEquipmentId);
+            let nextStatus: DetectedDevice['status'] = ignoree
+                ? 'ignored'
+                : dejaAuParc
+                  ? 'imported'
+                  : statutDuRapprochement(matchConfidence);
+            let linkedEquipmentId = dejaAuParc
+                ? existing?.linkedEquipmentId
+                : linkedEquipment?.id || existing?.linkedEquipmentId;
+            let autoImportResult: AuditScanResult | null = null;
+
+            const lieu = lieuDeLaMachine(
+                {
+                    country: payload.country || existing?.country,
+                    site: payload.site || existing?.site,
+                    currentUserEmail: payload.userEmail || existing?.currentUserEmail,
+                    currentUserName: payload.userName || existing?.currentUserName,
+                    linkedEquipmentId,
+                },
+                { equipment, users },
+            );
             const canAutoImport =
+                !ignoree &&
                 !settings.autoCollectionRequireManualValidation &&
+                lieu !== null &&
                 (matchConfidence === 'strong' || matchConfidence === 'none');
 
-            if (canAutoImport) {
-                const fallbackCountry =
-                    payload.country || linkedEquipment?.country || existing?.country || 'France';
-                const targetScope = {
-                    country:
-                        payload.country ||
-                        linkedEquipment?.country ||
-                        existing?.country ||
-                        'France',
-                    site:
-                        payload.site ||
-                        linkedEquipment?.site ||
-                        existing?.site ||
-                        DEFAULT_SITE_BY_COUNTRY[fallbackCountry] ||
-                        'Bureau Paris',
-                    service:
-                        payload.service ||
-                        linkedEquipment?.department ||
-                        existing?.service ||
-                        DEFAULT_DEPARTMENT_BY_COUNTRY[fallbackCountry] ||
-                        'IT HQ',
-                };
-
+            if (canAutoImport && lieu) {
                 autoImportResult = upsertEquipmentFromAuditScan(
                     {
                         ...payload,
                         machineName,
                         scannedAt: now,
                     },
-                    targetScope,
+                    { country: lieu.country, site: lieu.site },
                 );
 
                 if (autoImportResult.ok) {
@@ -4114,7 +4177,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const nextDevice: DetectedDevice = {
                 id: detectedId,
                 source,
-                fingerprint,
+                fingerprint: empreinteDe(payload) || existing?.fingerprint || detectedId,
                 machineName,
                 hostname: payload.hostname || existing?.hostname,
                 assetId: payload.assetId || existing?.assetId,
@@ -4124,6 +4187,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 ram: payload.ram || existing?.ram,
                 storage: payload.storage || existing?.storage,
                 cpu: payload.cpu || existing?.cpu,
+                type: payload.type || existing?.type,
+                model: payload.model || existing?.model,
                 currentUserName: payload.userName || existing?.currentUserName,
                 currentUserEmail: payload.userEmail || existing?.currentUserEmail,
                 macAddress: payload.macAddress || existing?.macAddress,
@@ -4140,8 +4205,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 },
                 status: nextStatus,
                 matchConfidence,
-                matchScore: topCandidate?.score || 0,
-                candidateEquipmentIds,
+                matchScore: rapprochement.matchScore,
+                candidateEquipmentIds: rapprochement.candidateEquipmentIds,
                 linkedEquipmentId,
                 firstSeenAt: existing?.firstSeenAt || now,
                 lastSeenAt: now,
@@ -4155,28 +4220,33 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 return [nextDevice, ...prev];
             });
 
-            logEvent({
-                type: existing ? 'UPDATE' : 'CREATE',
-                actorId: currentUser?.id || 'system',
-                actorName: currentUser?.name || 'Système',
-                actorRole: currentUser?.role || 'SuperAdmin',
-                targetType: 'SYSTEM',
-                targetId: detectedId,
-                targetName: machineName,
-                description: existing
-                    ? `Check-in agent mis à jour pour ${machineName}.`
-                    : `Machine détectée via collecte automatique: ${machineName}.`,
-                metadata: {
-                    source: 'agent_checkin',
-                    collector: source,
-                    matchConfidence,
-                    matchScore: topCandidate?.score || 0,
-                    candidateEquipmentIds,
-                    linkedEquipmentId: linkedEquipment?.id,
-                },
-                isSystem: false,
-                isSensitive: false,
-            });
+            /* Une remontée qui ne change rien ne s'écrit pas au journal : un poste remonte
+               six fois par jour. */
+            if (!existing || existing.status !== nextStatus) {
+                logEvent({
+                    type: existing ? 'UPDATE' : 'CREATE',
+                    actorId: currentUser?.id || 'system',
+                    actorName: currentUser?.name || 'Système',
+                    actorRole: currentUser?.role || 'SuperAdmin',
+                    targetType: 'SYSTEM',
+                    targetId: detectedId,
+                    targetName: machineName,
+                    description: existing
+                        ? `Collecte : ${machineName} change de statut.`
+                        : `Machine détectée par la collecte : ${machineName}.`,
+                    metadata: {
+                        source: 'agent_checkin',
+                        collector: source,
+                        status: nextStatus,
+                        matchConfidence,
+                        matchScore: rapprochement.matchScore,
+                        candidateEquipmentIds: rapprochement.candidateEquipmentIds,
+                        linkedEquipmentId: linkedEquipment?.id,
+                    },
+                    isSystem: false,
+                    isSensitive: false,
+                });
+            }
 
             return {
                 ok: true,
@@ -4185,13 +4255,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 linkedEquipmentId,
                 message: autoImportResult?.ok
                     ? `Check-in traité automatiquement. ${autoImportResult.message}`
-                    : nextStatus === 'ambiguous_match'
-                      ? 'Plusieurs équipements candidats: revue IT requise.'
-                      : matchConfidence === 'weak'
-                        ? 'Correspondance partielle détectée: validation IT requise.'
-                        : linkedEquipment
-                          ? `Machine liée à l'équipement existant ${linkedEquipment.assetId}.`
-                          : 'Machine placée en file "détectées" en attente de validation.',
+                    : ignoree
+                      ? 'Machine ignorée : sa remontée est notée, rien de plus.'
+                      : nextStatus === 'ambiguous_match'
+                        ? 'Plusieurs équipements candidats: revue IT requise.'
+                        : matchConfidence === 'weak'
+                          ? 'Correspondance partielle détectée: validation IT requise.'
+                          : linkedEquipment
+                            ? `Machine liée à l'équipement existant ${linkedEquipment.assetId}.`
+                            : 'Machine placée en file "détectées" en attente de validation.',
             };
         },
         [
@@ -4199,12 +4271,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             detectedDevices,
             equipment,
             logEvent,
-            settings.autoCollectionAdEnabled,
-            settings.autoCollectionAgentApiKey,
             settings.autoCollectionAgentEnabled,
-            settings.autoCollectionNetworkEnabled,
             settings.autoCollectionRequireManualValidation,
             upsertEquipmentFromAuditScan,
+            users,
         ],
     );
 
@@ -4237,16 +4307,29 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 };
             }
 
-            const fallbackCountry = detected.country || 'France';
+            /* Le lieu : celui qu'on donne, sinon celui que la machine laisse retrouver
+               (`lieuDeLaMachine`). Il valait « France, Bureau Paris » à défaut. */
+            const lieu =
+                scope?.country && scope.site
+                    ? { country: scope.country, site: scope.site }
+                    : lieuDeLaMachine(detected, {
+                          equipment,
+                          users,
+                          validateur: currentUser,
+                      });
+            if (!lieu) {
+                return {
+                    ok: false,
+                    message:
+                        'Lieu inconnu : ni la machine, ni sa session, ni votre compte ne donnent un pays et un site.',
+                };
+            }
+            const fallbackCountry = lieu.country;
             const targetScope = {
-                country: scope?.country || detected.country || 'France',
-                site:
-                    scope?.site ||
-                    detected.site ||
-                    DEFAULT_SITE_BY_COUNTRY[fallbackCountry] ||
-                    'Bureau Paris',
-                /* Le lieu où l'agent a vu la machine — la sonde ne connaît pas de
-                   local, donc le périmètre du rapprochement est le site. */
+                country: lieu.country,
+                site: lieu.site,
+                /* La sonde ne connaît pas de local : le périmètre du rapprochement est
+                   le site. */
                 local: scope?.local,
                 horsLocal: scope?.horsLocal,
             };
@@ -4257,6 +4340,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const serviceDetecte =
                 detected.service || DEFAULT_DEPARTMENT_BY_COUNTRY[fallbackCountry] || 'IT HQ';
 
+            const porteur = personneEnSession(detected, users);
             const result = upsertEquipmentFromAuditScan(
                 {
                     machineName: detected.machineName,
@@ -4268,8 +4352,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     os: detected.os,
                     ram: detected.ram,
                     storage: detected.storage,
-                    userName: detected.currentUserName,
-                    userEmail: detected.currentUserEmail,
+                    type: detected.type,
+                    model: detected.model,
+                    /* Le porteur : la session, si c'est un compte connu. Un identifiant de
+                       session que personne ne porte n'est pas un détenteur. */
+                    userName: porteur?.name,
+                    userEmail: porteur?.email,
                     country: targetScope.country,
                     site: targetScope.site,
                     service: serviceDetecte,
@@ -4303,7 +4391,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             return result;
         },
-        [detectedDevices, upsertEquipmentFromAuditScan],
+        [currentUser, detectedDevices, equipment, upsertEquipmentFromAuditScan, users],
     );
 
     const markDetectedDeviceAsIgnored = useCallback(
@@ -4415,13 +4503,28 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 ...(note?.trim() ? { note: note.trim() } : {}),
             };
 
-            if (corrections && Object.keys(corrections).length > 0) {
-                if (!gestion.allowed) {
-                    return {
-                        allowed: false,
-                        reason: 'Corriger une fiche demande le droit de gérer l’inventaire.',
-                    };
-                }
+            const aCorriger = Boolean(corrections && Object.keys(corrections).length > 0);
+            if (aCorriger && !gestion.allowed) {
+                return {
+                    allowed: false,
+                    reason: 'Corriger une fiche demande le droit de gérer l’inventaire.',
+                };
+            }
+            /* **Un actif signalé manquant ou perdu qu'on retrouve revient au parc** (10/10).
+               Le compter le laissait « Manquant » : la campagne le disait retrouvé, sa fiche
+               le disait disparu. C'est une écriture sur la fiche : elle demande le droit de
+               gérer, sans lequel le comptage seul est noté. */
+            const detenteurApres =
+                corrections && 'user' in corrections ? corrections.user : item.user;
+            const revenu: Partial<Equipment> =
+                gestion.allowed && (item.status === 'Manquant' || item.status === 'Perdu')
+                    ? detenteurApres
+                        ? { status: 'Attribué', assignmentStatus: 'CONFIRMED' }
+                        : { status: 'Disponible', assignmentStatus: 'NONE' }
+                    : {};
+            const ecritures: Partial<Equipment> = { ...revenu, ...(corrections ?? {}) };
+
+            if (corrections && aCorriger) {
                 /* Ce qui a changé, de quoi à quoi : la campagne le relit (« Corrigé pendant le
                    comptage »), et le responsable le relit avant de valider. */
                 const champs = (
@@ -4433,11 +4536,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 )
                     .filter(([cle]) => cle in corrections)
                     .map(([, champ, de, a]) => ({ champ, de: de || '', a: a || '' }));
-                applyEquipmentWrite(equipmentId, corrections, {
+                applyEquipmentWrite(equipmentId, ecritures, {
                     ...portee,
                     corrige: true,
                     champs,
                 });
+                return { allowed: true };
+            }
+
+            if (Object.keys(revenu).length > 0) {
+                applyEquipmentWrite(equipmentId, revenu, { ...portee, revenu: true });
                 return { allowed: true };
             }
 
@@ -4475,7 +4583,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                       : canManageInventoryByRole(acces);
             if (!decision.allowed) return decision;
 
-            const lieu = scope.horsLocal ? `${scope.site} — hors local` : scope.local || scope.site;
+            const lieu = scope.horsLocal ? `${scope.site} (hors local)` : scope.local || scope.site;
 
             /* La validation applique ce que la clôture a relevé : chaque actif jamais vu sort
                du lieu où on l'attendait et passe manquant. Le responsable n'a pas forcément
@@ -4490,7 +4598,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 for (const id of manquants) {
                     const item = equipment.find((entry) => entry.id === id);
                     if (!item || item.status === 'Manquant') continue;
-                    const noteDeManque = `Audit: non retrouvé dans ${lieu} (${scope.site}, ${scope.country}) — campagne validée le ${jour}. Requalification IT requise.`;
+                    const noteDeManque = `Audit: non retrouvé dans ${lieu} (${scope.site}, ${scope.country}), campagne validée le ${jour}. Requalification IT requise.`;
                     applyEquipmentWrite(
                         id,
                         {
@@ -5107,6 +5215,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             dernierChangementDistant,
             equipment,
             detectedDevices,
+            etatDeLaCollecte,
             categories,
             models,
             approvals,
@@ -5175,6 +5284,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             dernierChangementDistant,
             equipment,
             detectedDevices,
+            etatDeLaCollecte,
             categories,
             models,
             approvals,

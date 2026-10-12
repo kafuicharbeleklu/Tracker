@@ -17,7 +17,7 @@ interface DemoBadgeProps {
  * cette étiquette.
  */
 export const DemoBadge: React.FC<DemoBadgeProps> = ({ label = 'Démo', title, className }) => {
-    const accessibleTitle = title ?? 'Donnée de démonstration — non issue du système réel';
+    const accessibleTitle = title ?? 'Donnée de démonstration, non issue du système réel';
     return (
         <span
             aria-label={accessibleTitle}

@@ -319,7 +319,7 @@ const PanneauDeTache: React.FC<PanneauDeTacheProps> = ({
                         htmlFor="motif-du-refus"
                         className="text-text-secondary text-[0.75rem] leading-4 font-medium"
                     >
-                        Motif — {tache.refusal.requesterName} le lira tel quel
+                        Motif : {tache.refusal.requesterName} le lira tel quel
                     </label>
                     {motifs.length > 0 && (
                         <div className="flex flex-wrap gap-2">
@@ -376,7 +376,7 @@ const PanneauDeTache: React.FC<PanneauDeTacheProps> = ({
                             variant="filled"
                             className={cn(
                                 GESTE,
-                                'bg-inverse-surface text-inverse-on-surface hover:bg-inverse-surface/90',
+                                'bg-contrast-fill text-on-contrast-fill hover:bg-contrast-fill/90',
                             )}
                         >
                             {verbeDuRefus}

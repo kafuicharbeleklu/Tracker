@@ -30,6 +30,11 @@ import DataTable, { type DataColumn } from '../../../components/ui/DataTable';
 import { useListView } from '../../../hooks/useListView';
 import { passerALaPage, useListeEtFiche } from '../../../hooks/useListeEtFiche';
 import PanneauDeFiche from '../../../components/layout/PanneauDeFiche';
+import {
+    COLONNES_DE_LA_GRILLE,
+    HAUTEUR_D_UNE_LIGNE_DE_GRILLE,
+    enGrilleDeCartes,
+} from '../../../components/ui/GrilleDeCartes';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { useScanPossible } from '../../../hooks/useScanPossible';
 import { useAppNavigation } from '../../../hooks/useAppNavigation';
@@ -537,12 +542,6 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
     /* Le scan ne vit qu'au téléphone (17.11) — la coque le dit, pas le gabarit. */
     const isCompact = useMediaQuery(MEDIA.compact);
 
-    /* La fenêtre de la liste en cartes — 72 au téléphone, 68 dès la tablette, puis
-       mesurée rangée par rangée (`ListRow`). */
-    const liste = useVirtualWindow<HTMLDivElement>({
-        count: filteredEquipment.length,
-        estimateSize: () => (isCompact ? 72 : 68),
-    });
     const enTableau = isManager && vue.view === 'tableau';
 
     /*
@@ -558,6 +557,20 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
     const listeEtFiche = useListeEtFiche(Boolean(renderFiche) && !enTableau, versLaPage);
     const ouvrirFiche = (id: string) =>
         listeEtFiche.actif ? listeEtFiche.ouvrir(id) : onEquipmentClick?.(id);
+
+    /* **À la tablette debout, sans actif ouvert, la liste se range en deux colonnes de
+       cartes** (10/10) : le panneau vide prenait la moitié de l'écran. Un actif touché ouvre
+       la fiche à côté, et la liste revient à une colonne. */
+    const tablette = useMediaQuery(MEDIA.tablette);
+    const enGrille = tablette && listeEtFiche.actif && !listeEtFiche.ouvert;
+    const parLigne = enGrille ? COLONNES_DE_LA_GRILLE : 1;
+
+    /* La fenêtre de la liste en cartes — 72 au téléphone, 68 dès la tablette, puis
+       mesurée rangée par rangée (`ListRow`). En grille, elle compte en lignes. */
+    const liste = useVirtualWindow<HTMLDivElement>({
+        count: Math.ceil(filteredEquipment.length / parLigne),
+        estimateSize: () => (enGrille ? HAUTEUR_D_UNE_LIGNE_DE_GRILLE : isCompact ? 72 : 68),
+    });
 
     /**
      * **Les six colonnes de 04.1 au bureau**, dans l'ordre tranché le 08/09 : Code,
@@ -1039,9 +1052,14 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                 }}
                 hasRows={filteredEquipment.length > 0}
                 listeEtFiche={listeEtFiche.actif}
-                /* Liste vide, pas de panneau : rien à ouvrir. */
+                /* En grille, chaque actif a sa carte : la liste ne pose pas la sienne. */
+                body={enGrille ? 'cartes' : undefined}
+                /* Liste vide, pas de panneau : rien à ouvrir. En grille non plus : c'est
+                   l'actif touché qui l'ouvre. */
                 panel={
-                    listeEtFiche.actif && (filteredEquipment.length > 0 || listeEtFiche.ouvert) ? (
+                    !enGrille &&
+                    listeEtFiche.actif &&
+                    (filteredEquipment.length > 0 || listeEtFiche.ouvert) ? (
                         <PanneauDeFiche
                             cle={listeEtFiche.ouvert}
                             onPleinePage={
@@ -1198,118 +1216,132 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                         {liste.before > 0 && (
                             <div {...VIRTUAL_SPACER} style={{ height: liste.before }} />
                         )}
-                        {filteredEquipment.slice(liste.start, liste.end).map((item) => {
-                            if (!isManager) {
-                                // Vue Utilisateur final (Colonne 3)
-                                const isRep =
-                                    item.status === 'En réparation' || Boolean(item.repair);
-                                const isPending = item.assignmentStatus === 'PENDING_DELIVERY';
-                                const repairDays = getDaysSince(debutDEtape(item));
-                                /* L'étape de réparation, son mot et son glyphe ensemble (08/10). */
-                                const etape = presentationEtat(item);
-                                /* « Depuis le — » : la fiche n'a ni confirmation ni dernier
+                        {enGrilleDeCartes(
+                            filteredEquipment
+                                .slice(liste.start * parLigne, liste.end * parLigne)
+                                .map((item) => {
+                                    if (!isManager) {
+                                        // Vue Utilisateur final (Colonne 3)
+                                        const isRep =
+                                            item.status === 'En réparation' || Boolean(item.repair);
+                                        const isPending =
+                                            item.assignmentStatus === 'PENDING_DELIVERY';
+                                        const repairDays = getDaysSince(debutDEtape(item));
+                                        /* L'étape de réparation, son mot et son glyphe ensemble (08/10). */
+                                        const etape = presentationEtat(item);
+                                        /* « Depuis le — » : la fiche n'a ni confirmation ni dernier
                            mouvement. La planche n'écrit jamais une date absente ;
                            sans date, la rangée dit l'état, qui reste vrai. */
-                                const sinceDate = formatDate(item.confirmedAt);
+                                        const sinceDate = formatDate(item.confirmedAt);
 
-                                const userStatus = isRep
-                                    ? {
-                                          label:
-                                              repairDays > 0
-                                                  ? `${etape.label} · ${repairDays} j`
-                                                  : etape.label,
-                                          icon: etape.icon,
-                                          tone: etape.tone,
-                                      }
-                                    : isPending
-                                      ? {
-                                            label: 'Réception à confirmer',
-                                            icon: Clock,
-                                            tone: 'pending' as const,
-                                        }
-                                      : {
-                                            label:
-                                                sinceDate === '—'
-                                                    ? 'Attribué'
-                                                    : `Depuis le ${sinceDate}`,
-                                            icon: ArrowCircleRight,
-                                            tone: 'info' as const,
-                                        };
+                                        const userStatus = isRep
+                                            ? {
+                                                  label:
+                                                      repairDays > 0
+                                                          ? `${etape.label} · ${repairDays} j`
+                                                          : etape.label,
+                                                  icon: etape.icon,
+                                                  tone: etape.tone,
+                                              }
+                                            : isPending
+                                              ? {
+                                                    label: 'Réception à confirmer',
+                                                    icon: Clock,
+                                                    tone: 'pending' as const,
+                                                }
+                                              : {
+                                                    label:
+                                                        sinceDate === '—'
+                                                            ? 'Attribué'
+                                                            : `Depuis le ${sinceDate}`,
+                                                    icon: ArrowCircleRight,
+                                                    tone: 'info' as const,
+                                                };
 
-                                return (
-                                    <ListRow
-                                        key={item.id}
-                                        /* **Le pictogramme du type, jamais la photo** (23/09) :
+                                        return (
+                                            <ListRow
+                                                key={item.id}
+                                                /* **Le pictogramme du type, jamais la photo** (23/09) :
                                            réduite à 40 px, une photo ne distingue rien et
                                            se charge pour rien. Elle s'ouvre en grand par
                                            l'aperçu de la fiche. */
-                                        vignette={
-                                            <Icon glyph={getCategoryGlyph(item.type)} size={20} />
-                                        }
-                                        title={item.name}
-                                        type={isCompact ? undefined : getCategoryLabel(item.type)}
-                                        status={userStatus}
-                                        holder=""
-                                        reference=""
-                                        onOpen={() => ouvrirFiche(item.id)}
-                                        ouverte={listeEtFiche.ouvert === item.id}
-                                    />
-                                );
-                            }
+                                                vignette={
+                                                    <Icon
+                                                        glyph={getCategoryGlyph(item.type)}
+                                                        size={20}
+                                                    />
+                                                }
+                                                title={item.name}
+                                                type={
+                                                    isCompact
+                                                        ? undefined
+                                                        : getCategoryLabel(item.type)
+                                                }
+                                                status={userStatus}
+                                                holder=""
+                                                reference=""
+                                                onOpen={() => ouvrirFiche(item.id)}
+                                                ouverte={listeEtFiche.ouvert === item.id}
+                                            />
+                                        );
+                                    }
 
-                            // Vue Gestionnaire (Colonnes 2 et 4)
-                            const status = item.repair
-                                ? presentationEtat(item)
-                                : getStatusPresentation(
-                                      getDisplayedEquipmentStatus({
-                                          status: item.status,
-                                          assignmentStatus: item.assignmentStatus,
-                                      }),
-                                  );
+                                    // Vue Gestionnaire (Colonnes 2 et 4)
+                                    const status = item.repair
+                                        ? presentationEtat(item)
+                                        : getStatusPresentation(
+                                              getDisplayedEquipmentStatus({
+                                                  status: item.status,
+                                                  assignmentStatus: item.assignmentStatus,
+                                              }),
+                                          );
 
-                            /* **La seconde ligne dit chez qui, ou l'état.** La planche écrit
+                                    /* **La seconde ligne dit chez qui, ou l'état.** La planche écrit
                        « Disponible » sous le code d'un actif libre — pas son site :
                        un actif disponible à Paris se lit d'abord *disponible*, et le
                        site n'ajoute rien qu'on soit venu chercher. Le porteur prend
                        la place dès qu'il existe, et un local en tient lieu quand
                        l'objet est attribué à une pièce (« Salle serveurs »). */
-                            /* **Le mot suit le glyphe** (08/10). La ligne écrivait « En réparation »
+                                    /* **Le mot suit le glyphe** (08/10). La ligne écrivait « En réparation »
                                à toutes les étapes, quand le glyphe et la teinte disaient déjà
                                « Devis à valider » ou « À prendre en charge » ; et une horloge
                                ambre se posait devant le seul nom du porteur, sans dire ce qui
                                était attendu. */
-                            const repairDays = getDaysSince(debutDEtape(item));
-                            const attente = ATTENTE_DU_PORTEUR[item.assignmentStatus ?? ''];
-                            const holderText =
-                                item.status === 'En réparation' || item.repair ? (
-                                    repairDays > 0 ? (
-                                        `${status.label} · ${repairDays} j`
-                                    ) : (
-                                        status.label
-                                    )
-                                ) : item.user?.name && attente ? (
-                                    /* Un nom long cède, l'attente reste entière. */
-                                    <span className="flex min-w-0">
-                                        <span className="truncate">{item.user.name}</span>
-                                        <span className="shrink-0 whitespace-pre">
-                                            {` · ${attente}`}
-                                        </span>
-                                    </span>
-                                ) : (
-                                    (item.user?.name ??
-                                    (item.status === 'Attribué' ? item.site : undefined) ??
-                                    status.label)
-                                );
+                                    const repairDays = getDaysSince(debutDEtape(item));
+                                    const attente = ATTENTE_DU_PORTEUR[item.assignmentStatus ?? ''];
+                                    const holderText =
+                                        item.status === 'En réparation' || item.repair ? (
+                                            repairDays > 0 ? (
+                                                `${status.label} · ${repairDays} j`
+                                            ) : (
+                                                status.label
+                                            )
+                                        ) : item.user?.name && attente ? (
+                                            /* Un nom long cède, l'attente reste entière. */
+                                            <span className="flex min-w-0">
+                                                <span className="truncate">{item.user.name}</span>
+                                                <span className="shrink-0 whitespace-pre">
+                                                    {` · ${attente}`}
+                                                </span>
+                                            </span>
+                                        ) : (
+                                            (item.user?.name ??
+                                            (item.status === 'Attribué' ? item.site : undefined) ??
+                                            status.label)
+                                        );
 
-                            return (
-                                <ListRow
-                                    key={item.id}
-                                    /* Le pictogramme du type, jamais la photo (23/09). */
-                                    vignette={
-                                        <Icon glyph={getCategoryGlyph(item.type)} size={20} />
-                                    }
-                                    title={item.name}
-                                    /*
+                                    return (
+                                        <ListRow
+                                            key={item.id}
+                                            /* Le pictogramme du type, jamais la photo (23/09). */
+                                            vignette={
+                                                <Icon
+                                                    glyph={getCategoryGlyph(item.type)}
+                                                    size={20}
+                                                />
+                                            }
+                                            title={item.name}
+                                            /*
                                   **Deux faits au téléphone, quatre au-delà** (00.4, et la
                                   rangée partagée le documente depuis le 20/08). La rangée
                                   en portait quatre à 393 : le code, le type à droite,
@@ -1319,19 +1351,23 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                                   la tablette, où la place existe, et se lisent de toute
                                   façon sur la fiche. Arbitré le 22/09.
                                 */
-                                    type={isCompact ? undefined : getCategoryLabel(item.type)}
-                                    status={status}
-                                    holder={holderText}
-                                    reference={isCompact ? undefined : item.assetId}
-                                    onOpen={() => ouvrirFiche(item.id)}
-                                    ouverte={listeEtFiche.ouvert === item.id}
-                                    selectionActive={selection.isActive}
-                                    selected={selection.isSelected(item.id)}
-                                    onToggle={() => selection.toggle(item.id)}
-                                    onLongPress={() => selection.enter(item.id)}
-                                />
-                            );
-                        })}
+                                            type={
+                                                isCompact ? undefined : getCategoryLabel(item.type)
+                                            }
+                                            status={status}
+                                            holder={holderText}
+                                            reference={isCompact ? undefined : item.assetId}
+                                            onOpen={() => ouvrirFiche(item.id)}
+                                            ouverte={listeEtFiche.ouvert === item.id}
+                                            selectionActive={selection.isActive}
+                                            selected={selection.isSelected(item.id)}
+                                            onToggle={() => selection.toggle(item.id)}
+                                            onLongPress={() => selection.enter(item.id)}
+                                        />
+                                    );
+                                }),
+                            enGrille,
+                        )}
                         {liste.after > 0 && (
                             <div {...VIRTUAL_SPACER} style={{ height: liste.after }} />
                         )}
@@ -1457,7 +1493,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({
                             </Button>
                             <Button
                                 variant="tonal"
-                                className="bg-inverse-surface text-inverse-on-surface hover:bg-inverse-surface/90"
+                                className="bg-contrast-fill text-on-contrast-fill hover:bg-contrast-fill/90"
                                 onClick={() => setIsFilterSheetOpen(false)}
                             >
                                 Voir les {filteredEquipment.length}

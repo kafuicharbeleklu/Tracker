@@ -59,7 +59,9 @@ export const GLOSSARY = {
        est un lot, pas une règle. */
     AUDIT: 'Inventaire',
     REPORTS: 'Rapports',
-    SETTINGS: 'Paramètres',
+    /* « Mes préférences » depuis le 10/10 : la page ne porte plus que ce qui regarde la
+       personne ; les règles de l'organisation ont la leur. */
+    SETTINGS: 'Mes préférences',
 
     // Messages
     SUCCESS_CREATE: (entity: string) => `${entity} ajouté avec succès`,

@@ -2,15 +2,22 @@
  * Breakpoints — source unique de vérité (classes de taille de fenêtre MD3).
  *
  * ⚠️ Doit rester aligné avec `tailwind.config.js` (clé `theme.screens`) :
- *   compact (<600), medium (600–839), expanded (≥840), large (≥1200), extra-large (≥1600).
+ *   compact (<600), medium (600–739), expanded (≥740), large (≥1200), extra-large (≥1600).
+ *
+ * **`expanded` commence à 740, et plus à 840** (10/10, « la tablette devrait avoir son identité »).
+ * 840 est la classe de fenêtre de Material ; elle laissait hors du régime à deux volets toutes
+ * les tablettes tenues debout — l'iPad mini (744), l'iPad de 768, de 810, de 820 et de 834 —,
+ * qui recevaient la colonne du téléphone, élargie. À 740, la coque bornée, la liste et sa fiche
+ * côte à côte et le panneau de Tâches valent pour elles. Les largeurs s'y resserrent : la
+ * liste tient 300 sous 1 000, 360 au-delà.
  * Toute la couche JS (useMediaQuery / useBreakpoint) consomme ces valeurs ;
  * ne plus écrire de requête média en dur dans les composants.
  */
 export const BREAKPOINTS = {
     compactMax: 599,
     mediumMin: 600,
-    mediumMax: 839,
-    expandedMin: 840,
+    mediumMax: 739,
+    expandedMin: 740,
     /** Les deux colonnes — l'écran `deux:` de Tailwind (25/09). */
     deuxColonnesMin: 1000,
     largeMin: 1200,
@@ -20,11 +27,11 @@ export const BREAKPOINTS = {
 export const MEDIA = {
     /** Compact : téléphones (< 600px) */
     compact: `(max-width: ${BREAKPOINTS.compactMax}px)`,
-    /** Compact + Medium : sous le seuil expanded (< 840px) */
+    /** Compact + Medium : sous le seuil expanded (< 740px) */
     belowExpanded: `(max-width: ${BREAKPOINTS.mediumMax}px)`,
-    /** Medium : tablettes portrait (600–839px) */
+    /** Medium : petites tablettes et téléphones couchés (600–739px) */
     medium: `(min-width: ${BREAKPOINTS.mediumMin}px) and (max-width: ${BREAKPOINTS.mediumMax}px)`,
-    /** Expanded et au-delà (≥ 840px) */
+    /** Expanded et au-delà (≥ 740px) : la tablette debout, puis le bureau */
     expandedUp: `(min-width: ${BREAKPOINTS.expandedMin}px)`,
     /** Orientation paysage */
     landscape: '(orientation: landscape)',
@@ -59,6 +66,18 @@ export const MEDIA = {
      * héro y met ses chiffres en ligne au lieu de tuiles, et les cartes vont par deux.
      */
     panneauTenu: `(min-width: ${BREAKPOINTS.mediumMin}px) and (max-width: ${BREAKPOINTS.deuxColonnesMin - 1}px)`,
+    /**
+     * **La tablette debout** (10/10) — de 740 à 999 : deux volets, mais pas encore les
+     * douzièmes du bureau. Une page y pose ses zones **en huitièmes** (4 + 4, 5 + 3), une
+     * liste sans objet ouvert s'y range en deux colonnes de cartes, un héros s'y étale en
+     * bandeau.
+     */
+    tablette: `(min-width: ${BREAKPOINTS.expandedMin}px) and (max-width: ${BREAKPOINTS.deuxColonnesMin - 1}px)`,
+    /**
+     * **Le bureau tenu au doigt** — la variante `doigt:` de Tailwind, pour la couche
+     * JavaScript : 600 et plus, pointeur grossier. Une tablette, debout ou couchée.
+     */
+    doigt: `(min-width: ${BREAKPOINTS.mediumMin}px) and (pointer: coarse)`,
 } as const;
 
 /**
@@ -105,6 +124,8 @@ export const MOBILE_ONLY_ANSWERS: Partial<Record<string, boolean>> = {
     [MEDIA.compact]: true,
     [MEDIA.belowExpanded]: true,
     [MEDIA.medium]: false,
+    [MEDIA.tablette]: false,
+    [MEDIA.doigt]: false,
     [MEDIA.expandedUp]: false,
     [MEDIA.landscape]: false,
     [MEDIA.belowExpandedLandscape]: false,

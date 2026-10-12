@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 
+import { passer } from '../lib/passageDeFiche';
+
 // Helper to get path segments from hash
 // e.g. #/users/123 -> ['users', '123']
 const getHashSegments = () => {
@@ -13,8 +15,10 @@ export const useRouter = () => {
     const [routeSegments, setRouteSegments] = useState<string[]>(getHashSegments());
 
     useEffect(() => {
-        const handleHashChange = () => {
-            setRouteSegments(getHashSegments());
+        /* La mise à jour passe par `passer` : d'une liste à sa fiche, elle se joue dans une
+           transition de vue (11/10). Ailleurs, rien ne change. */
+        const handleHashChange = (event: HashChangeEvent) => {
+            passer(event, () => setRouteSegments(getHashSegments()));
         };
 
         // Initialize if empty

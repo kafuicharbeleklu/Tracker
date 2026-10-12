@@ -71,7 +71,17 @@ const ReferenceRow: React.FC<ReferenceRowProps> = ({
                 className,
             )}
         >
-            <span className="text-on-surface-variant shrink-0">{label}</span>
+            {/* **Devant un numéro à copier, c'est l'étiquette qui cède** (10/10) : dans une
+                carte de 312 px, « Numéro de série » gardait sa ligne et le numéro se coupait
+                à « 2HMLQ4M… ». L'étiquette passe sur deux lignes ; le numéro reste entier. */}
+            <span
+                className={cn(
+                    'text-on-surface-variant',
+                    copyable ? 'min-w-[4.5rem] shrink' : 'shrink-0',
+                )}
+            >
+                {label}
+            </span>
 
             {copyable ? (
                 <button
@@ -80,7 +90,7 @@ const ReferenceRow: React.FC<ReferenceRowProps> = ({
                     /* `.cp` — 44 de haut, 8 d'intérieur, en 16 tabulaire, sans graisse **et
                        sans interlettrage** : le numéro portait 0,4 px d'espacement, que la
                        planche ne donne à aucune valeur de référence. */
-                    className="touch-target text-on-surface hover:bg-surface-container focus-visible:ring-focus-ring text-ts-body leading-ts-body -mr-2 flex min-h-11 min-w-0 items-center gap-2 rounded-md px-2 font-normal outline-none focus-visible:ring-2"
+                    className="touch-target text-on-surface hover:bg-surface-container focus-visible:ring-focus-ring text-ts-body leading-ts-body -mr-2 flex min-h-11 max-w-[80%] min-w-0 shrink-0 items-center gap-2 rounded-md px-2 font-normal outline-none focus-visible:ring-2"
                 >
                     {/* Un numéro long se coupe sur une ligne (25/09) : la rangée garde sa
                         hauteur ; le bouton copie la valeur entière, l'infobulle la montre. */}

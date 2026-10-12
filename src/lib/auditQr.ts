@@ -51,6 +51,6 @@ export const parseAuditQrPayload = (rawValue: string): ParseAuditQrResult => {
 
     return {
         ok: false,
-        error: parsed.error || 'Code illisible — attendu un numéro de série, un code d’actif ou le contenu d’un QR.',
+        error: parsed.error || 'Code illisible : attendu un numéro de série, un code d’actif ou le contenu d’un QR.',
     };
 };

@@ -140,7 +140,9 @@ const FinanceKpiTiles: React.FC<FinanceKpiTilesProps> = ({
     return (
         <div
             className={cn(
-                'deux:grid-cols-4 grid grid-cols-2 gap-4',
+                /* Quatre de front dès 900 (10/10 ; 1 000 avant) : en deçà, une tuile de
+                   150 px coupait l'unité d'un montant de huit chiffres. */
+                'grid grid-cols-2 gap-4 min-[900px]:grid-cols-4',
                 entree && 'mvt-cascade-cartes',
                 className,
             )}

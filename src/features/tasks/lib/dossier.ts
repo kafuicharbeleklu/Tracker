@@ -1,5 +1,5 @@
 import {
-    calculateLinearDepreciation,
+    calculateDepreciation,
     formatCurrency,
     getBudgetCategoryByExpenseType,
 } from '../../../lib/financial';
@@ -119,7 +119,8 @@ const garantieEnMots = (item: Equipment): string | null => {
 const partDeLaValeur = (item: Equipment, settings: AppSettings, devis?: number): string | null => {
     const f = item.financial;
     if (!devis || !f?.purchasePrice || !f.purchaseDate) return null;
-    const valeur = calculateLinearDepreciation(
+    const valeur = calculateDepreciation(
+        f.depreciationMethod ?? settings.defaultDepreciationMethod,
         f.purchasePrice,
         f.purchaseDate,
         f.depreciationYears || settings.defaultDepreciationYears || 3,

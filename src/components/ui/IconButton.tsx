@@ -54,8 +54,8 @@ const VARIANT_STYLES: Record<
     outlined: {
         base: 'border border-outline text-on-surface-variant',
         hover: 'hover:bg-on-surface/[0.08]',
-        selected: 'bg-inverse-surface text-inverse-on-surface border-transparent',
-        selectedHover: 'hover:bg-inverse-surface/90',
+        selected: 'bg-contrast-fill text-on-contrast-fill border-transparent',
+        selectedHover: 'hover:bg-contrast-fill/90',
     },
     // Pendant de `Button variant="nav"` : chrome posé sur les surfaces SOMBRES
     // (sidebar, rail), anneau de focus `primary` car le `focus-ring` anthracite

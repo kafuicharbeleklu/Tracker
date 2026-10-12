@@ -165,7 +165,7 @@ const HistoryPage: React.FC<HistoryPageProps> = ({
     onOpenEquipment,
     onOpenUser,
 }) => {
-    const { events, equipment, approvals, users, settings } = useData();
+    const { events, equipment, approvals, users } = useData();
     useJournalComplet();
     const { user: moi, permissions } = useAccessControl();
     const { filterEvents } = useHistory();
@@ -252,10 +252,10 @@ const HistoryPage: React.FC<HistoryPageProps> = ({
         ficheACote ? ouvrirACote(fait.id) : setOuvert(fait);
 
     const dansLaPeriode = useMemo(() => {
-        const debut = debutDe(periode, settings.fiscalYearStart);
+        const debut = debutDe(periode);
         if (debut === null) return perimetre;
         return perimetre.filter((e) => new Date(e.timestamp).getTime() >= debut);
-    }, [perimetre, periode, settings.fiscalYearStart]);
+    }, [perimetre, periode]);
 
     /** La recherche et le choix — tout sauf la nature, dont les chips comptent le reste. */
     const correspond = useMemo(() => {
@@ -558,7 +558,7 @@ const HistoryPage: React.FC<HistoryPageProps> = ({
         document.body.removeChild(lien);
         URL.revokeObjectURL(url);
         showToast(
-            `${affiches.length} fait${affiches.length > 1 ? 's' : ''} exporté${affiches.length > 1 ? 's' : ''} — « ${nom} ».`,
+            `${affiches.length} fait${affiches.length > 1 ? 's' : ''} exporté${affiches.length > 1 ? 's' : ''} : « ${nom} ».`,
             'success',
         );
     };

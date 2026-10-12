@@ -6,6 +6,11 @@ interface ToggleProps {
     checked: boolean;
     onChange: (checked: boolean) => void;
     label?: string;
+    /**
+     * Le nom que lit un lecteur d'écran quand l'interrupteur n'écrit pas son libellé : la
+     * rangée qui le porte le dit déjà. Sans lui, il s'annonçait « Toggle ».
+     */
+    nom?: string;
     disabled?: boolean;
     /** Material Symbols icon name to show inside the handle */
     icon?: string;
@@ -25,6 +30,7 @@ const Toggle: React.FC<ToggleProps> = ({
     checked,
     onChange,
     label,
+    nom,
     disabled = false,
     icon,
     className,
@@ -49,22 +55,30 @@ const Toggle: React.FC<ToggleProps> = ({
                     disabled={disabled}
                     role="switch"
                     aria-checked={checked}
-                    aria-label={label || 'Toggle'}
+                    aria-label={label || nom || 'Interrupteur'}
                 />
                 {/* Track */}
                 <div
                     className={cn(
                         'duration-medium1 ease-emphasized h-[26px] w-11 rounded-full transition-colors',
                         'peer-focus-visible:ring-focus-ring peer-focus-visible:ring-offset-surface peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2',
-                        checked ? 'bg-inverse-surface' : 'bg-surface-muted-strong',
+                        checked ? 'bg-contrast-fill' : 'bg-surface-muted-strong',
                     )}
                     aria-hidden="true"
                 />
                 {/* Thumb */}
                 <div
                     className={cn(
-                        'duration-medium1 ease-emphasized bg-surface absolute top-[3px] left-[3px] flex h-5 w-5 items-center justify-center rounded-full shadow-[0_1px_2px_rgba(0,0,0,0.2)] transition-transform',
-                        checked ? 'translate-x-[18px]' : 'translate-x-0',
+                        /* Le pouce glisse au ressort ample (11/10) : il dépasse d'un rien sa butée puis s'y
+                           pose. La couleur de la piste, elle, garde sa courbe : pas de rebond sur une
+                           couleur. */
+                        'mvt-ressort-ample absolute top-[3px] left-[3px] flex h-5 w-5 items-center justify-center rounded-full shadow-[0_1px_2px_rgba(0,0,0,0.2)] transition-transform',
+                        /* Le bouton est blanc en clair, allumé ou non. En sombre, il prend
+                           l'encre du plein une fois allumé, et l'encre secondaire éteint :
+                           la couleur de la carte s'y confondait avec la piste. */
+                        checked
+                            ? 'bg-on-contrast-fill translate-x-[18px]'
+                            : 'bg-surface sombre:bg-on-surface-variant translate-x-0',
                     )}
                     aria-hidden="true"
                 >

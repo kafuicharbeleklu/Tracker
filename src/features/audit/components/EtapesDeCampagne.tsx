@@ -37,7 +37,7 @@ interface EtapesDeCampagneProps {
 
 const Pastille: React.FC<{ etat: EtatDEtape }> = ({ etat }) =>
     etat === 'fait' ? (
-        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--tk-color-st-vert)] text-white">
+        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--tk-color-st-vert)] text-[var(--tk-color-surface)]">
             <Icon glyph={Check} size={18} className="scale-[0.7]" />
         </span>
     ) : etat === 'a_venir' ? (
@@ -193,8 +193,8 @@ const EtapesDeCampagne: React.FC<EtapesDeCampagneProps> = ({
                     titre={
                         etat === 'cloturee'
                             ? peutValider
-                                ? 'Validation — à vous'
-                                : 'Validation — en attente'
+                                ? 'Validation : à vous'
+                                : 'Validation : en attente'
                             : 'Validation'
                     }
                     detail={

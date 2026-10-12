@@ -359,7 +359,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                                                 ? 'bg-[var(--tk-color-on-dark)] text-[var(--tk-color-inverse-surface)]'
                                                 : 'bg-[var(--tk-color-dark-2)] text-white group-hover:bg-white/[0.16]'
                                             : isOn
-                                              ? 'bg-inverse-surface text-inverse-on-surface'
+                                              ? 'bg-contrast-fill text-on-contrast-fill'
                                               : 'bg-surface-container text-on-surface-variant group-hover:bg-surface-container-high',
                                     )}
                                 >

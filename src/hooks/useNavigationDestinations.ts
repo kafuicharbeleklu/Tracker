@@ -74,6 +74,8 @@ export const useNavigationDestinations = (): NavigationDestinations => {
            rôles est un acte d'administration système, et c'est `canManageSystem` qui
            le garde. */
         if (permissions.canManageSystem) administration.push('rbac');
+        /* Les règles de l'organisation (10/10) : à qui a le droit de les régler. */
+        if (permissions.canManageSettings) administration.push('organisation');
 
         return {
             principales,
@@ -86,6 +88,7 @@ export const useNavigationDestinations = (): NavigationDestinations => {
         };
     }, [
         permissions.canManageInventory,
+        permissions.canManageSettings,
         permissions.canManageSystem,
         permissions.canViewApprovals,
         permissions.canViewAudit,

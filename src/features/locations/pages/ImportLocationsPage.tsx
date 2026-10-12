@@ -58,7 +58,7 @@ const COLUMNS: ImportColumn[] = [
     },
     {
         key: 'ParentName',
-        description: 'Le nom exact du niveau au-dessus — vide pour un pays',
+        description: 'Le nom exact du niveau au-dessus, vide pour un pays',
         requirement: 'selon le type',
         alias: ['Parent', 'Rattachement', 'Rattaché à'],
     },
@@ -132,18 +132,18 @@ const ImportLocationsPage: React.FC<ImportLocationsPageProps> = ({ onCancel, onS
             if (!name) {
                 error = 'Nom absent';
             } else if (!LOCATION_KINDS.includes(kind)) {
-                error = `Type « ${rawKind || '—'} » invalide — attendu : country, site, local ou service`;
+                error = `${rawKind ? `Type « ${rawKind} » invalide` : 'Type absent'}. Attendu : country, site, local ou service`;
             } else if (kind === 'country') {
                 if (knownCountries.has(nameKey)) ecartee = 'Existe déjà';
             } else if (kind === 'site') {
-                if (!parent) error = 'Parent absent — un site doit dire à quel pays il appartient';
+                if (!parent) error = 'Parent absent : un site doit dire à quel pays il appartient';
                 else if (!knownCountries.has(parentKey)) {
-                    error = `Parent « ${parent} » introuvable — le pays doit être créé avant ses sites`;
+                    error = `Parent « ${parent} » introuvable : le pays doit être créé avant ses sites`;
                 } else if (knownSites.has(nameKey)) ecartee = 'Existe déjà';
             } else if (!parent) {
-                error = `Parent absent — un ${kind === 'local' ? 'local' : 'service'} doit dire à quel site il appartient`;
+                error = `Parent absent : un ${kind === 'local' ? 'local' : 'service'} doit dire à quel site il appartient`;
             } else if (!knownSites.has(parentKey)) {
-                error = `Parent « ${parent} » introuvable — le site doit être créé avant ses ${kind === 'local' ? 'locaux' : 'services'}`;
+                error = `Parent « ${parent} » introuvable : le site doit être créé avant ses ${kind === 'local' ? 'locaux' : 'services'}`;
             }
 
             if (!error) {

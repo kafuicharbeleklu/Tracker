@@ -18,6 +18,10 @@ import { cn } from '../../lib/utils';
  * (carré de 48 rentré de 12, glyphe de 24), le titre en 28 sur 32 à 56, les gestes à droite
  * rentrés de 12 pour que leur glyphe tombe à 16 du bord droit. Ce qui suit le titre
  * (`children` : une bande de recherche, un fil) se pose dessous, à 12.
+ *
+ * **Le grand titre se replie** (11/10) : la rangée et le titre portent les rôles
+ * `barre-repliable-*` ; l'élément collant qui tient la barre (elle-même, ou son enveloppe)
+ * porte `barre-repliable`. Voir `index.css`.
  */
 interface BarreDePageProps {
     title: React.ReactNode;
@@ -51,7 +55,7 @@ const BarreDePage: React.FC<BarreDePageProps> = ({
             className,
         )}
     >
-        <div className="flex min-h-12 items-center gap-1">
+        <div className="barre-repliable-rangee flex min-h-12 items-center gap-1">
             {onBack && (
                 <Button
                     variant="text"
@@ -65,7 +69,7 @@ const BarreDePage: React.FC<BarreDePageProps> = ({
             )}
             {subtitle ? (
                 <div className="min-w-0 flex-1">
-                    <h1 className="font-brand text-on-surface truncate text-[1.375rem] leading-7 font-semibold tracking-[-0.015em]">
+                    <h1 className="barre-repliable-titre font-brand text-on-surface truncate text-[1.375rem] leading-7 font-semibold tracking-[-0.015em]">
                         {title}
                     </h1>
                     <p className="text-on-surface-variant truncate text-[0.75rem] leading-4">
@@ -73,7 +77,7 @@ const BarreDePage: React.FC<BarreDePageProps> = ({
                     </p>
                 </div>
             ) : (
-                <h1 className="font-brand text-on-surface text-ts-page leading-ts-page min-w-0 flex-1 truncate font-semibold tracking-[-0.02em]">
+                <h1 className="barre-repliable-titre font-brand text-on-surface text-ts-page leading-ts-page min-w-0 flex-1 truncate font-semibold tracking-[-0.02em]">
                     {title}
                 </h1>
             )}

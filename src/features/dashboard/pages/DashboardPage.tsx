@@ -39,7 +39,7 @@ import Icon from '../../../components/ui/Icon';
 import Figure from '../../../components/ui/Figure';
 import CardEmptyState from '../../../components/ui/CardEmptyState';
 import { getCategoryLabel } from '../../../constants/glossary';
-import { calculateLinearDepreciation, formatDate, formatMoment } from '../../../lib/financial';
+import { calculateDepreciation, formatDate, formatMoment } from '../../../lib/financial';
 import { ouvrirLeChoixSur, rememberAuditScope } from '../../../lib/auditScope';
 import { ACTIVE_APPROVAL_STATUSES, getHistoryEventSentence } from '../../../lib/businessRules';
 import { cn } from '../../../lib/utils';
@@ -587,6 +587,8 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
      */
     const large = useMediaQuery(MEDIA.expandedUp);
     const bureau = useMediaQuery(MEDIA.twoColumn);
+    /* La tablette debout (740 à 999) : sa grille de huit colonnes, plus bas. */
+    const tablette = useMediaQuery(MEDIA.tablette);
     /**
      * **L'avatar n'est dans l'en-tête que lorsqu'il n'y a pas de navigation latérale.**
      * Dès 600 px, le rail puis la barre portent la personne à leur pied : garder la
@@ -704,7 +706,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
             if (!item.financial) return false;
             /*
               **Sans prix d'achat, il n'y a pas de vie comptable** — donc pas de fin.
-              `calculateLinearDepreciation` rend `progressPercent: 100` quand le montant
+              `calculateDepreciation` rend `progressPercent: 100` quand le montant
               amortissable est nul (division impossible, valeur de repli). Le parc importé
               porte `purchasePrice: 0` sur ses 243 actifs : la carte annonçait « 243 sur
               243 en fin de vie comptable », jauge pleine, sur un parc dont aucun prix
@@ -712,7 +714,8 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
             */
             if (!(item.financial.purchasePrice > 0) || !(item.financial.depreciationYears > 0))
                 return false;
-            const stats = calculateLinearDepreciation(
+            const stats = calculateDepreciation(
+                item.financial.depreciationMethod,
                 item.financial.purchasePrice,
                 item.financial.purchaseDate,
                 item.financial.depreciationYears,
@@ -764,8 +767,8 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
     /* Trois lignes au téléphone, **quatre au bureau** : la colonne des événements y est
        bornée à la hauteur de la file, et la planche l'y dessine à quatre. */
     const recentEvents = useMemo(
-        () => getRecentActivity(bureau ? 8 : 3),
-        [bureau, getRecentActivity],
+        () => getRecentActivity(bureau || tablette ? 8 : 3),
+        [bureau, tablette, getRecentActivity],
     );
     const partDesEvenements = useCeQuiTient(recentEvents.length);
 
@@ -858,8 +861,12 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
     /* **La grille vaut pour tout le monde au bureau** (23/09) : l'accueil d'un employé
        empilait ses cartes sur 1 200 px de large — une carte « Garantie » de trois lignes
        étirée d'un bord à l'autre. Il prend la même grille que celui d'un gestionnaire. */
-    const enGrille = bureau;
-    const enDuo = enGrille && isManager && Boolean(campagne);
+    /* **La tablette debout a sa grille** (10/10) — huit colonnes : la file 5 et les
+       événements 3, puis des cartes de 4. Elle empilait sept cartes sur 640 px, 2,1 écrans à
+       faire défiler. Les deux jauges côte à côte (`.duo`) restent au bureau : à 4 huitièmes
+       une carte fait 336 px. */
+    const enGrille = bureau || tablette;
+    const enDuo = bureau && isManager && Boolean(campagne);
     const firstName = (currentUser?.name || '').split(' ')[0];
 
     /** Quatre rangées au plus dans la zone : au-delà, c'est la file qui prend. */
@@ -929,7 +936,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                                    initiales en Archivo 600 de 15, **sans espacement** : elles en
                                    portaient 0,025em, que `.avat` ne déclare pas. */
                                 className="font-brand focus-visible:ring-primary text-ts-control flex h-11 min-h-11 w-11 min-w-11 shrink-0 items-center justify-center rounded-full bg-[var(--tk-color-inverse-surface)] font-semibold text-white hover:opacity-90 focus-visible:ring-2 focus-visible:outline-none"
-                                aria-label={`Compte — ${compte.nom}`}
+                                aria-label={`Compte : ${compte.nom}`}
                             >
                                 {compte.initiales}
                             </Button>
@@ -1891,14 +1898,14 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
           [
               { cle: 'parc', span: 'col-span-4', contenu: leParc },
               { cle: 'mes', span: 'col-span-4', contenu: mesEquipements },
-              { cle: 'garantie', span: 'col-span-4', contenu: garantie },
+              { cle: 'garantie', span: 'col-span-8 deux:col-span-4', contenu: garantie },
           ]
         : /* **Quatre cases, toujours les mêmes, sur la ligne de la file** (10/10) : 8 / 4 à
              chaque rangée — la gouttière de la file et des événements descend d'un trait. */
           [
-              { cle: 'budget', span: 'col-span-8', contenu: budget },
+              { cle: 'budget', span: 'col-span-4 deux:col-span-8', contenu: budget },
               { cle: 'inventaire', span: 'col-span-4', contenu: inventaire },
-              { cle: 'etat', span: 'col-span-8', contenu: etatDuParc },
+              { cle: 'etat', span: 'col-span-4 deux:col-span-8', contenu: etatDuParc },
               { cle: 'tension', span: 'col-span-4', contenu: typesEnTension },
           ];
 
@@ -1956,12 +1963,17 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onViewChange, onNavigate 
                         */
                         <div
                             className={cn(
-                                'grid auto-rows-[minmax(13.5rem,auto)] grid-cols-12 grid-rows-[28rem] gap-4',
+                                /* Huit colonnes à la tablette debout, douze dès 1 000. */
+                                'deux:grid-cols-12 grid auto-rows-[minmax(13.5rem,auto)] grid-cols-8 grid-rows-[28rem] gap-4',
                                 entree && 'mvt-cascade-cartes',
                             )}
                         >
-                            <div className={cn(CASE_GRILLE, 'col-span-8')}>{aTraiter}</div>
-                            <div className={cn(CASE_GRILLE, 'col-span-4')}>{evenements}</div>
+                            <div className={cn(CASE_GRILLE, 'deux:col-span-8 col-span-5')}>
+                                {aTraiter}
+                            </div>
+                            <div className={cn(CASE_GRILLE, 'deux:col-span-4 col-span-3')}>
+                                {evenements}
+                            </div>
                             {mosaique.map((carte) => (
                                 <div key={carte.cle} className={cn(CASE_GRILLE, carte.span)}>
                                     {carte.contenu}

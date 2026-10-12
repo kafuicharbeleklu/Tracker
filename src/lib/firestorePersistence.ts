@@ -456,25 +456,46 @@ export const ecouterEcritures = (abonne: (etat: EtatDesEcritures) => void): (() 
 };
 
 /**
+ * **Les documents d'une collection, à mesure que la base les confirme** (11/10) : ce qui
+ * permet de dire où en est un envoi de trois cents fiches (`lib/activites`, l'îlot). Un lot
+ * confirmé compte pour tous ses documents ; un document refusé pour de bon compte à part.
+ */
+type AbonneAuxDocuments = (collection: string, confirmes: number, refuses: number) => void;
+const abonnesAuxDocuments = new Set<AbonneAuxDocuments>();
+const annoncerLesDocuments = (collection: string, confirmes: number, refuses: number) =>
+    abonnesAuxDocuments.forEach((abonne) => abonne(collection, confirmes, refuses));
+
+export const ecouterLesDocumentsEcrits = (abonne: AbonneAuxDocuments): (() => void) => {
+    abonnesAuxDocuments.add(abonne);
+    return () => {
+        abonnesAuxDocuments.delete(abonne);
+    };
+};
+
+/**
  * Compte une écriture jusqu'à son issue ; ne rejette jamais. Elle reçoit l'écriture **à
  * lancer** : le SDK valide les données à l'appel, et une valeur qu'il refuse lève tout de
- * suite — ce refus-là doit être compté comme les autres, pas échapper au suivi.
+ * suite — ce refus-là doit être compté comme les autres, pas échapper au suivi. Rend vrai
+ * quand la base a confirmé.
  */
 export const suivreEcriture = async (
     quoi: string,
     ecrire: () => Promise<unknown>,
-): Promise<void> => {
+): Promise<boolean> => {
     etatDesEcritures.enAttente += 1;
     publier();
+    let confirmee = true;
     try {
         await ecrire();
     } catch (erreur) {
+        confirmee = false;
         etatDesEcritures.refus += 1;
         console.error(`[firestore] écriture refusée : ${quoi}`, erreur);
     } finally {
         etatDesEcritures.enAttente -= 1;
         publier();
     }
+    return confirmee;
 };
 
 /** Supprime des documents en posant leur pierre tombale (voir `CHAMP_SUPPRIME`). */
@@ -549,6 +570,8 @@ export async function saveCollectionDocs<T extends object>(
             documents.map(({ id, item }) =>
                 suivreEcriture(`${collectionName}/${id}`, () =>
                     setDoc(doc(db, collectionName, id), contenu(item)),
+                ).then((confirmee) =>
+                    annoncerLesDocuments(collectionName, confirmee ? 1 : 0, confirmee ? 0 : 1),
                 ),
             ),
         );
@@ -580,6 +603,7 @@ export async function saveCollectionDocs<T extends object>(
             }
         });
         if (refuse) await unParUn(tranche);
+        else annoncerLesDocuments(collectionName, tranche.length, 0);
     }
 }
 

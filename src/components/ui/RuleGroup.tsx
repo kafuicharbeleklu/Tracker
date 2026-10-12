@@ -204,6 +204,12 @@ interface RuleGroupRowProps {
      * martèle pas ; le graisser le mettrait au même rang que le nom du rôle.
      */
     quiet?: boolean;
+    /**
+     * **Le titre passe à la ligne au lieu de se couper** (10/10) — le sommaire des réglages
+     * dans un volet de 300 px : « Périodicité de l'inventaire » y finissait en
+     * « Périodicité de l'inve… », et un réglage qu'on ne peut pas nommer ne se règle pas.
+     */
+    titreEntier?: boolean;
     className?: string;
 }
 
@@ -220,6 +226,7 @@ const RuleGroupRow: React.FC<RuleGroupRowProps> = ({
     external = false,
     choice = false,
     quiet = false,
+    titreEntier = false,
     className,
 }) => {
     const form = React.useContext(RuleGroupFormContext);
@@ -249,7 +256,7 @@ const RuleGroupRow: React.FC<RuleGroupRowProps> = ({
                     className={cn(
                         'text-ts-body leading-ts-body block',
                         off ? 'text-text-tertiary' : 'text-on-surface',
-                        glyph ? 'break-words' : 'truncate',
+                        glyph || titreEntier ? 'break-words' : 'truncate',
                     )}
                 >
                     {title}

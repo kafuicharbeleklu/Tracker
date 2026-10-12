@@ -237,7 +237,7 @@ const ACTION_LABEL: Record<string, string> = {
     'action.reports.export': 'Exporter les rapports',
     'action.management.manage': 'Gérer le catalogue',
     'action.locations.manage': 'Gérer les emplacements',
-    'action.settings.manage': 'Gérer les paramètres',
+    'action.settings.manage': 'Régler l’organisation',
 };
 
 const AUTH_METHOD_LABEL: Record<string, string> = {
@@ -311,7 +311,9 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
     const { routeSegments, navigate } = useRouter();
     const isCompact = useMediaQuery(MEDIA.compact);
     /* Les rôles et les groupes côte à côte à deux colonnes (≥ 1280, 23/09). */
-    const enColonnes = useMediaQuery(MEDIA.twoColumn);
+    /* Dès la tablette debout (10/10 ; 1 000 avant) : en huitièmes (5 + 3, ou deux moitiés
+       pour la fiche d'un rôle), en douzièmes dès 1 000. */
+    const enColonnes = useMediaQuery(MEDIA.expandedUp);
     const { showToast } = useToast();
     const { requestConfirmation } = useConfirmation();
     const {
@@ -714,13 +716,15 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                 <div className="medium:px-page flex-1 overflow-y-auto px-4 py-4">
                     <div className="large:mx-0 large:max-w-none mx-auto flex w-full max-w-[960px] flex-col gap-4 pb-16">
                         {enColonnes ? (
-                            <div className="grid grid-cols-12 items-start gap-4">
-                                <div className="col-span-7 flex flex-col gap-4">
+                            <div className="deux:grid-cols-12 grid grid-cols-2 items-start gap-4">
+                                <div className="deux:col-span-7 flex min-w-0 flex-col gap-4">
                                     {hero}
                                     {carteAjout}
                                     {cartePortee}
                                 </div>
-                                <div className="col-span-5 flex flex-col gap-4">{carteMembres}</div>
+                                <div className="deux:col-span-5 flex min-w-0 flex-col gap-4">
+                                    {carteMembres}
+                                </div>
                             </div>
                         ) : (
                             <>
@@ -1095,13 +1099,13 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                         {enColonnes ? (
                             /* **Au bureau, deux colonnes indépendantes** : ce que le rôle permet
                                à gauche (7), à qui et où il s'applique à droite (5). */
-                            <div className="grid grid-cols-12 items-start gap-4">
-                                <div className="col-span-7 flex flex-col gap-4">
+                            <div className="deux:grid-cols-12 grid grid-cols-2 items-start gap-4">
+                                <div className="deux:col-span-7 flex min-w-0 flex-col gap-4">
                                     {hero}
                                     {vues}
                                     {actions}
                                 </div>
-                                <div className="col-span-5 flex flex-col gap-4">
+                                <div className="deux:col-span-5 flex min-w-0 flex-col gap-4">
                                     {porteurs}
                                     {portee}
                                 </div>
@@ -1251,7 +1255,9 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                                groupes sur 4. Empilée, la carte des groupes n'était qu'une
                                rangée de 124 px sous 580 de rôles. */
                             'flex flex-col gap-4',
-                            enColonnes && 'grid grid-cols-12 items-start',
+                            /* Deux moitiés à la tablette debout : à 3 huitièmes, le nom d'un
+                               groupe se coupait à « IT Fra… ». */
+                            enColonnes && 'deux:grid-cols-12 grid grid-cols-2 items-start',
                         )}
                     >
                         {/*
@@ -1264,7 +1270,7 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                          * c'est qui est concerné.
                          */}
                         <RuleGroup
-                            className={cn(enColonnes && 'col-span-8')}
+                            className={cn(enColonnes && 'deux:col-span-8 min-w-0')}
                             header="Les rôles"
                             headerTrailing="porteurs"
                         >
@@ -1274,7 +1280,7 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                                 const refus = deniedRules(role);
                                 const faits = [
                                     heritage
-                                        ? `Hérite de ${heritage.baseName}${heritage.addsNothing ? " — n'ajoute aucun droit" : ''}`
+                                        ? `Hérite de ${heritage.baseName}${heritage.addsNothing ? ", n'ajoute aucun droit" : ''}`
                                         : SCOPE_PHRASE[niveau],
                                     refus.length > 0 &&
                                         `refuse ${refus.length} action${refus.length > 1 ? 's' : ''}`,
@@ -1308,7 +1314,7 @@ const RbacPage: React.FC<RbacPageProps> = ({ onBack }) => {
                             renvoi) : les premiers et leurs membres — cinq au bureau, trois au
                             téléphone —, puis le renvoi vers la page des groupes. */}
                         <RuleGroup
-                            className={cn(enColonnes && 'col-span-4')}
+                            className={cn(enColonnes && 'deux:col-span-4 min-w-0')}
                             header="Les groupes"
                             headerTrailing="membres"
                         >
@@ -1460,14 +1466,14 @@ const CreateRoleSheet: React.FC<{
                     value={templateId}
                     onChange={(event) => setTemplateId(event.target.value)}
                     options={[
-                        { value: '', label: 'Aucun — partir de zéro' },
+                        { value: '', label: 'Aucun : partir de zéro' },
                         ...roles.map((role) => ({ value: role.id, label: role.name })),
                     ]}
                 />
                 <Notice>
                     Partir d'un rôle en{' '}
                     <strong className="text-on-surface font-medium">copie</strong> les permissions ;
-                    l'héritage, lui, les garde liées — c'est ce qui fait qu'un rôle hérité peut
+                    l'héritage, lui, les garde liées : c'est ce qui fait qu'un rôle hérité peut
                     afficher quatre règles et en porter vingt-quatre.
                 </Notice>
 

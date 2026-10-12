@@ -11,6 +11,7 @@ import { normaliserNom, plusProche } from '../../../lib/tableur';
 import { getCategoryLabel } from '../../../constants/glossary';
 import { useData } from '../../../context/DataContext';
 import { useToast } from '../../../context/ToastContext';
+import { suivreUnEnvoi } from '../../../lib/activites';
 
 interface ImportModelsPageProps {
     onCancel: () => void;
@@ -34,7 +35,7 @@ const COLUMNS: ImportColumn[] = [
     },
     {
         key: 'Category',
-        description: 'Un type du catalogue — sinon la ligne est refusée',
+        description: 'Un type du catalogue, sinon la ligne est refusée',
         requirement: 'requis',
         required: true,
         alias: ['Catégorie', 'Type'],
@@ -162,10 +163,10 @@ const ImportModelsPage: React.FC<ImportModelsPageProps> = ({ onCancel, onSave })
             else if (sousUnAutreNom) ecartee = `Déjà au catalogue sous « ${sousUnAutreNom.name} »`;
             else if (lus.has(cle)) ecartee = 'Répète un modèle lu plus haut';
             else if (!rawType && !typeParDefaut)
-                error = 'Type absent — la colonne Category est vide';
+                error = 'Type absent : la colonne Category est vide';
             else if (!resolvedType) {
                 const proche = plusProche(rawType, [...typeByKey.keys()]);
-                error = `Type « ${rawType} » inconnu au catalogue${proche ? ` — « ${getCategoryLabel(typeByKey.get(proche) as string)} » ?` : ''}`;
+                error = `Type « ${rawType} » inconnu au catalogue${proche ? ` : « ${getCategoryLabel(typeByKey.get(proche) as string)} » ?` : ''}`;
             }
 
             if (!error && !ecartee) lus.add(cle);
@@ -180,7 +181,7 @@ const ImportModelsPage: React.FC<ImportModelsPageProps> = ({ onCancel, onSave })
         });
     };
 
-    const handleImport = (drafts: ModelDraft[]) => {
+    const handleImport = (drafts: ModelDraft[], envoi: { fichier?: string; refusees: number }) => {
         drafts.forEach((draft) => {
             /* `count: 0` — **un modèle ne compte pas, il décrit** (09.2). L'import
                précédent l'omettait : la fiche affichait « undefined actifs » jusqu'à
@@ -194,6 +195,14 @@ const ImportModelsPage: React.FC<ImportModelsPageProps> = ({ onCancel, onSave })
                 image: '',
                 count: 0,
             });
+        });
+        /* Leur départ vers la base se suit dans l'îlot (11/10). */
+        suivreUnEnvoi({
+            titre: 'Import',
+            detail: envoi.fichier,
+            collection: 'models',
+            total: drafts.length,
+            refusees: envoi.refusees,
         });
         showToast(
             `${drafts.length} modèle${drafts.length > 1 ? 's' : ''} ajouté${drafts.length > 1 ? 's' : ''} au catalogue.`,
@@ -229,7 +238,7 @@ const ImportModelsPage: React.FC<ImportModelsPageProps> = ({ onCancel, onSave })
                             setTypeChoisi({ feuille: tableau.feuille, type: e.target.value })
                         }
                         options={[
-                            { value: '', label: 'Aucun — elles sont refusées' },
+                            { value: '', label: 'Aucun : elles sont refusées' },
                             ...categories.map((c) => ({
                                 value: c.name,
                                 label: getCategoryLabel(c.name),

@@ -1,6 +1,8 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
+import { cn } from '../../lib/utils';
+
 /**
  * **Les infobulles du produit** (10/10) — une seule bulle, posée à la racine, qui répond à
  * tout l'écran.
@@ -38,6 +40,12 @@ const HAUTEUR_D_UN_GESTE = 72;
 interface Bulle {
     cible: HTMLElement;
     texte: string;
+    /**
+     * Parue sans attendre : au clavier, ou parce que la précédente venait de se fermer. Elle
+     * paraît alors sans mouvement (11/10) : une barre de gestes qu'on balaie se lit d'un trait,
+     * et une action au clavier ne s'anime pas.
+     */
+    chaude?: boolean;
 }
 
 const NOMMABLES =
@@ -141,7 +149,7 @@ const Infobulles: React.FC = () => {
         };
         const ouvrir = (suivante: Bulle, aussitot: boolean) => {
             annulerLAttente();
-            const montrer = () => {
+            const montrer = (chaude: boolean) => {
                 attente.current = null;
                 attendue.current = null;
                 if (!suivante.cible.isConnected) return;
@@ -151,15 +159,19 @@ const Infobulles: React.FC = () => {
                 taireLeTitre(suivante.cible);
                 courante.current = suivante;
                 setPosition(null);
-                setBulle(suivante);
+                setBulle({ ...suivante, chaude });
             };
-            if (aussitot || Date.now() - fermeeA.current < ENCORE_CHAUDE_MS) montrer();
+            /* Une bulle est déjà à l'écran, ou vient de se fermer : la suivante n'attend pas.
+               On balaie une rangée de gestes sans réattendre une demi-seconde à chacun. */
+            const chaude =
+                courante.current !== null || Date.now() - fermeeA.current < ENCORE_CHAUDE_MS;
+            if (aussitot || chaude) montrer(true);
             else {
                 /* Le `title` se tait dès le survol : sans cela le navigateur pose le sien
                    pendant la demi-seconde d'attente. */
                 taireLeTitre(suivante.cible);
                 attendue.current = suivante.cible;
-                attente.current = setTimeout(montrer, DELAI_MS);
+                attente.current = setTimeout(() => montrer(false), DELAI_MS);
             }
         };
 
@@ -243,7 +255,11 @@ const Infobulles: React.FC = () => {
                 left: position?.left ?? 0,
                 visibility: position ? 'visible' : 'hidden',
             }}
-            className="bg-inverse-surface text-inverse-on-surface shadow-elevation-2 pointer-events-none fixed z-[400] max-w-[260px] rounded-md px-2 py-1 text-[0.75rem] leading-4 font-medium break-words ring-1 ring-white/10"
+            className={cn(
+                'bg-inverse-surface text-inverse-on-surface shadow-elevation-2 pointer-events-none fixed z-[400] max-w-[260px] rounded-md px-2 py-1 text-[0.75rem] leading-4 font-medium break-words ring-1 ring-white/10',
+                /* La première se pose, une fois placée ; les suivantes paraissent sans mouvement. */
+                position && !bulle.chaude && 'mvt-bulle',
+            )}
         >
             {bulle.texte}
         </div>,

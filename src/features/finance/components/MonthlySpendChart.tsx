@@ -3,6 +3,8 @@ import { ChartBar } from '@phosphor-icons/react';
 
 import Button from '../../../components/ui/Button';
 import CardEmptyState from '../../../components/ui/CardEmptyState';
+import { MEDIA } from '../../../constants/breakpoints';
+import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { formatNumber } from '../../../lib/financial';
 import { cn } from '../../../lib/utils';
 import type { FinanceExpense } from '../../../types';
@@ -16,7 +18,7 @@ import type { FinanceExpense } from '../../../types';
  *   quantités dans le temps ; une courbe suggérerait une continuité entre deux factures.
  * - **Un seul repère : le douzième de l'enveloppe**, en tirets. Il répond à la seule
  *   question qu'un mois pose à un budget — *a-t-on dépensé plus que sa part ?* Un mois qui
- *   le dépasse passe à l'orange d'état ; les autres gardent le vert des jauges du produit.
+ *   le dépasse passe à l'orange d'état ; les autres sont au bleu (au vert, jusqu'au 10/10).
  * - **Le pic est nommé** dans l'en-tête, et son montant est écrit sur sa barre : on
  *   n'a pas à survoler douze barres pour trouver la plus haute. Les autres montants se
  *   lisent au survol, au focus, et par le lecteur d'écran.
@@ -35,6 +37,18 @@ import type { FinanceExpense } from '../../../types';
  *   teintes ; elle écrivait « un douzième de l'enveloppe · 8 333 333,3 ».
  * - **Des barres plus fines que leur colonne** : elles se touchaient presque, et la figure
  *   faisait bloc.
+ *
+ * **Au téléphone, une rangée par mois** (10/10, proposition retenue). Sur 361 px, douze barres
+ * verticales faisaient onze pixels chacune ; les mois s'écrivaient d'une lettre (J, J, J…) et
+ * un seul montant se lisait sans toucher : le pic. La figure y devient un tableau qui porte
+ * ses barres — le mois, sa barre couchée, son montant au bout. Le douzième est un trait
+ * vertical que chaque barre franchit ou non, et un ▲ suit le montant qui le dépasse : le
+ * dépassement ne tient plus à la couleur seule. Les mois à venir ne prennent pas de rangée,
+ * une ligne les nomme. Dès la tablette, les barres verticales gardent leur place.
+ *
+ * **Le bleu remplace le vert, partout** (10/10). Le vert et l'orange d'état ne se séparaient
+ * pas pour un daltonien (écart mesuré de 5,9 en deutéranopie, quand il en faut 8) ; le bleu
+ * et l'orange, si (21,7).
  */
 
 const MOIS_COURTS = [
@@ -65,6 +79,38 @@ const MOIS_LONGS = [
     'novembre',
     'décembre',
 ];
+
+/** « en neuf mois » : le compte des mois vécus s'écrit en lettres. */
+const EN_LETTRES = [
+    'zéro',
+    'un',
+    'deux',
+    'trois',
+    'quatre',
+    'cinq',
+    'six',
+    'sept',
+    'huit',
+    'neuf',
+    'dix',
+    'onze',
+    'douze',
+];
+
+/** « Octobre à décembre », « Novembre et décembre », « Décembre » — les mois qui restent. */
+const moisAVenir = (depuis: number): string => {
+    const noms = MOIS_LONGS.slice(depuis);
+    const texte =
+        noms.length > 2
+            ? `${noms[0]} à ${noms[noms.length - 1]}`
+            : noms.length === 2
+              ? `${noms[0]} et ${noms[1]}`
+              : (noms[0] ?? '');
+    return texte.charAt(0).toUpperCase() + texte.slice(1);
+};
+
+const TEINTE_DANS_SA_PART = 'bg-[var(--tk-color-st-bleu)]';
+const TEINTE_AU_DELA = 'bg-[var(--tk-color-st-orange)]';
 
 /** Le plafond « rond » de l'axe : 1, 2, 2,5 ou 5 × 10ⁿ au-dessus de la valeur. */
 const plafondRond = (valeur: number): number => {
@@ -127,9 +173,14 @@ const MonthlySpendChart: React.FC<MonthlySpendChartProps> = ({
     const total = parMois.reduce((a, b) => a + b, 0);
     const part = allocated > 0 ? allocated / 12 : 0;
     const pic = parMois.reduce((best, v, i) => (v > parMois[best] ? i : best), 0);
-    const plafond = plafondRond(Math.max(...parMois, part));
+    /* Au téléphone, une rangée par mois ; dès la tablette, douze barres debout. */
+    const enRangees = useMediaQuery(MEDIA.compact);
+    const sommet = Math.max(...parMois, part);
+    /* Debout, l'axe porte des repères ronds ; couchées, les barres n'ont pas d'axe : la plus
+       longue s'arrête juste avant son montant. */
+    const plafond = enRangees ? sommet / 0.956 || 1 : plafondRond(sommet);
     const n = (v: number) => formatNumber(v, compactNotation);
-    const court = uniteDe(plafond);
+    const court = uniteDe(plafondRond(sommet));
     /** Le mois touché — sa lecture exacte passe dans l'en-tête ; un second geste la retire. */
     const [choisi, setChoisi] = useState<number | null>(null);
     const moisEnCours = year === maintenant.getFullYear() ? maintenant.getMonth() : -1;
@@ -146,14 +197,19 @@ const MonthlySpendChart: React.FC<MonthlySpendChartProps> = ({
 
     return (
         <section className={cn('rounded-card bg-surface flex flex-col p-4', className)}>
-            {/* Au téléphone, le pic passe sous le titre : côte à côte sur 330 px, le
+            {/* Au téléphone, la lecture passe sous le titre : côte à côte sur 330 px, le
                 titre se coupait en deux lignes et le montant du pic en points de suite. */}
             <header className="medium:flex-row medium:items-baseline medium:justify-between flex min-h-6 flex-col gap-x-3 gap-y-0.5">
                 <h3 className="text-on-surface text-ts-head leading-ts-head font-medium">
                     Consommation par mois
                 </h3>
                 {total > 0 &&
-                    (lecture ? (
+                    (enRangees ? (
+                        <span className="text-on-surface-variant text-ts-sub leading-ts-sub tabular-nums">
+                            {court(total)} en {EN_LETTRES[moisVecus]} mois · pic en{' '}
+                            {MOIS_LONGS[pic]}
+                        </span>
+                    ) : lecture ? (
                         /* La lecture du mois touché — exacte, et rapportée au douzième. */
                         <span
                             aria-live="polite"
@@ -189,6 +245,96 @@ const MonthlySpendChart: React.FC<MonthlySpendChartProps> = ({
                     title={`Aucune dépense en ${year}`}
                     description="Chaque dépense saisie prend sa place dans le mois de sa date."
                 />
+            ) : enRangees ? (
+                <figure
+                    className="mt-3.5 flex flex-col"
+                    aria-label={`Consommation ${year} par mois, en ${currency}`}
+                >
+                    {/* Un tableau qui porte ses barres : 44 pour le mois, la barre, 68 pour le
+                        montant. Le trait du douzième traverse toutes les rangées. */}
+                    <ol className="relative">
+                        {part > 0 && (
+                            <span
+                                aria-hidden="true"
+                                className="bg-on-surface/45 pointer-events-none absolute inset-y-0 z-[1] w-px"
+                                style={{
+                                    left: `calc(52px + (100% - 128px) * ${part / plafond})`,
+                                }}
+                            />
+                        )}
+                        {parMois.slice(0, moisVecus).map((valeur, mois) => {
+                            const auDela = part > 0 && valeur > part;
+                            return (
+                                <li
+                                    key={MOIS_COURTS[mois]}
+                                    className="text-ts-sub leading-ts-sub grid h-8 grid-cols-[44px_minmax(0,1fr)_68px] items-center gap-2 tabular-nums"
+                                >
+                                    <span
+                                        className={cn(
+                                            mois === moisEnCours
+                                                ? 'text-on-surface font-medium'
+                                                : 'text-on-surface-variant',
+                                        )}
+                                    >
+                                        {MOIS_COURTS[mois]}
+                                    </span>
+                                    <span aria-hidden="true" className="block h-3">
+                                        {valeur > 0 && (
+                                            <i
+                                                className={cn(
+                                                    'mvt-jauge block h-full min-w-0.5 rounded-r-[4px]',
+                                                    auDela ? TEINTE_AU_DELA : TEINTE_DANS_SA_PART,
+                                                )}
+                                                style={{ width: `${(valeur / plafond) * 100}%` }}
+                                            />
+                                        )}
+                                    </span>
+                                    <span className="text-on-surface text-right whitespace-nowrap">
+                                        {court(valeur)}
+                                        {auDela && (
+                                            <>
+                                                {' '}
+                                                <b
+                                                    aria-hidden="true"
+                                                    className="align-[1px] text-[0.625rem] text-[var(--tk-color-st-orange)]"
+                                                >
+                                                    ▲
+                                                </b>
+                                                <span className="sr-only">
+                                                    , au-delà du douzième
+                                                </span>
+                                            </>
+                                        )}
+                                    </span>
+                                </li>
+                            );
+                        })}
+                    </ol>
+                    {part > 0 && (
+                        <p className="text-on-surface-variant mt-1.5 pl-[52px] text-[0.75rem] leading-4 tabular-nums">
+                            │ 1/12 de l’enveloppe · {court(part)}
+                        </p>
+                    )}
+                    {moisVecus < 12 && (
+                        <p className="text-on-surface-variant text-ts-sub leading-ts-sub mt-2">
+                            {moisAVenir(moisVecus)} : à venir.
+                        </p>
+                    )}
+                    {part > 0 && (
+                        <figcaption className="text-on-surface-variant mt-3 flex flex-wrap items-center gap-x-[18px] gap-y-1.5 text-[0.75rem] leading-4">
+                            <span className="flex items-center gap-1.5">
+                                <i
+                                    className={cn('h-2.5 w-2.5 rounded-[2px]', TEINTE_DANS_SA_PART)}
+                                />
+                                dans sa part
+                            </span>
+                            <span className="flex items-center gap-1.5">
+                                <i className={cn('h-2.5 w-2.5 rounded-[2px]', TEINTE_AU_DELA)} />▲
+                                au-delà du douzième
+                            </span>
+                        </figcaption>
+                    )}
+                </figure>
             ) : (
                 <figure
                     className="mt-5 flex flex-1 flex-col"
@@ -246,11 +392,8 @@ const MonthlySpendChart: React.FC<MonthlySpendChartProps> = ({
                                     const estChoisi = choisi === mois;
                                     const efface = choisi !== null && !estChoisi;
                                     const hauteur = `${(valeur / plafond) * 100}%`;
-                                    /* Le montant en tête de barre : toujours dès la tablette ;
-                                       au téléphone, celui du mois touché, sinon celui du pic. */
+                                    /* Le montant en tête de barre. */
                                     const etiquette = valeur > 0 && !avenir;
-                                    const etiquetteAuTelephone =
-                                        estChoisi || (choisi === null && mois === pic);
                                     return (
                                         <li
                                             key={mois}
@@ -281,8 +424,6 @@ const MonthlySpendChart: React.FC<MonthlySpendChartProps> = ({
                                                                 estChoisi
                                                                     ? 'text-on-surface'
                                                                     : 'text-on-surface-variant',
-                                                                !etiquetteAuTelephone &&
-                                                                    'medium:block hidden',
                                                                 efface && 'opacity-40',
                                                             )}
                                                             style={{
@@ -297,8 +438,8 @@ const MonthlySpendChart: React.FC<MonthlySpendChartProps> = ({
                                                             className={cn(
                                                                 'mvt-colonne duration-medium2 ease-emphasized block min-h-0.5 w-[64%] max-w-10 rounded-t-[4px] transition-[height,opacity]',
                                                                 auDela
-                                                                    ? 'bg-[var(--tk-color-st-orange)]'
-                                                                    : 'bg-[var(--tk-color-st-vert)]',
+                                                                    ? TEINTE_AU_DELA
+                                                                    : TEINTE_DANS_SA_PART,
                                                                 efface
                                                                     ? 'opacity-35'
                                                                     : 'group-hover/barre:opacity-85',
@@ -315,8 +456,7 @@ const MonthlySpendChart: React.FC<MonthlySpendChartProps> = ({
                         </div>
                     </div>
 
-                    {/* Les mois — l'initiale au téléphone, l'abréviation dès la tablette ; le
-                        mois en cours en encre pleine. */}
+                    {/* Les mois ; le mois en cours en encre pleine. */}
                     <div
                         aria-hidden="true"
                         className="medium:gap-3 mt-2 ml-11 grid grid-cols-12 gap-1.5 text-center text-[0.6875rem] leading-4"
@@ -336,8 +476,7 @@ const MonthlySpendChart: React.FC<MonthlySpendChartProps> = ({
                                           : 'text-on-surface-variant',
                                 )}
                             >
-                                <span className="medium:hidden">{mois[0].toUpperCase()}</span>
-                                <span className="medium:inline hidden">{mois}</span>
+                                {mois}
                             </span>
                         ))}
                     </div>
@@ -345,15 +484,12 @@ const MonthlySpendChart: React.FC<MonthlySpendChartProps> = ({
                     {part > 0 && (
                         <figcaption className="text-on-surface-variant mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-[0.75rem] leading-4">
                             <span className="flex items-center gap-1.5">
-                                <i className="h-2 w-2 rounded-[2px] bg-[var(--tk-color-st-vert)]" />
+                                <i className={cn('h-2 w-2 rounded-[2px]', TEINTE_DANS_SA_PART)} />
                                 dans sa part
                             </span>
                             <span className="flex items-center gap-1.5">
-                                <i className="h-2 w-2 rounded-[2px] bg-[var(--tk-color-st-orange)]" />
+                                <i className={cn('h-2 w-2 rounded-[2px]', TEINTE_AU_DELA)} />
                                 au-delà du douzième
-                            </span>
-                            <span className="medium:hidden w-full">
-                                Touchez un mois pour le lire.
                             </span>
                         </figcaption>
                     )}

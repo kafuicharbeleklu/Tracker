@@ -1,16 +1,18 @@
-import React, { useEffect, useId, useMemo, useState } from 'react';
+import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { Icon as PhosphorGlyph } from '@phosphor-icons/react';
 import { MagnifyingGlass, QrCode, X } from '@phosphor-icons/react';
 
 import Icon from './Icon';
 import Button from './Button';
 import InlineError from './InlineError';
+import LibelleMouvant from './LibelleMouvant';
 import Attestation, { type AttestationMethod } from './Attestation';
 import { signatureService } from '../../services/signatureService';
 import { cn } from '../../lib/utils';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { useScanPossible } from '../../hooks/useScanPossible';
 import { usePresence } from '../../hooks/usePresence';
+import { useHauteurQuiSuit } from '../../hooks/useHauteurQuiSuit';
 import { MEDIA } from '../../constants/breakpoints';
 import { NOM_SUR_UNE_LIGNE, infobulle } from '../../lib/nomLong';
 import { oublierLesSignatures } from '../../lib/signatureDeLActe';
@@ -180,6 +182,11 @@ const ActSheet: React.FC<ActSheetProps> = ({
         mesure de 560, sans poignée, avec l'ombre du dialogue (00.5). Elle s'étirait
         sur les 1 280 px du bureau (13/09). */
     const compact = useMediaQuery(MEDIA.compact);
+    /* **À la tablette debout, l'acte glisse de la droite** (10/10) : un panneau de 420 px, sur
+       un voile léger, qui laisse voir la page d'où il vient — le dialogue centré la cachait.
+       Son pied reste en bas, sous le pouce. Le téléphone garde sa feuille, le bureau son
+       dialogue. */
+    const cote = useMediaQuery(MEDIA.tablette);
     /* Le bouton de scan à côté de la recherche : pas à la souris (27/09). */
     const scanPossible = useScanPossible();
     /* La feuille reste le temps de redescendre (26/09) : elle disparaissait d'un coup. */
@@ -270,6 +277,12 @@ const ActSheet: React.FC<ActSheetProps> = ({
         );
     }, [picker, recherche]);
 
+    /* La feuille garde son bord d'une étape à l'autre et prend la hauteur de la suivante
+       (11/10) : le choix d'un bloc, le récapitulatif, l'attestation. */
+    const surface = useRef<HTMLDivElement>(null);
+    const corps = useRef<HTMLDivElement>(null);
+    useHauteurQuiSuit(surface, !monte ? null : picker ? `choix:${picker.title}` : etape, corps);
+
     if (!monte) return null;
 
     const vignetteBox = (party: { vignette?: React.ReactNode; vignetteTone?: ConsequenceTone }) => (
@@ -316,14 +329,19 @@ const ActSheet: React.FC<ActSheetProps> = ({
     return (
         <div
             className={cn(
-                'fixed inset-0 z-[100] flex justify-center',
-                compact ? 'items-end' : 'items-center p-4',
+                'fixed inset-0 z-[100] flex',
+                cote
+                    ? 'items-stretch justify-end'
+                    : compact
+                      ? 'items-end justify-center'
+                      : 'items-center justify-center p-4',
                 sortant && 'pointer-events-none',
             )}
         >
             <div
                 className={cn(
-                    'bg-scrim/[0.42] absolute inset-0',
+                    'absolute inset-0',
+                    cote ? 'bg-scrim/[0.12]' : 'bg-scrim/[0.42]',
                     sortant ? 'mvt-voile-sortie' : 'mvt-voile-entree',
                 )}
                 onClick={onClose}
@@ -331,6 +349,7 @@ const ActSheet: React.FC<ActSheetProps> = ({
             />
 
             <div
+                ref={surface}
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby={titleId}
@@ -347,28 +366,37 @@ const ActSheet: React.FC<ActSheetProps> = ({
                        **Au-delà du téléphone, 640 au plus** (25/09) — la feuille de formulaire
                        d'Apple : sur un iPad debout, 90 % faisaient 920 px, une page qui ne
                        laissait plus voir celle d'où elle venait. */
-                    compact
-                        ? picker
+                    cote
+                        ? 'h-full'
+                        : compact
+                          ? picker
+                              ? picker.items.length > 6
+                                  ? 'h-[75%]'
+                                  : 'max-h-[75%]'
+                              : 'max-h-[90%]'
+                          : picker
                             ? picker.items.length > 6
-                                ? 'h-[75%]'
-                                : 'max-h-[75%]'
-                            : 'max-h-[90%]'
-                        : picker
-                          ? picker.items.length > 6
-                              ? 'h-[min(640px,75%)]'
-                              : 'max-h-[min(640px,75%)]'
-                          : 'max-h-[min(640px,90%)]',
-                    compact
-                        ? 'rounded-t-card shadow-sheet'
-                        : 'rounded-card shadow-dialog max-w-[560px]',
-                    /* Du bord bas au téléphone, posée au centre au-delà (26/09). */
-                    compact
+                                ? 'h-[min(640px,75%)]'
+                                : 'max-h-[min(640px,75%)]'
+                            : 'max-h-[min(640px,90%)]',
+                    cote
+                        ? 'shadow-dialog max-w-[420px] rounded-l-xl'
+                        : compact
+                          ? 'rounded-t-card shadow-sheet'
+                          : 'rounded-card shadow-dialog max-w-[560px]',
+                    /* Du bord bas au téléphone, du bord droit à la tablette debout, posée au
+                       centre au-delà (26/09, 10/10). */
+                    cote
                         ? sortant
-                            ? 'mvt-feuille-sortie'
-                            : 'mvt-feuille-entree'
-                        : sortant
-                          ? 'mvt-dialogue-sortie'
-                          : 'mvt-dialogue-entree',
+                            ? 'mvt-panneau-sortie'
+                            : 'mvt-panneau-entree'
+                        : compact
+                          ? sortant
+                              ? 'mvt-feuille-sortie'
+                              : 'mvt-feuille-entree'
+                          : sortant
+                            ? 'mvt-dialogue-sortie'
+                            : 'mvt-dialogue-entree',
                 )}
             >
                 {compact && (
@@ -398,204 +426,216 @@ const ActSheet: React.FC<ActSheetProps> = ({
                     </Button>
                 </div>
 
-                {picker ? (
-                    <div className="flex min-h-0 flex-1 flex-col px-5 pt-3">
-                        {/* La recherche et le scan tiennent sur une ligne — **et restent en
+                <div ref={corps} className="flex min-h-0 flex-1 flex-col">
+                    {picker ? (
+                        <div className="flex min-h-0 flex-1 flex-col px-5 pt-3">
+                            {/* La recherche et le scan tiennent sur une ligne — **et restent en
                             place** : seule la liste défile dessous. Tout le corps défilait
                             d'un bloc, et la recherche partait avec la première rangée. */}
-                        <div className="flex shrink-0 gap-2">
-                            {/* `min-w-0` : un champ de saisie a une largeur propre (vingt
+                            <div className="flex shrink-0 gap-2">
+                                {/* `min-w-0` : un champ de saisie a une largeur propre (vingt
                                 signes), que son étiquette reprenait comme minimum — avec le
                                 bouton de scan, la ligne demandait 328 px et sortait de la
                                 feuille de 48 px à 320, de 8 à 360 (07/10). */}
-                            <label className="bg-surface-container flex min-h-12 min-w-0 flex-1 items-center gap-2.5 rounded-[4px] px-3.5">
-                                <Icon
-                                    glyph={MagnifyingGlass}
-                                    size={20}
-                                    className="text-on-surface-variant shrink-0"
-                                />
-                                <input
-                                    type="search"
-                                    value={recherche}
-                                    onChange={(event) => setRecherche(event.target.value)}
-                                    placeholder={picker.searchPlaceholder}
-                                    aria-label={picker.searchPlaceholder}
-                                    autoComplete="off"
-                                    className="text-on-surface placeholder:text-text-tertiary text-ts-body leading-ts-body min-w-0 flex-1 bg-transparent outline-none"
-                                />
-                            </label>
-                            {picker.onScan && scanPossible && (
-                                <button
-                                    type="button"
-                                    onClick={picker.onScan}
-                                    aria-label="Scanner l'étiquette"
-                                    className="bg-inverse-surface text-inverse-on-surface flex h-12 w-12 shrink-0 items-center justify-center rounded-[4px]"
-                                >
-                                    <Icon glyph={QrCode} size={20} />
-                                </button>
-                            )}
-                        </div>
-
-                        <p className="text-on-surface-variant mt-4 mb-2 flex shrink-0 items-baseline justify-between gap-3 text-[0.75rem] leading-4 font-medium">
-                            <span>{picker.groupLabel}</span>
-                            <span className="text-text-tertiary font-normal tabular-nums">
-                                {resultats.length}
-                            </span>
-                        </p>
-
-                        <div className="-mx-5 min-h-0 flex-1 overflow-y-auto overscroll-contain px-5">
-                            {resultats.length === 0 ? (
-                                <p className="text-on-surface-variant text-ts-sub leading-ts-sub py-2">
-                                    {picker.emptyLabel}
-                                </p>
-                            ) : (
-                                resultats.map((item, index) => (
+                                <label className="bg-surface-container flex min-h-12 min-w-0 flex-1 items-center gap-2.5 rounded-[4px] px-3.5">
+                                    <Icon
+                                        glyph={MagnifyingGlass}
+                                        size={20}
+                                        className="text-on-surface-variant shrink-0"
+                                    />
+                                    <input
+                                        type="search"
+                                        value={recherche}
+                                        onChange={(event) => setRecherche(event.target.value)}
+                                        placeholder={picker.searchPlaceholder}
+                                        aria-label={picker.searchPlaceholder}
+                                        autoComplete="off"
+                                        className="text-on-surface placeholder:text-text-tertiary text-ts-body leading-ts-body min-w-0 flex-1 bg-transparent outline-none"
+                                    />
+                                </label>
+                                {picker.onScan && scanPossible && (
                                     <button
-                                        key={item.id}
                                         type="button"
-                                        onClick={() => picker.onPick(item.id)}
-                                        /* **Pas de chevron par rangée** (22/09) : dans une
+                                        onClick={picker.onScan}
+                                        aria-label="Scanner l'étiquette"
+                                        className="bg-inverse-surface text-inverse-on-surface flex h-12 w-12 shrink-0 items-center justify-center rounded-[4px]"
+                                    >
+                                        <Icon glyph={QrCode} size={20} />
+                                    </button>
+                                )}
+                            </div>
+
+                            <p className="text-on-surface-variant mt-4 mb-2 flex shrink-0 items-baseline justify-between gap-3 text-[0.75rem] leading-4 font-medium">
+                                <span>{picker.groupLabel}</span>
+                                <span className="text-text-tertiary font-normal tabular-nums">
+                                    {resultats.length}
+                                </span>
+                            </p>
+
+                            <div className="-mx-5 min-h-0 flex-1 overflow-y-auto overscroll-contain px-5">
+                                {resultats.length === 0 ? (
+                                    <p className="text-on-surface-variant text-ts-sub leading-ts-sub py-2">
+                                        {picker.emptyLabel}
+                                    </p>
+                                ) : (
+                                    resultats.map((item, index) => (
+                                        <button
+                                            key={item.id}
+                                            type="button"
+                                            onClick={() => picker.onPick(item.id)}
+                                            /* **Pas de chevron par rangée** (22/09) : dans une
                                            liste où *toutes* les rangées mènent au même
                                            endroit — le bloc qu'on est en train de choisir
                                            —, la flèche ne distingue rien de sa voisine.
                                            C'est l'arbitrage du 07/09 sur la feuille
                                            « Plus », appliqué au choix d'un objet et d'une
                                            personne. */
-                                        className={cn(
-                                            'flex min-h-14 w-full items-center gap-3 py-2 text-left',
-                                            index > 0 && 'border-outline-variant border-t',
-                                        )}
-                                    >
-                                        {item.vignette &&
-                                            vignetteBox({
-                                                vignette: item.vignette,
-                                                vignetteTone: item.highlighted ? 'bleu' : undefined,
-                                            })}
-                                        <span className="min-w-0 flex-1">
-                                            <span
-                                                title={infobulle(item.title)}
-                                                className={cn(
-                                                    'text-ts-body leading-ts-body',
-                                                    NOM_SUR_UNE_LIGNE,
-                                                )}
-                                            >
-                                                {item.title}
-                                            </span>
-                                            {item.subtitle && (
-                                                <span className="text-on-surface-variant text-ts-sub leading-ts-sub block truncate">
-                                                    {item.subtitle}
-                                                </span>
-                                            )}
-                                        </span>
-                                    </button>
-                                ))
-                            )}
-                        </div>
-                    </div>
-                ) : etape === 'recap' ? (
-                    <>
-                        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-5 pt-3">
-                            {preamble}
-
-                            {/* 1 · l'objet */}
-                            {subject && partyRow(subject, false)}
-
-                            {/* 2 · l'autre partie */}
-                            {counterparty && (
-                                <div>
-                                    <p className="text-on-surface-variant mb-2 text-[0.75rem] leading-4 font-medium">
-                                        {counterparty.label}
-                                    </p>
-                                    {partyRow(counterparty, true)}
-                                </div>
-                            )}
-
-                            {/* 3 · la question */}
-                            {question && (
-                                <div>
-                                    <p className="text-on-surface-variant mb-2 text-[0.75rem] leading-4 font-medium">
-                                        {question.label}
-                                    </p>
-                                    {question.children}
-                                </div>
-                            )}
-
-                            {/* 5 · ce que cela déclenche — dit avant d'attester */}
-                            {consequence && (
-                                <div className="bg-surface-container flex flex-col gap-2.5 rounded-[4px] px-4 py-3">
-                                    <p className="text-on-surface-variant text-[0.75rem] leading-4 font-medium">
-                                        Ce que cela déclenche
-                                    </p>
-                                    <p className="text-on-surface text-ts-sub leading-ts-sub flex items-center gap-3">
-                                        <span
                                             className={cn(
-                                                'flex h-7 w-7 shrink-0 items-center justify-center rounded-[4px]',
-                                                TEINTE[consequence.tone],
+                                                'flex min-h-14 w-full items-center gap-3 py-2 text-left',
+                                                index > 0 && 'border-outline-variant border-t',
                                             )}
                                         >
-                                            <Icon glyph={consequence.glyph} size={18} />
-                                        </span>
-                                        <span className="min-w-0 flex-1">{consequence.text}</span>
-                                    </p>
-                                </div>
-                            )}
+                                            {item.vignette &&
+                                                vignetteBox({
+                                                    vignette: item.vignette,
+                                                    vignetteTone: item.highlighted
+                                                        ? 'bleu'
+                                                        : undefined,
+                                                })}
+                                            <span className="min-w-0 flex-1">
+                                                <span
+                                                    title={infobulle(item.title)}
+                                                    className={cn(
+                                                        'text-ts-body leading-ts-body',
+                                                        NOM_SUR_UNE_LIGNE,
+                                                    )}
+                                                >
+                                                    {item.title}
+                                                </span>
+                                                {item.subtitle && (
+                                                    <span className="text-on-surface-variant text-ts-sub leading-ts-sub block truncate">
+                                                        {item.subtitle}
+                                                    </span>
+                                                )}
+                                            </span>
+                                        </button>
+                                    ))
+                                )}
+                            </div>
                         </div>
+                    ) : etape === 'recap' ? (
+                        <>
+                            <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-5 pt-3">
+                                {preamble}
 
-                        {/* Le récapitulatif ne porte pas le verbe : on ne fait rien encore,
+                                {/* 1 · l'objet */}
+                                {subject && partyRow(subject, false)}
+
+                                {/* 2 · l'autre partie */}
+                                {counterparty && (
+                                    <div>
+                                        <p className="text-on-surface-variant mb-2 text-[0.75rem] leading-4 font-medium">
+                                            {counterparty.label}
+                                        </p>
+                                        {partyRow(counterparty, true)}
+                                    </div>
+                                )}
+
+                                {/* 3 · la question */}
+                                {question && (
+                                    <div>
+                                        <p className="text-on-surface-variant mb-2 text-[0.75rem] leading-4 font-medium">
+                                            {question.label}
+                                        </p>
+                                        {question.children}
+                                    </div>
+                                )}
+
+                                {/* 5 · ce que cela déclenche — dit avant d'attester */}
+                                {consequence && (
+                                    <div className="bg-surface-container flex flex-col gap-2.5 rounded-[4px] px-4 py-3">
+                                        <p className="text-on-surface-variant text-[0.75rem] leading-4 font-medium">
+                                            Ce que cela déclenche
+                                        </p>
+                                        <p className="text-on-surface text-ts-sub leading-ts-sub flex items-center gap-3">
+                                            <span
+                                                className={cn(
+                                                    'flex h-7 w-7 shrink-0 items-center justify-center rounded-[4px]',
+                                                    TEINTE[consequence.tone],
+                                                )}
+                                            >
+                                                <Icon glyph={consequence.glyph} size={18} />
+                                            </span>
+                                            <span className="min-w-0 flex-1">
+                                                {consequence.text}
+                                            </span>
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Le récapitulatif ne porte pas le verbe : on ne fait rien encore,
                             on passe à la preuve. */}
-                        <div className="border-outline-variant duo-de-pied mt-4 gap-3 border-t px-5 pt-4 pb-1">
-                            <Button variant="ghost" onClick={onClose} className="!rounded-[4px]">
-                                {cancelLabel}
-                            </Button>
-                            <Button
-                                variant="filled"
-                                onClick={() => setEtape('attester')}
-                                className="!rounded-[4px]"
-                            >
-                                Continuer
-                            </Button>
-                        </div>
-                    </>
-                ) : (
-                    <>
-                        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-5 pt-3">
-                            {/* 4 · l'attestation — le compte décide de la méthode. Le bloc
+                            <div className="border-outline-variant duo-de-pied mt-4 gap-3 border-t px-5 pt-4 pb-1">
+                                <Button
+                                    variant="ghost"
+                                    onClick={onClose}
+                                    className="!rounded-[4px]"
+                                >
+                                    {cancelLabel}
+                                </Button>
+                                <Button
+                                    variant="filled"
+                                    onClick={() => setEtape('attester')}
+                                    className="!rounded-[4px]"
+                                >
+                                    Continuer
+                                </Button>
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-5 pt-3">
+                                {/* 4 · l'attestation — le compte décide de la méthode. Le bloc
                                 entier repart à chaque signataire : le pavé du précédent ne
                                 doit pas rester à l'écran. */}
-                            <Attestation
-                                key={signer.name}
-                                signerName={signer.name}
-                                signerPin={signer.pin}
-                                signature={signature}
-                                label={attestationLabel}
-                                onChange={setAttestation}
-                            />
+                                <Attestation
+                                    key={signer.name}
+                                    signerName={signer.name}
+                                    signerPin={signer.pin}
+                                    signature={signature}
+                                    label={attestationLabel}
+                                    onChange={setAttestation}
+                                />
 
-                            {error && <InlineError>{error}</InlineError>}
-                        </div>
+                                {error && <InlineError>{error}</InlineError>}
+                            </div>
 
-                        {/* 6 · le verbe */}
-                        <div className="border-outline-variant duo-de-pied mt-4 gap-3 border-t px-5 pt-4 pb-1">
-                            <Button
-                                variant="ghost"
-                                onClick={retour}
-                                disabled={isLoading}
-                                className="!rounded-[4px]"
-                            >
-                                Retour
-                            </Button>
-                            <Button
-                                variant={confirmVariant}
-                                onClick={() => onConfirm(attestation.method)}
-                                disabled={!attestation.done || isLoading}
-                                loading={isLoading}
-                                className="!rounded-[4px]"
-                            >
-                                {error ? 'Réessayer' : confirmLabel}
-                            </Button>
-                        </div>
-                    </>
-                )}
+                            {/* 6 · le verbe */}
+                            <div className="border-outline-variant duo-de-pied mt-4 gap-3 border-t px-5 pt-4 pb-1">
+                                <Button
+                                    variant="ghost"
+                                    onClick={retour}
+                                    disabled={isLoading}
+                                    className="!rounded-[4px]"
+                                >
+                                    Retour
+                                </Button>
+                                <Button
+                                    variant={confirmVariant}
+                                    onClick={() => onConfirm(attestation.method)}
+                                    disabled={!attestation.done || isLoading}
+                                    loading={isLoading}
+                                    className="!rounded-[4px]"
+                                >
+                                    <LibelleMouvant>
+                                        {error ? 'Réessayer' : confirmLabel}
+                                    </LibelleMouvant>
+                                </Button>
+                            </div>
+                        </>
+                    )}
+                </div>
             </div>
         </div>
     );

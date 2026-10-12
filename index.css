@@ -25,6 +25,12 @@
    à son pictogramme là où il prenait la place d'un fait. */
 @custom-variant exigu (@media (max-width: 22.4375rem));
 
+/* **Le thème sombre** (10/10) — `sombre:` vaut sous `<html data-theme="dark">`. La palette
+   se change par les rôles (`theme-sombre.css`) : ce variant ne sert qu'aux rares endroits où
+   un composant doit prendre un AUTRE rôle en sombre (le bouton d'un interrupteur éteint), pas
+   à écrire une couleur. */
+@custom-variant sombre (&:where([data-theme='dark'], [data-theme='dark'] *));
+
 /* ============================================================
    NEEMBA TRACKER — TRACKER DS, couche de tokens
    ------------------------------------------------------------
@@ -68,6 +74,16 @@
     --tk-motion-easing-standard: cubic-bezier(0.2, 0, 0, 1);
     --tk-motion-easing-standard-accelerate: cubic-bezier(0.3, 0, 1, 1);
     --tk-motion-easing-standard-decelerate: cubic-bezier(0, 0, 0, 1);
+    /* Les ressorts (11/10) : un ressort amorti, écrit en points (`linear()`), à la manière de
+       SwiftUI (durée, rebond). `ressort` : rebond 0,15, se pose sans dépasser à l'œil ;
+       `ressort-ample` : rebond 0,3, dépasse sa cible de 4,6 % puis revient. Leur durée est
+       le temps de pose, plus long que la durée perçue (250 et 300 ms). Pour ce qui se
+       déplace ou change d'échelle, jamais pour une couleur ni une opacité. Calcul :
+       docs/design/PORTAGE-PLANCHES.md, « Troisième vague du mouvement ». */
+    --tk-motion-easing-ressort: linear(0, 0.004 1.1%, 0.027 2.8%, 0.072 4.9%, 0.14 7.2%, 0.225 9.8%, 0.322 12.5%, 0.424 15.4%, 0.525 18.4%, 0.62 21.6%, 0.705 24.9%, 0.779 28.3%, 0.84 31.9%, 0.89 35.5%, 0.928 39.2%, 0.956 43.1%, 0.976 47%, 0.99 51%, 0.999 55.1%, 1.003 59.2%, 1.006 63.5%, 1.006 67.8%, 1.006 72.2%, 1.005 76.7%, 1.004 81.2%, 1.003 85.8%, 1.002 90.5%, 1.002 95.2%, 1);
+    --tk-motion-duration-ressort: 350ms;
+    --tk-motion-easing-ressort-ample: linear(0, 0.006 1.1%, 0.037 2.8%, 0.1 4.9%, 0.193 7.2%, 0.308 9.8%, 0.436 12.5%, 0.566 15.4%, 0.689 18.4%, 0.797 21.6%, 0.885 24.9%, 0.952 28.3%, 0.999 31.9%, 1.028 35.5%, 1.042 39.2%, 1.046 43.1%, 1.042 47%, 1.035 51%, 1.026 55.1%, 1.018 59.2%, 1.011 63.5%, 1.005 67.8%, 1.001 72.2%, 0.999 76.7%, 0.998 81.2%, 0.998 85.8%, 0.998 90.5%, 0.999 95.2%, 1);
+    --tk-motion-duration-ressort-ample: 500ms;
 
     /* ---- COUCHES D’ÉTAT (opacités) ---- */
     --tk-state-hover-opacity: 0.08;
@@ -880,6 +896,238 @@ body {
         var(--tk-motion-easing-emphasized-decelerate) backwards;
 }
 
+/* ---- Troisième vague (11/10) : le ressort, l'arrivée en direct, le thème qui se répand ----
+   - `mvt-ressort`, `mvt-ressort-ample` : la courbe et la durée d'une **transition** qui se
+     pose au ressort (le pouce d'un interrupteur). Ce sont des rôles et non des utilitaires
+     `ease-*` : la règle globale qui donne sa courbe à toute transition, en tête de ce
+     fichier, est hors couche et l'emporte sur `@layer utilities` (un `ease-…` n'y change
+     donc rien, relevé au banc le 11/10).
+   - `mvt-bulle` : la première infobulle se pose (125 ms) ; les suivantes, tant que la
+     précédente est chaude, paraissent sans mouvement (une barre d'outils se lit d'un trait).
+   - `mvt-pays` : les pays de la carte paraissent l'un après l'autre (`--rang`).
+   - `mvt-arrivee` : une rangée arrivée d'un autre appareil se signale une fois, par son fond.
+   - `theme-en-bascule` (sur la racine, le temps d'une transition de vue) : le nouveau thème
+     se répand en cercle depuis le geste qui l'a choisi (`--bascule-x`, `-y`, `-r`). */
+/* Les mesures que le code pose en ligne, déclarées ici avec leur valeur de repli. */
+:root {
+    --rang: 0;
+    --bascule-x: 50%;
+    --bascule-y: 50%;
+    --bascule-r: 150vmax;
+}
+@keyframes tk-bulle {
+    from {
+        opacity: 0;
+        transform: translate3d(0, 2px, 0);
+    }
+}
+@keyframes tk-arrivee {
+    from {
+        background-color: color-mix(in srgb, var(--tk-color-st-bleu) 18%, transparent);
+    }
+}
+@keyframes tk-revele-cercle {
+    from {
+        clip-path: circle(0 at var(--bascule-x) var(--bascule-y));
+    }
+    to {
+        clip-path: circle(var(--bascule-r) at var(--bascule-x) var(--bascule-y));
+    }
+}
+.mvt-ressort {
+    transition-duration: var(--tk-motion-duration-ressort);
+    transition-timing-function: var(--tk-motion-easing-ressort);
+}
+.mvt-ressort-ample {
+    transition-duration: var(--tk-motion-duration-ressort-ample);
+    transition-timing-function: var(--tk-motion-easing-ressort-ample);
+}
+.mvt-bulle {
+    animation: tk-bulle 125ms var(--tk-motion-easing-standard-decelerate) backwards;
+}
+.mvt-pays {
+    animation: tk-fondu-entree var(--tk-motion-duration-medium2) var(--tk-motion-easing-standard)
+        backwards;
+    animation-delay: calc(var(--rang) * 45ms + 80ms);
+}
+.mvt-arrivee {
+    animation: tk-arrivee 1.4s var(--tk-motion-easing-standard-decelerate) backwards;
+}
+
+/* Quatrième vague (11/10), les propositions retenues.
+   - `mvt-chiffre` : la colonne d'un nombre roule jusqu'à son chiffre (`ChiffreAnime`).
+   - `mvt-mot-entree` / `mvt-mot-sortie` : dans un libellé qui change, seul le mot qui diffère
+     glisse ; le reste ne bouge pas (`LibelleMouvant`). */
+@keyframes tk-mot-entre {
+    from {
+        transform: translateY(100%);
+    }
+}
+@keyframes tk-mot-sort {
+    to {
+        transform: translateY(-100%);
+    }
+}
+.mvt-chiffre {
+    transition: transform 550ms var(--tk-motion-easing-ressort-ample);
+}
+.mvt-mot-entree {
+    animation:
+        tk-mot-entre 280ms var(--tk-motion-easing-standard) backwards,
+        tk-fondu-entree var(--tk-motion-duration-short4) var(--tk-motion-easing-standard) backwards;
+}
+.mvt-mot-sortie {
+    animation:
+        tk-mot-sort 280ms var(--tk-motion-easing-standard) forwards,
+        tk-fondu-sortie var(--tk-motion-duration-short4) var(--tk-motion-easing-standard) forwards;
+}
+
+/* **Le grand titre se replie dans la barre** (11/10), au téléphone.
+   En haut de page, la barre fait 69 (8, la rangée de 48, 12, le filet) et son titre 28. Dès
+   qu'on défile, elle remonte de 20 et ne garde que sa rangée (49) ; le titre descend à 17 sur
+   les 46 premiers pixels, et revient en haut de page. Une barre qui porte autre chose sous
+   son titre (une recherche dépliée, un fil) ne rend que ses 8 du haut.
+
+   Piloté par le défilement de la page, sans script : Chrome 115, Safari 26. Ailleurs
+   (Firefox), le titre reste grand. Ce n'est pas un mouvement qui se déclenche : il suit le
+   doigt, et « réduire les animations » le laisse donc faire.
+
+   - `barre-repliable` : l'élément collant (`sticky top-0`) ;
+   - `barre-repliable-rangee` : la rangée du titre ;
+   - `barre-repliable-titre` : le titre. */
+@keyframes tk-barre-rangee {
+    to {
+        transform: translateY(12px);
+    }
+}
+@keyframes tk-barre-titre {
+    to {
+        font-size: 1.0625rem;
+        line-height: 1.5rem;
+        letter-spacing: -0.01em;
+    }
+}
+@supports (animation-timeline: scroll()) {
+    @media (max-width: 599px) {
+        /* Le titre seul : la barre remonte de 20 (ses 8 du haut et ses 12 du bas), et la
+           rangée descend de 12 pour rester entière dans ce qui reste. */
+        .barre-repliable:has(.barre-repliable-rangee) {
+            top: -20px;
+        }
+        .barre-repliable .barre-repliable-rangee {
+            animation: tk-barre-rangee linear both;
+            animation-timeline: scroll(root block);
+            animation-range: 0px 20px;
+        }
+        /* Autre chose sous le titre : seuls les 8 du haut se rendent, la rangée ne bouge pas. */
+        .barre-repliable:has(.barre-repliable-rangee):has(> * ~ *),
+        .barre-repliable:has(.barre-repliable-rangee ~ *) {
+            top: -8px;
+        }
+        .barre-repliable:has(> * ~ *) .barre-repliable-rangee,
+        .barre-repliable:has(.barre-repliable-rangee ~ *) .barre-repliable-rangee {
+            animation: none;
+        }
+        .barre-repliable .barre-repliable-titre {
+            animation: tk-barre-titre linear both;
+            animation-timeline: scroll(root block);
+            animation-range: 0px 46px;
+        }
+    }
+}
+
+/* **L'îlot** (11/10), ce qui dure pendant qu'on continue ailleurs (`components/ui/Ilot`).
+   - `mvt-ilot` : la pastille se déplie en changeant de taille, sur un ressort ; ses angles
+     suivent sans rebond.
+   - `mvt-ilot-jauge` : la jauge avance d'un pas régulier entre deux lots confirmés.
+   - `mvt-tourne` : l'anneau de ce qui est en cours. */
+@keyframes tk-tourne {
+    to {
+        rotate: 360deg;
+    }
+}
+.mvt-ilot {
+    transition:
+        width var(--tk-motion-duration-long1) var(--tk-motion-easing-ressort-ample),
+        height var(--tk-motion-duration-long1) var(--tk-motion-easing-ressort-ample),
+        border-radius var(--tk-motion-duration-medium2) var(--tk-motion-easing-standard);
+}
+.mvt-ilot-jauge {
+    transition: width var(--tk-motion-duration-medium4) linear;
+}
+.mvt-tourne {
+    animation: tk-tourne 0.9s linear infinite;
+}
+
+/* **La rangée devient la fiche** (11/10), une transition de vue (`lib/passageDeFiche`).
+   La rangée touchée et l'en-tête de la fiche portent le même nom, `fiche` : le navigateur
+   mène le cadre de l'un à l'autre, 300 ms à l'aller, 250 au retour. Les deux images gardent
+   leur taille (pas d'étirement) et sont coupées par le cadre qui grandit ; celle qui part
+   s'efface vite, celle qui arrive se pose aussitôt. Le reste de la page passe en fondu. */
+:root.vers-la-fiche::view-transition-group(fiche),
+:root.vers-la-liste::view-transition-group(fiche) {
+    animation-timing-function: var(--tk-motion-easing-emphasized);
+    overflow: clip;
+}
+:root.vers-la-fiche::view-transition-group(fiche),
+:root.vers-la-fiche::view-transition-group(root) {
+    animation-duration: var(--tk-motion-duration-medium2);
+}
+:root.vers-la-liste::view-transition-group(fiche),
+:root.vers-la-liste::view-transition-group(root) {
+    animation-duration: var(--tk-motion-duration-medium1);
+}
+:root.vers-la-fiche::view-transition-old(fiche),
+:root.vers-la-fiche::view-transition-new(fiche),
+:root.vers-la-liste::view-transition-old(fiche),
+:root.vers-la-liste::view-transition-new(fiche) {
+    width: 100%;
+    height: 100%;
+    object-fit: none;
+    object-position: left top;
+    mix-blend-mode: normal;
+}
+:root.vers-la-fiche::view-transition-old(fiche),
+:root.vers-la-liste::view-transition-old(fiche) {
+    animation: tk-fondu-sortie var(--tk-motion-duration-short3) var(--tk-motion-easing-standard)
+        both;
+}
+:root.vers-la-fiche::view-transition-new(fiche),
+:root.vers-la-liste::view-transition-new(fiche) {
+    animation: tk-fondu-entree var(--tk-motion-duration-short3) var(--tk-motion-easing-standard)
+        both;
+}
+:root.vers-la-fiche::view-transition-old(root),
+:root.vers-la-fiche::view-transition-new(root) {
+    animation-duration: var(--tk-motion-duration-medium2);
+}
+:root.vers-la-liste::view-transition-old(root),
+:root.vers-la-liste::view-transition-new(root) {
+    animation-duration: var(--tk-motion-duration-medium1);
+}
+/* **Rien d'autre ne bouge pendant que le thème se répand** (11/10, « la transition de thème
+   n'est pas assez fluide »). Mesuré : une cinquantaine de transitions de couleur (boutons,
+   rangées, filets) partaient en même temps que le cercle. Le nouveau thème paraissait donc
+   d'abord dans les couleurs de l'ancien, et la page entière se repeignait à chaque image
+   pendant 200 ms. Le thème se pose maintenant d'un coup sous le cercle, qui est seul à
+   s'animer. */
+:root.theme-en-bascule *,
+:root.theme-en-bascule *::before,
+:root.theme-en-bascule *::after {
+    transition: none !important;
+}
+:root.theme-en-bascule::view-transition-old(root) {
+    animation: none;
+    mix-blend-mode: normal;
+}
+/* Une courbe qui part et arrive en douceur, sur 500 ms : avec la courbe « emphasized », le
+   cercle couvrait les trois quarts de l'écran en 135 ms, et l'on voyait un éclair plutôt
+   qu'un thème qui se répand. */
+:root.theme-en-bascule::view-transition-new(root) {
+    animation: tk-revele-cercle var(--tk-motion-duration-long2) cubic-bezier(0.4, 0, 0.2, 1) both;
+    mix-blend-mode: normal;
+}
+
 /* Linear indeterminate progress animation */
 @keyframes linear-indeterminate {
     0% {
@@ -1170,6 +1418,18 @@ body {
        à Button de consommer directement les primitifs --color-anthracite*. */
     --tk-color-neutral-fill: var(--color-anthracite);
     --tk-color-neutral-fill-hover: var(--color-anthracite-strong);
+    --tk-color-on-neutral-fill: #ffffff;
+
+    /* ---- Couleur — le plein d'un contrôle posé (10/10) ----
+       L'interrupteur allumé, la case cochée, la puce choisie, le bouton plein neutre : ils
+       empruntaient `inverse-surface`, le bleu-noir des héros. Tant qu'il n'y avait qu'un
+       thème, c'était la même teinte. En sombre, un héros reste sombre, mais un interrupteur
+       allumé doit trancher sur sa carte : ce sont deux rôles. Ici, en clair, ils gardent la
+       même valeur ; `theme-sombre.css` les sépare. */
+    --tk-color-contrast-fill: var(--tk-color-inverse-surface);
+    --tk-color-on-contrast-fill: #ffffff;
+    /* Le compte d'une puce choisie, la seconde encre sur un plein. */
+    --tk-color-on-contrast-fill-muted: var(--tk-color-on-dark-2);
 
     /* ---- Couleur — texte sur surface de navigation SOMBRE ----
        Le menu latéral / rail / tiroir sont une famille de surfaces sombres :
@@ -1497,37 +1757,37 @@ body {
     @media (max-width: 22.4375rem) {
         font-size: var(--tk-ts-page-size-bureau);
     }
-    @media (min-width: 840px) and (pointer: fine) {
+    @media (min-width: 740px) and (pointer: fine) {
         font-size: var(--tk-ts-page-size-bureau);
     }
 }
 @utility text-ts-sheet {
     font-size: var(--tk-ts-sheet-size);
-    @media (min-width: 840px) and (pointer: fine) {
+    @media (min-width: 740px) and (pointer: fine) {
         font-size: var(--tk-ts-sheet-size-bureau);
     }
 }
 @utility text-ts-head {
     font-size: var(--tk-ts-head-size);
-    @media (min-width: 840px) and (pointer: fine) {
+    @media (min-width: 740px) and (pointer: fine) {
         font-size: var(--tk-ts-head-size-bureau);
     }
 }
 @utility text-ts-body {
     font-size: var(--tk-ts-body-size);
-    @media (min-width: 840px) and (pointer: fine) {
+    @media (min-width: 740px) and (pointer: fine) {
         font-size: var(--tk-ts-body-size-bureau);
     }
 }
 @utility text-ts-control {
     font-size: var(--tk-ts-control-size);
-    @media (min-width: 840px) and (pointer: fine) {
+    @media (min-width: 740px) and (pointer: fine) {
         font-size: var(--tk-ts-control-size-bureau);
     }
 }
 @utility text-ts-sub {
     font-size: var(--tk-ts-sub-size);
-    @media (min-width: 840px) and (pointer: fine) {
+    @media (min-width: 740px) and (pointer: fine) {
         font-size: var(--tk-ts-sub-size-bureau);
     }
 }
@@ -1536,7 +1796,7 @@ body {
     @media (max-width: 22.4375rem) {
         line-height: var(--tk-ts-page-line-bureau);
     }
-    @media (min-width: 840px) and (pointer: fine) {
+    @media (min-width: 740px) and (pointer: fine) {
         line-height: var(--tk-ts-page-line-bureau);
     }
 }
@@ -1545,13 +1805,13 @@ body {
 }
 @utility leading-ts-head {
     line-height: var(--tk-ts-head-line);
-    @media (min-width: 840px) and (pointer: fine) {
+    @media (min-width: 740px) and (pointer: fine) {
         line-height: var(--tk-ts-head-line-bureau);
     }
 }
 @utility leading-ts-body {
     line-height: var(--tk-ts-body-line);
-    @media (min-width: 840px) and (pointer: fine) {
+    @media (min-width: 740px) and (pointer: fine) {
         line-height: var(--tk-ts-body-line-bureau);
     }
 }
@@ -1560,7 +1820,7 @@ body {
 }
 @utility leading-ts-sub {
     line-height: var(--tk-ts-sub-line);
-    @media (min-width: 840px) and (pointer: fine) {
+    @media (min-width: 740px) and (pointer: fine) {
         line-height: var(--tk-ts-sub-line-bureau);
     }
 }
@@ -1960,7 +2220,7 @@ body {
    utilitaires `text-ts-*`, posée après toutes les classes de rôle pour les surcharger.
    Le titre de page et de feuille, le titre de rangée, le corps et le secondaire
    descendent d'un cran ; les étiquettes (gestes, 14 en 500) et la légende restent. */
-@media (min-width: 840px) and (pointer: fine) {
+@media (min-width: 740px) and (pointer: fine) {
     body {
         font-size: var(--tk-ts-body-size-bureau);
     }

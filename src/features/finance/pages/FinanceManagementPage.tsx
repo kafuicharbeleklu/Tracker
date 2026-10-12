@@ -300,7 +300,7 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                                il remonte dans la marge de la page et la reprend en padding,
                                moins les 4 du `-mt-1` : posé, le titre n'a pas bougé ; collé,
                                il ne touche pas le bord. */
-                            'sticky top-0 z-20 mb-4 flex flex-col gap-3',
+                            'barre-repliable sticky top-0 z-20 mb-4 flex flex-col gap-3',
                             isCompact
                                 ? 'border-outline-variant bg-surface -mx-page-sm -mt-page-sm border-b px-4 pt-2 pb-3'
                                 : 'bg-background -mt-page pt-5',
@@ -313,7 +313,7 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                             rangée s'arrêtait 4 px avant le bord. */}
                         <div
                             className={cn(
-                                'flex items-center',
+                                'barre-repliable-rangee flex items-center',
                                 isCompact ? 'min-h-12 gap-1' : 'min-h-[52px] gap-4',
                             )}
                         >
@@ -334,7 +334,7 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                                 exercice elle parlait ; le sélecteur pleine largeur le portait
                                 pour elle. */}
                                 <div className="min-w-0 flex-1">
-                                    <h1 className="font-brand text-on-surface text-ts-page leading-ts-page font-semibold tracking-[-0.02em]">
+                                    <h1 className="barre-repliable-titre font-brand text-on-surface text-ts-page leading-ts-page font-semibold tracking-[-0.02em]">
                                         Finances
                                     </h1>
                                     {/* Le sous-titre d'une page, à la taille des autres (une
@@ -607,12 +607,16 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                             l'ordre est porté par `order` : les postes d'abord, comme avant. */}
                         <div
                             className={cn(
-                                'deux:grid deux:grid-cols-12 deux:items-stretch deux:gap-4 flex flex-col gap-4',
+                                /* **Huit colonnes à la tablette debout** (10/10) : l'histogramme
+                                   sur toute la largeur, puis les postes et les exercices côte
+                                   à côte. Elle empilait tout, et l'histogramme arrivait au
+                                   second écran. Douze colonnes dès 1 000. */
+                                'expanded:grid expanded:grid-cols-8 deux:grid-cols-12 deux:items-stretch deux:gap-4 flex flex-col gap-4',
                                 entree && 'mvt-cascade-cartes',
                             )}
                         >
                             <MonthlySpendChart
-                                className="deux:order-none deux:col-span-8 deux:row-start-1 order-3"
+                                className="expanded:order-1 expanded:col-span-8 deux:order-none deux:row-start-1 order-3"
                                 expenses={financeExpenses}
                                 year={selectedYear}
                                 allocated={budgetStats.totalAllocated}
@@ -626,7 +630,7 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                             que les sept écrans déjà portés n'ont pas. Elle tenait 16 de
                             tous les côtés et un cadre. */}
                             {/* `.dsk .card` — `4 20 8` au bureau. */}
-                            <section className="rounded-card bg-surface deux:order-none deux:col-span-8 deux:row-start-2 deux:flex deux:min-h-0 deux:flex-col deux:pt-1 deux:pb-2 order-2 px-4 py-2">
+                            <section className="rounded-card bg-surface expanded:order-2 expanded:col-span-4 deux:order-none deux:col-span-8 deux:row-start-2 deux:flex deux:min-h-0 deux:flex-col deux:pt-1 deux:pb-2 order-2 px-4 py-2">
                                 {/* `.ch` — 48 de haut, titre **17 sur 24** en graisse d'appui,
                                 le compte en 14 sur 20. Il tenait 13 px des deux côtés. */}
                                 <div className="flex min-h-12 items-baseline justify-between gap-3 pt-2 pb-1">
@@ -814,7 +818,7 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                                 types de dépense et leur part de l'enveloppe (`PartDesPostes`). Elle
                                 occupe la place que « Aller à » laissait vide à côté de
                                 l'histogramme. Au bureau seulement. */}
-                            <div className="deux:order-none deux:col-span-4 deux:row-start-1 expanded:flex order-1 hidden flex-col gap-4">
+                            <div className="deux:order-none deux:col-span-4 deux:row-start-1 deux:flex order-1 hidden flex-col gap-4">
                                 {/* **Au bureau seulement** (10/10) : sous 1000, ses destinations
                                     sont dans le ⋮ de l'en-tête. */}
                                 <section className="rounded-card bg-surface deux:block deux:pt-1 deux:pb-2 hidden px-4 py-2">
@@ -896,7 +900,7 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                                         </div>
                                     ))}
                                 </section>
-                                <section className="rounded-card bg-surface expanded:block deux:pt-1 deux:pb-2 hidden px-4 py-2">
+                                <section className="rounded-card bg-surface deux:block deux:pt-1 deux:pb-2 hidden px-4 py-2">
                                     <div className="flex min-h-12 items-center justify-between gap-3 pt-2 pb-1">
                                         <h3 className="text-on-surface text-ts-head leading-ts-head font-medium">
                                             Par poste
@@ -918,7 +922,7 @@ const FinanceManagementPage: React.FC<FinanceManagementPageProps> = ({ onViewCha
                               la page qui le porte.
                             */}
                             {autresExercices.length > 0 && (
-                                <section className="rounded-card bg-surface deux:order-none deux:col-span-4 deux:row-start-2 deux:flex deux:min-h-0 deux:flex-col deux:pt-1 deux:pb-2 order-4 hidden px-4 py-2">
+                                <section className="rounded-card bg-surface expanded:order-3 expanded:col-span-4 expanded:flex expanded:flex-col deux:order-none deux:row-start-2 deux:min-h-0 deux:pt-1 deux:pb-2 order-4 hidden px-4 py-2">
                                     <div className="flex min-h-12 items-center gap-3 pt-2 pb-1">
                                         <h3 className="text-on-surface text-ts-head leading-ts-head min-w-0 flex-1 font-medium">
                                             Exercices

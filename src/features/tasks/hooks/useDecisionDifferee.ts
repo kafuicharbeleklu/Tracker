@@ -3,6 +3,26 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 /** Le temps pendant lequel une décision se défait — puis elle s'écrit. */
 export const DELAI_ANNULATION_MS = 5000;
 
+/*
+ * **Les tâches qu'une décision en suspens a déjà retirées de la file** (11/10). La page le
+ * savait, pas le compteur de la barre : il gardait son chiffre cinq secondes de plus que
+ * l'onglet « À faire ». `usePendingTasks` les lit ici.
+ */
+let retirees: readonly string[] = [];
+const abonnes = new Set<() => void>();
+const poser = (ids: readonly string[]) => {
+    if (ids.length === 0 && retirees.length === 0) return;
+    retirees = ids;
+    abonnes.forEach((abonne) => abonne());
+};
+export const ecouterLesDecisionsEnSuspens = (abonne: () => void): (() => void) => {
+    abonnes.add(abonne);
+    return () => {
+        abonnes.delete(abonne);
+    };
+};
+export const tachesEnSuspens = (): readonly string[] => retirees;
+
 export interface DecisionEnSuspens {
     /** Ce que le bandeau dit — « Demande validée · Dell P2423 ». */
     message: string;
@@ -61,6 +81,11 @@ export const useDecisionDifferee = (surEchec: (motif: string) => void) => {
         setEnSuspens(null);
         decision?.surAnnulation?.();
     }, []);
+
+    useEffect(() => {
+        poser(enSuspens?.tachesIds ?? []);
+    }, [enSuspens]);
+    useEffect(() => () => poser([]), []);
 
     /* Quitter la page ou la fenêtre écrit ce qui attendait. */
     useEffect(() => {

@@ -140,7 +140,7 @@ export default async function imports(navigateur, baseUrl, ok) {
     );
     verifier(
         'un modèle mal écrit reçoit sa suggestion',
-        t.includes('Modèle « Dell Latitud 7420 » inconnu au catalogue — « Dell Latitude 7420 » ?'),
+        t.includes('Modèle « Dell Latitud 7420 » inconnu au catalogue : « Dell Latitude 7420 » ?'),
     );
     verifier(
         'sans site, la ligne attend le réglage',

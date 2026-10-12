@@ -42,6 +42,8 @@ export type ViewType =
     | 'finance_expenses'
     | 'finance_lines'
     | 'settings'
+    /** Les règles de l'organisation — la seconde page des Paramètres (10/10). */
+    | 'organisation'
     | 'not_found';
 
 export type UserRole = 'SuperAdmin' | 'Admin' | 'Manager' | 'User';
@@ -56,12 +58,9 @@ export interface AppSettings {
      * prestataire. Dans la devise des réglages. Facultatif : absent, la valeur par défaut.
      */
     repairQuoteThreshold?: number;
-    fiscalYearStart: string;
     defaultDepreciationMethod: 'linear' | 'degressive';
     defaultDepreciationYears: number;
     salvageValuePercent: number;
-    renewalThreshold: number;
-    roundingRule: 'standard' | 'integer' | 'ceil';
     compactNotation: boolean; // New setting for 1K, 1M formatting
 
     /**
@@ -78,19 +77,31 @@ export interface AppSettings {
      */
     maxImportFileMb: number;
 
-    // Collecte automatique
+    /*
+     * Collecte automatique : **deux réglages, que le serveur de collecte lit** (10/10).
+     *
+     * « Source active » : éteinte, le serveur refuse les remontées des agents. La clé d'API,
+     * l'adresse du serveur et la fréquence ont quitté ce document : la clé y était lisible de
+     * quiconque connaît la base, et les deux autres se règlent là où ils servent (le serveur,
+     * la stratégie de déploiement). Voir `backend/README.md`.
+     */
     autoCollectionAgentEnabled: boolean;
-    autoCollectionAgentApiKey: string;
-    autoCollectionApiBaseUrl: string;
-    autoCollectionForwardToApi: boolean;
-    autoCollectionHeartbeatMinutes: number;
-    autoCollectionAdEnabled: boolean;
-    autoCollectionAdHost: string;
-    autoCollectionAdBaseDn: string;
-    autoCollectionAdServiceAccount: string;
-    autoCollectionNetworkEnabled: boolean;
-    autoCollectionNetworkRanges: string;
     autoCollectionRequireManualValidation: boolean;
+}
+
+/**
+ * **L'état du serveur de collecte**, qu'il écrit lui-même dans `meta/collecte` : l'écran des
+ * sources le lit, faute de pouvoir joindre un serveur du réseau local depuis une page publique.
+ */
+export interface EtatDeLaCollecte {
+    /** La dernière fois que le serveur s'est signalé. */
+    vuLe: string;
+    version?: string;
+    /** Les machines qu'il connaît. */
+    machines?: number;
+    derniereRemontee?: string | null;
+    /** Celles qu'il n'a pas encore pu écrire dans la base. */
+    enAttente?: number;
 }
 
 // --- FINANCE ---
@@ -775,6 +786,9 @@ export interface DetectedDevice {
     ram?: string;
     storage?: string;
     cpu?: string;
+    /** La clé de catégorie que l'agent déduit du châssis (« Laptop », « Desktop »…). */
+    type?: string;
+    model?: string;
     currentUserName?: string;
     currentUserEmail?: string;
     macAddress?: string;

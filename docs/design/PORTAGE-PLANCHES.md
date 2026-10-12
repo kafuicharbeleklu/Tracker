@@ -5976,8 +5976,176 @@ case de sélection prend les 36 px de la vignette qu'elle remplace (chaque rang�
 Mesuré à 1440 et 1366 sur Actifs et Équipe (cartes et tableau), Tâches et la campagne : aucune
 carte ne bouge.
 
-**Propositions publiées, non construites** : une identité pour la tablette (en portrait, 16
-pages sur 19 sont une colonne de 640 px), la carte à plat en cartouches, l'histogramme du
-téléphone en rangées, un plan pour les Paramètres (langue, thème, notifications et sept autres
-réglages fixes ou à moitié branchés) — https://claude.ai/artifact/Mfxos1ckVQZA9kSmLYcDtM
+**Propositions publiées** : une identité pour la tablette (en portrait, 16 pages sur 19 sont
+une colonne de 640 px), la carte à plat en cartouches, l'histogramme du téléphone en rangées, un
+plan pour les Paramètres (langue, thème, notifications et sept autres réglages fixes ou à moitié
+branchés) : https://claude.ai/artifact/Mfxos1ckVQZA9kSmLYcDtM. Validées le soir même (« je
+valide tes propositions, tu peux les appliquer toutes ») ; la section suivante dit ce qui en a
+été construit.
 
+### Les quatre propositions du 10/10, construites
+
+**La carte à plat.** `CarteDuReferentiel` remplace le globe en pointillés (retiré, avec
+`lib/terres`). Une projection plane en SVG, cadrée sur les pays que le référentiel porte ; les
+pays à plus de 20° les uns des autres ont chacun leur cartouche, nommé par sa région. La teinte
+suit le nombre d'actifs en un, deux ou trois pas, posés aux ruptures naturelles des valeurs (sur
+la simulation : moins de 36, 36 à 99, 100 et plus, comme la maquette). Un pays touché s'approche
+et la page montre ses sites. Au téléphone et à la tablette, où le globe n'existait pas, la carte
+coiffe la liste. Mesuré à 1440, 1024, 768 et 393 : la carte garde sa taille quand un pays est
+choisi. **12.x est à mettre à jour.**
+
+**L'histogramme au téléphone.** Une rangée par mois : le mois, sa barre couchée, son montant ;
+le douzième en trait vertical, un ▲ après le montant qui le dépasse. Mesuré contre la maquette :
+rangées de 32, colonnes 44 / reste / 68, barres de 12. Le bleu remplace le vert aux trois
+formats (vert et orange ne se séparaient pas en deutéranopie). Une rangée n'ouvre pas les
+dépenses du mois : le journal n'a pas de filtre par mois. **15.1 est à mettre à jour.**
+
+**Les Paramètres.** Deux pages : « Mes préférences » (`/settings`, à tous) et « Règles de
+l'organisation » (`/settings/organisation`, à qui porte `action.settings.manage`, droit que
+rien ne lisait ; `updateSettings` le vérifie désormais). Notifications devient un écran :
+autorisation du navigateur, trois natures, son, vibration, avis d'essai, par personne et par
+appareil. « Langue » est retirée. L'année fiscale aussi : seul le filtre de l'Historique la
+lisait, et les budgets enregistrent leurs consommations par année civile. Le dégressif se
+calcule (`calculateDepreciation`). `renewalThreshold`, `roundingRule` et les champs de l'annuaire
+et du scan réseau quittent la donnée ; ces deux sources disent « Non branché ». « Aide » met la
+version dans l'objet du courriel ; « Version » porte la date de publication. Restent à faire :
+les sessions (elles attendent l'authentification Microsoft) et la traduction (conditionnelle).
+**14.1 et 07.1 sont à mettre à jour.**
+
+**Le thème sombre.** Clair (par défaut), sombre, ou celui de l'appareil ; réglage par appareil,
+posé avant le premier rendu. Une palette de 86 rôles dans `theme-sombre.css`, que le garde des
+jetons vérifie. Le plein d'un contrôle posé (interrupteur, case, puce choisie) prend un rôle à
+lui, `contrast-fill` : il empruntait le bleu-noir des héros, qui reste sombre. Contrastes mesurés
+sur 19 pages au bureau et au téléphone : trois écarts trouvés et corrigés (compte d'une puce
+choisie, pastille de la barre du bas, encre tertiaire sur le creux fort). **00.x (palette) est à
+compléter d'une colonne sombre.**
+
+**La tablette.** Le régime à deux volets commence à 740 px, et plus à 840 : les tablettes tenues
+debout y entrent. À 768, 19 pages sur 20 posent au moins deux zones (16 sur 19 n'en avaient
+qu'une). Listes : 300 + fiche ; Actifs et Équipe, sans objet ouvert, en deux colonnes de cartes.
+Fiches : héros en bandeau, cartes par deux, gestes d'en-tête en pied au doigt. Accueil en grille
+de huit (1,3 écran au lieu de 2,1). Finances, Inventaire, Campagne, Accès, Emplacements et
+Paramètres ont chacun leurs deux zones ; la feuille d'acte glisse de la droite. Trois écarts à la
+proposition : les lignes du budget restent empilées (le tableau demande 690 px, mesure du 07/10),
+l'Historique et les Dépenses gardent leur colonne (ce sont des journaux datés), les quatre
+tuiles de Finances ne vont de front qu'à partir de 900 px. **Les planches n'ont pas de colonne
+tablette : 00.3 et 00.5 fixaient 840 et le dialogue centré à 768, à réviser.**
+
+**Deux retours du commanditaire pendant la passe.** Le creux de la destination active du rail
+ne couvrait que le glyphe : il tient maintenant le glyphe et son mot. Et « évite les " —" dans
+les textes » : 108 tirets cadratins de phrase remplacés dans les libellés, les messages et les
+`aria-label` ; le « — » seul, qui tient lieu de valeur absente dans une cellule, est resté.
+
+### Collecte, fiche de comptage, carte unique, troisième vague du mouvement (11/10)
+
+Quatre demandes du commanditaire le 10/10 au soir, construites dans la nuit.
+
+**Le serveur de collecte.** *« améliore le backend de la Sources de collecte »*. L'agent
+envoyait ses remontées à `backend/server.mjs`, qui les rangeait dans un fichier que rien ne
+lisait : seul un fichier déposé à la main faisait entrer une machine dans l'application. Et le
+script de l'agent plantait avant tout envoi (`Test-Path … -or …`, lu comme un paramètre). La
+chaîne est fermée : poste → serveur → Firestore (`detectedDevices`, `meta/collecte`) →
+application → Tâches. L'application étant une page statique, elle ne joint pas un serveur du
+réseau local : tout passe par Firestore, y compris l'interrupteur « Source active », que le
+serveur lit (éteint, il répond 403). Une machine se reconnaît à son UUID puis à son numéro de
+série, plus à leur collage avec l'adresse MAC (un portable sur sa station d'accueil devenait une
+seconde machine) ; les valeurs d'usine ne désignent rien. Une machine ignorée le reste. La clé
+d'API quitte les réglages (elle était lisible dans `meta/settings`) et voyage en en-tête ; la
+lecture demande la clé d'administration ; avec les clés d'essai le serveur n'écoute que la
+machine locale. Le lieu d'une machine importée n'est plus « France, Bureau Paris » : ce qu'elle
+dit, sinon l'actif reconnu, sinon la personne en session, sinon qui valide. 51 essais
+(`npm run backend:test`, dont 7 contre l'émulateur et 9 qui lancent les scripts PowerShell),
+et la chaîne entière jouée au banc. Non éprouvé : WMI sur un vrai poste, la tâche planifiée,
+PowerShell 5.1, un vrai annuaire. **14.1 (sources) est à mettre à jour** : la feuille de
+l'agent ne porte plus que son interrupteur et l'état du serveur.
+
+**La fiche de comptage.** *« le formulaire […] présente des bugs […] si je retrouve
+l'équipement mais qu'il est cassé, on aurait du mal à éditer ça depuis la campagne »*. Quatre
+défauts reproduits au banc puis corrigés : Échap sur une liste ouverte fermait toute la fiche ;
+la liste du dernier champ passait sous le pied de la fenêtre ; « Aucun service » écrivait
+« IT HQ » ; un commentaire seul ne s'enregistrait pas. Les deux premiers tenaient à
+`SelectField` et sont corrigés pour tous ses emplois : Échap ne ferme que la liste, et elle
+s'ouvre vers le haut quand la place manque. Ajouts : la recherche dans la liste des détenteurs,
+le service qui suit le détenteur choisi, le détenteur verrouillé quand un parcours court, et
+**l'état constaté** : les trois crans de la déclaration d'incident. Un cran choisi, le comptage
+s'écrit puis la déclaration s'ouvre dessus, avec ses photos et son attestation (04.3) : le même
+acte que sur la fiche de l'actif. Un actif « Manquant » ou « Perdu » qu'on retrouve revient au
+parc. **16.x est à compléter de l'état constaté.**
+
+**Une seule carte.** *« on devrait avoir une seule map au lieu de 2 »*. Les cartouches par
+région sont retirés : une toile unique, en projection de Mercator, ouverte sur la région la
+plus fournie, avec des raccourcis par région. On la déplace à la souris, on l'agrandit avec
+Ctrl + molette (la molette seule reste à la page), à deux doigts au tactile (un doigt reste au
+défilement), au clavier et par deux boutons. Mesurée aux quatre formats : aucune étiquette ne
+chevauche, le bloc ne change pas de taille. **12.x est à mettre à jour.**
+
+**Troisième vague du mouvement.** *« ajoute plus d'animation […] pour nous proposer des
+suggestions encore plus originales »*. Posés : deux ressorts dans les jetons, calculés comme
+ceux de SwiftUI (ζ = 1 − rebond, ω = 2π ÷ durée) et écrits en `linear()` : rebond 0,15 (se pose
+en 1,39 fois la durée perçue, dépasse de 0,6 %) et 0,3 (1,64 fois, 4,6 %) ; le pouce d'un
+interrupteur prend le second. Le thème se répand en cercle depuis le geste (transition de vue,
+450 ms ; d'un coup sous « réduire les animations »). Une rangée arrivée d'un autre appareil se
+signale une fois (`useArrivees`). La première infobulle se pose, ses voisines paraissent sans
+attendre ni bouger. Les pays de la carte paraissent l'un après l'autre. La liste d'un champ de
+choix prend le rôle du menu. Trouvé en passant : un utilitaire `ease-*` ne change rien, la
+règle globale de courbe étant hors couche ; les ressorts sont donc des rôles `mvt-*`. Neuf
+mouvements plus originaux sont proposés, pas construits :
+https://claude.ai/artifact/DuQMcE82u3AaKdFie4FUWs
+
+### Quatrième vague du mouvement, et le thème retouché (11/10)
+
+Arbitrage du commanditaire sur les neuf propositions : *« je valide toutes tes suggestions sauf
+8. Le rail grossit sous le pointeur et 9. Une lumière sous le pointeur »*. Les sept premières
+sont construites ; les deux dernières ne le seront pas.
+
+**1. La rangée devient la fiche** (`lib/passageDeFiche`). Une transition de vue jouée au
+changement d'adresse : la rangée touchée (`data-rangee`) et l'en-tête de la fiche
+(`data-fiche-entete`) portent le même nom, 300 ms à l'aller, 250 au retour. Au retour, la liste
+revient où on l'avait laissée (elle remontait en tête). Actifs, Équipe, les rangées de
+l'accueil. Pas de passage pour une rangée de tableau, ni pour les emplacements (leurs rangées
+ne portent pas `data-rangee`), ni au retour vers une rangée au-delà des trente premières d'une
+liste virtuelle : la page change alors en fondu. Le code d'une fiche se charge d'avance depuis
+sa liste.
+
+**2. La feuille change de hauteur** (`useHauteurQuiSuit`). `ActSheet` (choix d'un bloc,
+récapitulatif, attestation) et `BottomSheet` (prop `etape` : incident, sortie du parc) gardent
+leur bord et prennent la hauteur de l'étape suivante, 450 ms au ressort ; le contenu arrive en
+fondu, 220 ms.
+
+**3. Ce qu'on traite s'en va vers son compteur** (`lib/vol`). Une pastille quitte la rangée de
+la tâche et rejoint le compteur « Tâches » (barre du bas au téléphone, rail au-delà), qui ne
+baisse qu'à son arrivée ; la rangée se referme et les suivantes remontent. Verte pour ce qui
+est fait, grise pour ce qui est refusé ou ignoré. Le compteur du rail compte maintenant les
+décisions en suspens : il gardait son chiffre cinq secondes de plus que l'onglet « À faire ».
+
+**4. Le grand titre se replie** (rôles `barre-repliable-*`), au téléphone. En haut de page la
+barre fait 69 et son titre 28 ; dès qu'on défile elle fait 49 et le titre 17. Piloté par le
+défilement, en CSS (Chrome 115, Safari 26 ; ailleurs le titre reste grand). Listes, fiches,
+Paramètres, Catalogue, Emplacements, Finances, Rapports, campagne, lignes du budget. Pas
+l'accueil (son en-tête est une salutation), ni les formulaires plein écran (leur barre n'est
+pas dans ce qui défile). **17.8 est à mettre à jour.**
+
+**5. Un îlot pour ce qui dure** (`lib/activites`, `components/ui/Ilot`). L'envoi d'un import
+vers la base se suit dans une pastille en haut de l'écran, qu'on déplie d'un appui et qui reste
+quand on change de page : le fichier, une jauge, les lignes refusées. La couche de persistance
+annonce les documents confirmés (`ecouterLesDocumentsEcrits`). Elle ne paraît qu'après une
+demi-seconde d'attente et dit la fin deux secondes. Au téléphone elle recouvre le milieu de la
+barre de titre le temps de l'envoi. Imports d'équipements, de personnes, de modèles.
+
+**6. Le libellé et le chiffre se transforment.** `LibelleMouvant` : dans un libellé de bouton
+qui change, seul le mot qui diffère glisse (fiche de comptage, verbe d'une feuille d'acte, lot
+de tâches, pied des formulaires). `ChiffreAnime` compte toujours à l'arrivée ; quand sa valeur
+change ensuite, ses chiffres roulent colonne par colonne (550 ms).
+
+**7. Une célébration, une fois par campagne** (`lib/celebration`). À la validation d'un
+inventaire sans aucun manquant, quatorze signes LIVE partent du bouton, 700 ms.
+
+**Le thème.** *« la transition de thème n'est pas assez fluide »*. Mesuré : 46 à 55 transitions
+de couleur partaient en même temps que le cercle, si bien que la page entière se repeignait à
+chaque image, et la courbe couvrait les trois quarts de l'écran en 135 ms. Plus rien d'autre ne
+s'anime pendant la bascule, et le cercle prend une courbe douce sur 500 ms. Au format téléphone :
+l'attente avant le cercle passe de 230 à 80 ms, l'écart médian entre deux images de 33 à 50 ms
+selon le sens à 17 ms. À 1 440, sur un banc sans carte graphique, il reste à 33 à 50 ms.
+
+Contrôles : types, lint, design system, jetons, 152 essais de bout en bout. Non éprouvé : un
+vrai appareil, Safari, Firefox ; la célébration sur une vraie validation de campagne.

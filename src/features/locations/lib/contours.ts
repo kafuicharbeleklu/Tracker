@@ -247,6 +247,9 @@ const CONTOURS: Record<string, string> = {
 
 export type Anneau = Float32Array;
 
+/** Les codes de tous les pays qui ont un contour — pour dessiner les voisins d'un pays porté. */
+export const codesDesContours = (): string[] => Object.keys(CONTOURS);
+
 const lus = new Map<string, Anneau[]>();
 
 /** Les anneaux d'un pays — `[longitude, latitude, longitude, latitude…]` en degrés —, ou rien. */

@@ -604,7 +604,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
         typeof invitationAgeDays !== 'number'
             ? undefined
             : invitationExpired
-              ? 'passé 7 jours — à renvoyer'
+              ? 'passé 7 jours, à renvoyer'
               : `valable ${7 - invitationAgeDays} jour${7 - invitationAgeDays > 1 ? 's' : ''}`;
 
     const suspendedAt = formatDate(user.suspendedAt);
@@ -646,7 +646,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
         } catch {
             /* Le presse-papier est refusé hors contexte sûr : le lien reste lisible
                à l'écran, et le dire vaut mieux qu'un succès qui n'a pas eu lieu. */
-            showToast('Copie refusée par le navigateur — le lien reste affiché.', 'warning');
+            showToast('Copie refusée par le navigateur : le lien reste affiché.', 'warning');
         }
     };
 
@@ -819,7 +819,7 @@ const UserDetailsPage: React.FC<UserDetailsPageProps> = ({
         if (!kind) return null;
         const inHand = item.user ? true : false;
         const verb = inHand ? 'À récupérer' : 'À réattribuer';
-        if (kind === 'suspended') return `${verb} — porteur suspendu`;
+        if (kind === 'suspended') return `${verb} : porteur suspendu`;
         const until = formatShortDate(alert?.until ?? user.departureDate);
         return until ? `${verb} avant le ${until}` : verb;
     };

@@ -72,6 +72,11 @@ interface IncidentSheetProps {
      * traçabilité, et il se prouve comme les autres.
      */
     declarer?: { pin?: string; id?: string };
+    /**
+     * Ce que l'appelant sait déjà en ouvrant la feuille : le cran et le commentaire posés
+     * sur la fiche de comptage d'une campagne, pour ne pas les redemander.
+     */
+    depart?: { outcome?: IncidentOutcome; comment?: string };
     onClose: () => void;
     onDeclare: (payload: {
         outcome: IncidentOutcome;
@@ -87,10 +92,11 @@ const IncidentSheet: React.FC<IncidentSheetProps> = ({
     item,
     declarerName,
     declarer,
+    depart,
     onClose,
     onDeclare,
 }) => {
-    const [outcome, setOutcome] = useState<IncidentOutcome>('immobilised');
+    const [outcome, setOutcome] = useState<IncidentOutcome>(depart?.outcome ?? 'immobilised');
     const {
         photos,
         ajouter: ajouterPhotos,
@@ -99,7 +105,7 @@ const IncidentSheet: React.FC<IncidentSheetProps> = ({
     } = usePhotosJointes();
     /** Ce que la borne de 5 Mo a écarté — lu sous le champ des photos. */
     const [refusPhoto, setRefusPhoto] = useState<string | null>(null);
-    const [comment, setComment] = useState('');
+    const [comment, setComment] = useState(depart?.comment ?? '');
     /* Le bloc 4 : tant qu'il n'est pas fait, il n'y a rien à déclarer. */
     const [attestation, setAttestation] = useState<{ method: AttestationMethod; done: boolean }>({
         method: declarer?.pin ? 'pin' : 'signature',
@@ -112,6 +118,15 @@ const IncidentSheet: React.FC<IncidentSheetProps> = ({
     /* Une feuille qui s'ouvre commence un acte : ce qui a été signé avant ne la concerne pas. */
     useEffect(() => {
         if (open) oublierLesSignatures();
+    }, [open]);
+
+    /* Ouverte avec un départ, elle le reprend : la feuille reste montée d'un acte à l'autre. */
+    useEffect(() => {
+        if (!open || !depart) return;
+        if (depart.outcome) setOutcome(depart.outcome);
+        if (depart.comment !== undefined) setComment(depart.comment);
+        // Le départ se lit à l'ouverture seulement : le changer ensuite n'efface pas la saisie.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open]);
 
     useEffect(() => {
@@ -201,7 +216,7 @@ const IncidentSheet: React.FC<IncidentSheetProps> = ({
     };
 
     return (
-        <BottomSheet open={open} onClose={close} title="Déclarer un incident">
+        <BottomSheet open={open} onClose={close} title="Déclarer un incident" etape={etape}>
             {etape === 'recap' ? (
                 <div className="flex flex-col gap-4">
                     <p className="text-on-surface-variant text-ts-sub leading-ts-sub">

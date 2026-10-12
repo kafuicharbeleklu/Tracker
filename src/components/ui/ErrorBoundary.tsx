@@ -81,7 +81,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 
         const copier = () => {
             const releve = [
-                'Tracker — erreur d’affichage',
+                'Tracker : erreur d’affichage',
                 heure ? `Survenu le ${heure}` : null,
                 `Page ${page}`,
                 error.message ? `Message : ${error.message}` : null,

@@ -163,7 +163,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ src, subject }) => {
 
                         <footer className="shrink-0 px-4 pt-1 pb-4 text-center text-[0.75rem] leading-4 text-white/60 tabular-nums">
                             {taille
-                                ? `${new Intl.NumberFormat('fr-FR').format(taille.w)} × ${new Intl.NumberFormat('fr-FR').format(taille.h)} px — ${taille.reduite ? 'réduite pour tenir dans l’écran' : 'taille réelle, sans agrandissement'}`
+                                ? `${new Intl.NumberFormat('fr-FR').format(taille.w)} × ${new Intl.NumberFormat('fr-FR').format(taille.h)} px, ${taille.reduite ? 'réduite pour tenir dans l’écran' : 'taille réelle, sans agrandissement'}`
                                 : ' '}
                         </footer>
                     </div>,

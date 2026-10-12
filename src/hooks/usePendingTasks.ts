@@ -1,5 +1,9 @@
-import { useMemo } from 'react';
+import { useMemo, useSyncExternalStore } from 'react';
 
+import {
+    ecouterLesDecisionsEnSuspens,
+    tachesEnSuspens,
+} from '../features/tasks/hooks/useDecisionDifferee';
 import { useFileDeTaches } from '../features/tasks/hooks/useFileDeTaches';
 import type { TaskNature } from '../features/tasks/lib/file';
 
@@ -45,11 +49,13 @@ const RESUME: { nature: TaskNature; label: string }[] = [
 
 export const usePendingTasks = () => {
     const file = useFileDeTaches();
+    /* Une décision qui attend son écriture a déjà quitté la file : le compte le dit aussi. */
+    const enSuspens = useSyncExternalStore(ecouterLesDecisionsEnSuspens, tachesEnSuspens);
 
     const tasks = useMemo<PendingTask[]>(
         () =>
             file
-                .filter((task) => task.scope === 'todo')
+                .filter((task) => task.scope === 'todo' && !enSuspens.includes(task.id))
                 .map((task) => ({
                     id: task.id,
                     who: task.who ?? '',
@@ -57,7 +63,7 @@ export const usePendingTasks = () => {
                     nature: task.nature,
                     since: task.since ?? undefined,
                 })),
-        [file],
+        [enSuspens, file],
     );
 
     /**

@@ -1,0 +1,126 @@
+/* ============================================================
+   TRACKER DS — LE THÈME SOMBRE (10/10)
+   ------------------------------------------------------------
+   Une palette, et rien d'autre : chaque ligne redonne une valeur à un RÔLE de la couche
+   sémantique d'`index.css`. Aucun rôle ne naît ici — `scripts/check-design-tokens.mjs`
+   refuse un nom qu'`index.css` ne déclare pas.
+
+   Le thème se pose sur `<html data-theme="dark">` (`src/lib/theme.ts`) : « Sombre », ou
+   « Celui de l'appareil » quand l'appareil est en sombre. Le clair reste le défaut.
+
+   La famille est le bleu-noir du produit, éclairci par étages : la page, la carte, le
+   creux. Les héros gardent leur bleu-noir, un cran plus soutenu que la page ; ce qui doit
+   trancher sur une carte (interrupteur allumé, case cochée, bouton plein neutre) passe à
+   l'encre claire.
+   ============================================================ */
+:root[data-theme='dark'] {
+    color-scheme: dark;
+
+    /* ---- Fonds et textes du contenu ---- */
+    --tk-color-app-bg: #111617;
+    --tk-color-login-desktop-canvas: #0b1011;
+    --tk-color-surface-muted: #232a2c;
+    --tk-color-surface-muted-strong: #2d3537;
+    --tk-color-text-primary: #f1efe9; /* 14,6:1 sur la carte */
+    --tk-color-text-muted: #a3a9a8; /* 6,8:1 sur la carte */
+    --tk-color-text-note: #c9cdcb;
+    --tk-color-text-tertiary: #99a1a0; /* 6,2:1 sur la carte, 4,7:1 sur le creux fort */
+    --tk-color-brand-hover: #ffd53d;
+
+    /* ---- Statuts ---- */
+    --tk-color-success: #4cc38a;
+    --tk-color-success-light: #12352a;
+    --tk-color-success-strong: #8fe3b9;
+    --tk-color-warning: #f08a2e;
+    --tk-color-warning-light: #3b2412;
+    --tk-color-warning-strong: #ffc091;
+    --tk-color-danger: #f2776b;
+    --tk-color-danger-light: #3c1614;
+    --tk-color-danger-strong: #ffb4ab;
+    --tk-color-info: #7aa7ff;
+    --tk-color-info-light: #16233f;
+    --tk-color-info-strong: #b6ccff;
+
+    /* ---- Bordures et focus ---- */
+    --tk-color-border-default: #30383a;
+    --tk-color-border-strong: #7d8786; /* 4,5:1 sur la carte, 3,4:1 sur le creux fort */
+    --tk-color-focus-ring: #f1efe9;
+
+    /* ---- Accents ---- */
+    --tk-color-primary-container: #3d3306;
+    --tk-color-on-primary-container: #ffe58a;
+    --tk-color-secondary: #c9cdcb;
+    --tk-color-on-secondary: #1a1917;
+    --tk-color-secondary-container: #2d3537;
+    --tk-color-on-secondary-container: #f1efe9;
+    --tk-color-on-tertiary: #0b1f17;
+    --tk-color-on-tertiary-container: #a7ecc9;
+    --tk-color-on-error: #2a0b08;
+    --tk-color-on-error-container: #ffdad6;
+
+    /* ---- Surfaces ---- */
+    --tk-color-surface: #1a2022;
+    --tk-color-surface-variant: #232a2c;
+    --tk-color-surface-dim: #151b1d;
+    --tk-color-surface-bright: #232a2c;
+    --tk-color-surface-container-lowest: #1a2022;
+    --tk-color-surface-container-low: #1a2022;
+    --tk-color-surface-container-high: #2d3537;
+    --tk-color-surface-container-highest: #2d3537;
+    --tk-color-pressed-surface: #2d3537;
+
+    /* ---- La famille sombre : les héros, la barre de sélection, le scan ---- */
+    --tk-color-inverse-surface: #0f2329;
+    --tk-color-dark: #0f2329;
+    --tk-color-dark-2: #1c353b;
+    --tk-color-scrim: #000000;
+
+    /* ---- Ce qui tranche sur une carte ---- */
+    --tk-color-neutral-fill: #e9e6df;
+    --tk-color-neutral-fill-hover: #ffffff;
+    --tk-color-on-neutral-fill: #1a1917;
+    --tk-color-contrast-fill: #e9e6df;
+    --tk-color-on-contrast-fill: #101516;
+    --tk-color-on-contrast-fill-muted: #4a5253; /* 6,4:1 sur le plein */
+    --tk-color-nav-active: #fdc910;
+
+    /* ---- Les paires teintées : le fond, et l'encre qui tient dessus ---- */
+    --tk-color-tint-vert: #1f2d1c;
+    --tk-color-on-tint-vert: #a9d49a;
+    --tk-color-tint-bleu: #16303f;
+    --tk-color-on-tint-bleu: #8cc7ea;
+    --tk-color-tint-orange: #3d2118;
+    --tk-color-on-tint-orange: #f5a98b;
+    --tk-color-tint-ambre: #3a2e0a;
+    --tk-color-on-tint-ambre: #f0cf6a;
+    --tk-color-tint-danger: #3a1c19;
+    --tk-color-on-tint-danger: #f3a59c;
+
+    /* ---- Les couleurs d'état : un cran plus clair, pour tenir sur le sombre ---- */
+    --tk-color-st-vert: #7fb45e;
+    --tk-color-st-bleu: #3f9ad3;
+    --tk-color-st-ambre: #d9a520;
+    --tk-color-st-orange: #e8643c;
+    --tk-color-st-rouge: #e5675c;
+    --tk-color-st-gris: #99a1a0;
+
+    /* ---- Les rôles « -next » de la bascule en cours ---- */
+    --tk-color-text-primary-next: #f1efe9;
+    --tk-color-text-secondary-next: #a3a9a8;
+    --tk-color-text-muted-next: #99a1a0;
+    --tk-color-border-default-next: #30383a;
+    --tk-color-surface-muted-next: #232a2c;
+    --tk-color-success-next: #4cc38a;
+    --tk-color-warning-light-next: #3a2e0a;
+    --tk-color-warning-strong-next: #f0cf6a;
+
+    /* ---- Les ombres : le sombre du produit ne se voit plus sur du sombre ---- */
+    --tk-elevation-1: 0 1px 3px rgb(0 0 0 / 0.4), 0 1px 2px rgb(0 0 0 / 0.3);
+    --tk-elevation-2: 0 4px 6px -1px rgb(0 0 0 / 0.45), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+    --tk-elevation-3: 0 10px 15px -3px rgb(0 0 0 / 0.5), 0 4px 6px -4px rgb(0 0 0 / 0.3);
+    --tk-elevation-4: 0 20px 25px -5px rgb(0 0 0 / 0.55), 0 8px 10px -6px rgb(0 0 0 / 0.3);
+    --tk-elevation-5: 0 24px 60px rgb(0 0 0 / 0.6);
+    --tk-shadow-sheet: 0 -10px 30px rgba(0, 0, 0, 0.5);
+    --tk-shadow-dialog: 0 12px 40px rgba(0, 0, 0, 0.55);
+    --tk-shadow-fab: 0 4px 14px rgba(0, 0, 0, 0.5);
+}

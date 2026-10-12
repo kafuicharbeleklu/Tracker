@@ -7,12 +7,12 @@ import { useObjetOuvert } from './useObjetOuvert';
 import { useEchap } from './useEchap';
 
 /**
- * **La liste et la fiche côte à côte, dès 840** (P2a, 25/09) — ce qu'une liste d'objets
+ * **La liste et la fiche côte à côte, dès 740** (P2a, 25/09 ; 840 avant le 10/10) — ce qu'une liste d'objets
  * partage : Actifs, Équipe, Historique.
  *
  * - `possible` : la page s'y prête maintenant (les cartes, pas le tableau ; une fiche à
  *   montrer). Au tableau, l'objet ouvert est oublié : le tableau ouvre la page.
- * - `sousLeSeuil` : ce que devient l'objet ouvert quand la fenêtre passe sous 840 — un
+ * - `sousLeSeuil` : ce que devient l'objet ouvert quand la fenêtre passe sous le seuil — un
  *   iPad qu'on tourne, une fenêtre qu'on rétrécit. La fiche reste : la page de l'objet
  *   pour un actif ou une personne ; pour l'historique, la feuille du fait, qui reçoit
  *   `fermer` pour retirer `?ouvert=` de l'adresse.

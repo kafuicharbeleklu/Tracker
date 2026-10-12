@@ -1,6 +1,9 @@
 import React from 'react';
 
 import ListeDeFaits from '../../../components/ui/ListeDeFaits';
+import { useAuth } from '../../../context/AuthContext';
+import { useData } from '../../../context/DataContext';
+import { lieuDeLaMachine } from '../../../lib/lieuDeLaMachine';
 import type { DetectedDevice } from '../../../types';
 import { ageLabel } from '../lib/file';
 
@@ -16,26 +19,37 @@ import { ageLabel } from '../lib/file';
  * la vue »). Les faits prennent la liste commune (`ListeDeFaits`) ; la ressemblance se lit
  * dans la sous-ligne de la tâche (« correspondance à confirmer »), et se tranche à l'import.
  */
-const ExamenDeMachine: React.FC<{ machine: DetectedDevice }> = ({ machine }) => (
-    <ListeDeFaits
-        label="Ce que la machine dit d’elle-même"
-        faits={[
-            ['Nom réseau', machine.hostname],
-            ['Identifiant', machine.assetId],
-            ['Numéro de série', machine.serialNumber],
-            ['Système', machine.os],
-            /* Qui s'en sert, et ce qu'elle a dans le ventre (08/10) : on reconnaît une
-               machine à son utilisateur avant son numéro. */
-            ['Session ouverte', machine.currentUserName],
-            ['Matériel', [machine.cpu, machine.ram, machine.storage].filter(Boolean).join(' · ')],
-            [
-                'Emplacement',
-                [machine.country, machine.site, machine.service].filter(Boolean).join(' · '),
-            ],
-            ['Première vue', ageLabel(machine.firstSeenAt)],
-            ['Dernière vue', ageLabel(machine.lastSeenAt)],
-        ]}
-    />
-);
+const ExamenDeMachine: React.FC<{ machine: DetectedDevice }> = ({ machine }) => {
+    const { equipment, users } = useData();
+    const { currentUser } = useAuth();
+    /* Le lieu où « Importer au parc » la rangera : ce qu'elle dit, sinon ce qu'on en déduit
+       (`lieuDeLaMachine`). Il se lit ici avant le geste, plus après coup sur la fiche. */
+    const lieu = lieuDeLaMachine(machine, { equipment, users, validateur: currentUser });
+    return (
+        <ListeDeFaits
+            label="Ce que la machine dit d’elle-même"
+            faits={[
+                ['Nom réseau', machine.hostname],
+                ['Identifiant', machine.assetId],
+                ['Numéro de série', machine.serialNumber],
+                ['Modèle', machine.model],
+                ['Système', machine.os],
+                /* Qui s'en sert, et ce qu'elle a dans le ventre (08/10) : on reconnaît une
+                   machine à son utilisateur avant son numéro. */
+                ['Session ouverte', machine.currentUserName],
+                [
+                    'Matériel',
+                    [machine.cpu, machine.ram, machine.storage].filter(Boolean).join(' · '),
+                ],
+                [
+                    'Emplacement',
+                    [lieu?.country, lieu?.site, machine.service].filter(Boolean).join(' · '),
+                ],
+                ['Première vue', ageLabel(machine.firstSeenAt)],
+                ['Dernière vue', ageLabel(machine.lastSeenAt)],
+            ]}
+        />
+    );
+};
 
 export default ExamenDeMachine;

@@ -32,6 +32,7 @@ const PAGES = [
     ['/locations', 'emplacements'],
     ['/history', 'historique'],
     ['/settings', 'parametres'],
+    ['/settings/organisation', 'organisation'],
     ['/rbac', 'acces'],
 ];
 

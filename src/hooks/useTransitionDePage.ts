@@ -1,5 +1,7 @@
 import { useEffect, useRef, type RefObject } from 'react';
 
+import { passageDeFicheEnCours } from '../lib/passageDeFiche';
+
 /** Une durée ou une courbe du système, lue sur la racine : les jetons font foi. */
 const jeton = (nom: string, repli: string): string =>
     getComputedStyle(document.documentElement).getPropertyValue(nom).trim() || repli;
@@ -38,6 +40,8 @@ export const useTransitionDePage = (contenu: RefObject<HTMLElement | null>, page
            cadrerait sur elle le temps du passage. Il a sa propre entrée. */
         if (element.querySelector('[data-plein-ecran]')) return;
         if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        /* La rangée devient la fiche (11/10) : ce passage-là a son propre mouvement. */
+        if (passageDeFicheEnCours()) return;
 
         const sens =
             avant.section !== actuelle.section || avant.profondeur === actuelle.profondeur

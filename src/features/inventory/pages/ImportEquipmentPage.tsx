@@ -12,6 +12,7 @@ import { useData } from '../../../context/DataContext';
 import { useToast } from '../../../context/ToastContext';
 import { Equipment } from '../../../types';
 import { imageARecopier } from '../../../lib/imageDeModele';
+import { suivreUnEnvoi } from '../../../lib/activites';
 import { deducedAssetName, nextInternalCode, proposeReadableId } from '../lib/assetCode';
 
 interface ImportEquipmentPageProps {
@@ -91,7 +92,7 @@ interface EquipmentDraft {
 const COLUMNS: ImportColumn[] = [
     {
         key: 'Model',
-        description: 'Un modèle du catalogue — il porte le type et la marque',
+        description: 'Un modèle du catalogue : il porte le type et la marque',
         requirement: 'requis',
         required: true,
         alias: ['Modèle', 'Model Commercial', 'Modèle commercial', 'Référence', 'Désignation'],
@@ -105,7 +106,7 @@ const COLUMNS: ImportColumn[] = [
     },
     {
         key: 'Country',
-        description: "Le pays du référentiel — son code ouvre l'identifiant",
+        description: "Le pays du référentiel : son code ouvre l'identifiant",
         requirement: 'requis',
         required: true,
         alias: ['Pays'],
@@ -113,7 +114,7 @@ const COLUMNS: ImportColumn[] = [
     },
     {
         key: 'Site',
-        description: "L'emplacement de la ligne — la fiche y naît",
+        description: "L'emplacement de la ligne : la fiche y naît",
         requirement: 'requis',
         required: true,
         alias: ['Emplacement', 'Localisation', 'Agence'],
@@ -121,7 +122,7 @@ const COLUMNS: ImportColumn[] = [
     },
     {
         key: 'Brand',
-        description: 'La marque — elle départage deux modèles au même nom',
+        description: 'La marque : elle départage deux modèles au même nom',
         requirement: 'facultatif',
         alias: ['Marque', 'Fabricant', 'Constructeur', 'Manufacturer'],
     },
@@ -133,19 +134,19 @@ const COLUMNS: ImportColumn[] = [
     },
     {
         key: 'Memory',
-        description: 'Mémoire — « 16 Go »',
+        description: 'Mémoire : « 16 Go »',
         requirement: 'facultatif',
         alias: ['Mémoire', 'RAM'],
     },
     {
         key: 'Storage',
-        description: 'Stockage — « 512 Go SSD »',
+        description: 'Stockage : « 512 Go SSD »',
         requirement: 'facultatif',
         alias: ['Stockage', 'Disque', 'Capacité'],
     },
     {
         key: 'OS',
-        description: 'Système — « Windows 11 Pro »',
+        description: 'Système : « Windows 11 Pro »',
         requirement: 'facultatif',
         alias: ['Système', "Système d'exploitation", 'Version Windows'],
     },
@@ -157,25 +158,25 @@ const COLUMNS: ImportColumn[] = [
     },
     {
         key: 'PurchaseDate',
-        description: "Date d'achat — « 2026-01-05 » ou « 05/01/2026 »",
+        description: "Date d'achat : « 2026-01-05 » ou « 05/01/2026 »",
         requirement: 'facultatif',
         alias: ['Date achat', "Date d'achat", 'Acheté le', "Date d'acquisition"],
     },
     {
         key: 'PurchasePrice',
-        description: "Prix d'achat — « 1 250 000 »",
+        description: "Prix d'achat : « 1 250 000 »",
         requirement: 'facultatif',
         alias: ["Prix d'achat", 'Prix', 'Montant', 'Coût', 'Valeur'],
     },
     {
         key: 'WarrantyEnd',
-        description: 'Fin de garantie — « 2028-01-05 » ou « 05/01/2028 »',
+        description: 'Fin de garantie : « 2028-01-05 » ou « 05/01/2028 »',
         requirement: 'facultatif',
         alias: ['Date fin de garantie', 'Date de fin de garantie', 'Fin de garantie'],
     },
     {
         key: 'Reserve',
-        description: 'Réserve — un défaut connu, une pièce manquante',
+        description: 'Réserve : un défaut connu, une pièce manquante',
         requirement: 'facultatif',
         alias: ['Réserve', 'Commentaire', 'Commentaires', 'Observation', 'Remarque', 'Notes'],
     },
@@ -247,8 +248,8 @@ const ImportEquipmentPage: React.FC<ImportEquipmentPageProps> = ({ onCancel, onS
                inconnu » — neuf causes pour une seule : le catalogue n'est pas là. */
             if (models.length === 0)
                 error =
-                    'Catalogue vide ou non chargé — vérifiez la connexion, ou créez d’abord les modèles';
-            else if (!rawModel) error = 'Modèle absent — la colonne Model est vide';
+                    'Catalogue vide ou non chargé : vérifiez la connexion, ou créez d’abord les modèles';
+            else if (!rawModel) error = 'Modèle absent : la colonne Model est vide';
             else if (ambigus.length > 1)
                 error = `Modèle « ${rawModel} » ambigu : ${ambigus.slice(0, 3).join(', ')}${ambigus.length > 3 ? '…' : ''}`;
             else if (!modele) {
@@ -256,11 +257,11 @@ const ImportEquipmentPage: React.FC<ImportEquipmentPageProps> = ({ onCancel, onS
                     rawModel,
                     models.map((m) => m.name),
                 );
-                error = `Modèle « ${rawModel} » inconnu au catalogue${proche ? ` — « ${proche} » ?` : ''}`;
+                error = `Modèle « ${rawModel} » inconnu au catalogue${proche ? ` : « ${proche} » ?` : ''}`;
             } else if (!serial) error = 'Numéro de série absent';
             else if (/^\d+([.,]\d+)?E\+?\d+$/i.test(serial))
                 /* « 3.195E+12 » : Excel a pris le numéro pour un nombre et l'a tronqué. */
-                error = `Numéro de série ${serial} abîmé par Excel — mettez la colonne au format Texte`;
+                error = `Numéro de série ${serial} abîmé par Excel : mettez la colonne au format Texte`;
             else if (lus.has(normaliserNom(serial)))
                 error = 'Numéro de série en double dans le fichier';
             else if (siteLu && !site) {
@@ -268,11 +269,11 @@ const ImportEquipmentPage: React.FC<ImportEquipmentPageProps> = ({ onCancel, onS
                     siteLu,
                     sites.map((s) => s.nom),
                 );
-                error = `Site « ${siteLu} » absent des emplacements${proche ? ` — « ${proche} » ?` : ''}`;
+                error = `Site « ${siteLu} » absent des emplacements${proche ? ` : « ${proche} » ?` : ''}`;
             } else if (!site)
                 error = siteParDefaut
                     ? `Site « ${siteParDefaut} » absent des emplacements`
-                    : 'Site absent — choisissez le site des lignes qui n’en portent pas';
+                    : 'Site absent : choisissez le site des lignes qui n’en portent pas';
 
             if (!error && modele && normaliserNom(modele.name) !== normaliserNom(rawModel))
                 remarques.push(`Modèle « ${rawModel} » lu comme « ${modele.name} »`);
@@ -328,7 +329,10 @@ const ImportEquipmentPage: React.FC<ImportEquipmentPageProps> = ({ onCancel, onS
         });
     };
 
-    const handleImport = (drafts: EquipmentDraft[]) => {
+    const handleImport = (
+        drafts: EquipmentDraft[],
+        envoi: { fichier?: string; refusees: number },
+    ) => {
         /* Les deux codes se calculent sur un parc qui **grandit à chaque ligne** : les
            lire sur le contexte ne rendrait le rang suivant qu'au prochain rendu, et les
            douze unités d'une livraison porteraient toutes le même code. */
@@ -374,6 +378,15 @@ const ImportEquipmentPage: React.FC<ImportEquipmentPageProps> = ({ onCancel, onS
 
             parc.push(created);
             addEquipment(created);
+        });
+
+        /* Les fiches sont dans l'application ; leur départ vers la base se suit dans l'îlot. */
+        suivreUnEnvoi({
+            titre: 'Import',
+            detail: envoi.fichier,
+            collection: 'equipment',
+            total: drafts.length,
+            refusees: envoi.refusees,
         });
 
         showToast(

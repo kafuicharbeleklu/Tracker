@@ -130,7 +130,7 @@ const PhotosJointes: React.FC<PhotosJointesProps> = ({
                             type="button"
                             onClick={() => onRetirer(photo.id)}
                             aria-label={`Retirer la photo ${photo.nom}`}
-                            className="bg-inverse-surface text-inverse-on-surface focus-visible:ring-focus-ring absolute -top-2 -right-2 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full outline-none focus-visible:ring-2"
+                            className="bg-contrast-fill text-on-contrast-fill focus-visible:ring-focus-ring absolute -top-2 -right-2 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full outline-none focus-visible:ring-2"
                         >
                             <Icon glyph={X} size={18} />
                         </button>

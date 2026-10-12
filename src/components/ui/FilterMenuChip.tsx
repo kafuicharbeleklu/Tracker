@@ -82,7 +82,7 @@ const FilterMenuChip: React.FC<FilterMenuChipProps> = ({
         'group duration-short3 transition-colors doigt:min-h-12 flex min-h-10 shrink-0 cursor-pointer items-center gap-1.5 rounded-md border px-3 doigt:text-ts-control doigt:leading-ts-control text-[0.8125rem] leading-[1.125rem] font-medium whitespace-nowrap',
         'focus-visible:ring-focus-ring focus-visible:ring-offset-surface outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
         pose
-            ? 'bg-inverse-surface border-inverse-surface text-inverse-on-surface'
+            ? 'bg-contrast-fill border-contrast-fill text-on-contrast-fill'
             : 'bg-surface border-outline-variant text-on-surface hover:bg-surface-container',
         className,
     );
@@ -133,7 +133,9 @@ const FilterMenuChip: React.FC<FilterMenuChipProps> = ({
                         <b
                             className={cn(
                                 'font-normal tabular-nums',
-                                pose ? 'text-[var(--tk-color-on-dark-2)]' : 'text-text-muted',
+                                pose
+                                    ? 'text-[var(--tk-color-on-contrast-fill-muted)]'
+                                    : 'text-text-muted',
                             )}
                         >
                             {retenue.count}

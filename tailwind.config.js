@@ -44,7 +44,9 @@ module.exports = {
             : {
                   'compact': { 'max': '599px' },
                   'medium': '600px',
-                  'expanded': '840px',
+                  // 740 depuis le 10/10 (840 avant) : la tablette tenue debout entre dans
+                  // le régime à deux volets — voir `src/constants/breakpoints.ts`.
+                  'expanded': '740px',
                   // **Les deux colonnes** (25/09) — fiches, réglages, Finances et formulaires
                   // à deux colonnes dès 1 000, pour l'iPad de 1 024 : `MEDIA.twoColumn`.
                   'deux': '1000px',
@@ -106,6 +108,11 @@ module.exports = {
                     DEFAULT: 'var(--tk-color-neutral-fill)',
                     hover: 'var(--tk-color-neutral-fill-hover)',
                 },
+                'on-neutral-fill': 'var(--tk-color-on-neutral-fill)',
+                // Le plein d'un contrôle posé (interrupteur, case, puce choisie) : il tranche
+                // sur sa surface dans les deux thèmes, quand `inverse-surface` reste sombre.
+                'contrast-fill': 'var(--tk-color-contrast-fill)',
+                'on-contrast-fill': 'var(--tk-color-on-contrast-fill)',
                 // Texte sur surface de navigation SOMBRE (menu latéral / rail / tiroir)
                 'on-nav-surface': {
                     DEFAULT: 'var(--tk-color-on-nav-surface)',

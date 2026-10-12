@@ -96,8 +96,11 @@ interface ReferentialImportTemplateProps<T> {
     noun: { one: string; many: string };
     /** Analyse les lignes lues et rend une candidate par ligne de données. */
     parse: (tableau: TableauImporte) => ImportCandidate<T>[];
-    /** Écrit les lignes retenues, dans l'ordre du fichier. */
-    onImport: (values: T[]) => void;
+    /**
+     * Écrit les lignes retenues, dans l'ordre du fichier. `envoi` dit d'où elles viennent :
+     * de quoi suivre leur départ vers la base (`suivreUnEnvoi`, l'îlot).
+     */
+    onImport: (values: T[], envoi: { fichier?: string; refusees: number }) => void;
     /** Une précision propre au référentiel, sous les lignes refusées. */
     rejectionNote?: React.ReactNode;
     /**
@@ -352,7 +355,10 @@ function ReferentialImportTemplate<T>({
                    la demande : tant qu'il n'est pas là, cette page reste affichée, bouton
                    compris — un second appui écrivait les mêmes lignes une seconde fois. */
                 setEcrit(true);
-                onImport(accepted.map((row) => row.value as T));
+                onImport(
+                    accepted.map((row) => row.value as T),
+                    { fichier: file?.name, refusees: rejected.length },
+                );
             }}
             saveLabel={saveLabel}
             isSaving={!previewMode || enAttente || ecrit}
@@ -576,9 +582,9 @@ function ReferentialImportTemplate<T>({
                                                             ? 'trouvée'
                                                             : `« ${trouvee} »`
                                                         : column.remplacee
-                                                          ? `absente — ${column.remplacee}`
+                                                          ? `absente : ${column.remplacee}`
                                                           : column.required
-                                                            ? 'absente — requise'
+                                                            ? 'absente, requise'
                                                             : 'absente'}
                                                 </span>
                                             </li>
@@ -744,7 +750,7 @@ function ReferentialImportTemplate<T>({
                                 {aVerifier.length > 0 && (
                                     <div>
                                         <p className="text-on-surface-variant mb-1 text-[0.75rem] leading-4 font-medium">
-                                            À vérifier — elles entrent quand même
+                                            À vérifier : elles entrent quand même
                                         </p>
                                         <ul>
                                             {aVerifier.slice(0, 5).map((groupe) => (
@@ -773,7 +779,7 @@ function ReferentialImportTemplate<T>({
                                 {deCote.length > 0 && (
                                     <div>
                                         <p className="text-on-surface-variant mb-1 text-[0.75rem] leading-4 font-medium">
-                                            Laissées de côté — rien à corriger
+                                            Laissées de côté : rien à corriger
                                         </p>
                                         <ul>
                                             {deCote.slice(0, 5).map((groupe) => (

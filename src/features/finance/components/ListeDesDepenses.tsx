@@ -80,7 +80,7 @@ const ListeDesDepenses: React.FC<ListeDesDepensesProps> = ({
                                     {ouverte && (
                                         <span
                                             aria-hidden="true"
-                                            className="bg-inverse-surface absolute top-2 bottom-2 left-0 z-[1] w-[3px] rounded-r-[2px]"
+                                            className="bg-contrast-fill absolute top-2 bottom-2 left-0 z-[1] w-[3px] rounded-r-[2px]"
                                         />
                                     )}
                                     <Button

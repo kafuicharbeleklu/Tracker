@@ -5,6 +5,7 @@ import {
     ClockCounterClockwise,
     Coins,
     FolderOpen,
+    Buildings,
     Gear,
     Laptop,
     MapPin,
@@ -64,6 +65,7 @@ export type DestinationId = Extract<
     | 'history'
     | 'reports'
     | 'settings'
+    | 'organisation'
 >;
 
 export const DESTINATIONS: Record<DestinationId, AppDestination> = {
@@ -140,6 +142,19 @@ export const DESTINATIONS: Record<DestinationId, AppDestination> = {
     },
     reports: { label: GLOSSARY.REPORTS, icon: 'bar_chart', route: '/reports', glyph: ChartBar },
     settings: { label: GLOSSARY.SETTINGS, icon: 'settings', route: '/settings', glyph: Gear },
+    /* **Les règles de l'organisation** (10/10) — la devise, l'amortissement, les seuils, la
+       collecte : ce qui s'applique à tout le monde, réglé par qui en a le droit. Paramètres
+       mêlait ces règles aux préférences de chacun ; elles ont leur page, sous
+       « Administration », à côté d'« Accès ». */
+    organisation: {
+        label: 'Règles de l’organisation',
+        /* La barre latérale et le rail n'ont pas la place des trois mots. */
+        sidebarLabel: 'Organisation',
+        shortLabel: 'Règles',
+        icon: 'domain',
+        route: '/settings/organisation',
+        glyph: Buildings,
+    },
 };
 
 /** Libellé court d'une destination (bottom bar / rail). */
@@ -202,6 +217,7 @@ export const SECTION_OF_VIEW: Partial<Record<ViewType, DestinationId>> = {
     reports: 'reports',
     rbac: 'rbac',
     settings: 'settings',
+    organisation: 'organisation',
 };
 
 /** La destination dont relève une vue, ou `null` quand aucune ne la contient. */

@@ -32,7 +32,7 @@ const BoutonDeRecherche: React.FC<{
                 ouverte
                     ? `Fermer ${filtresSeuls ? 'les filtres' : 'la recherche'}`
                     : pose
-                      ? `${nom} — un filtre est posé`
+                      ? `${nom}, un filtre est posé`
                       : nom
             }
             onClick={onBasculer}

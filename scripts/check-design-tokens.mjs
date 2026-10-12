@@ -16,11 +16,15 @@
  *   6. Les composants ne consomment que la couche sémantique (+ leurs propres
  *      tokens de composant). Les écarts connus sont listés, et la liste ne doit
  *      que rétrécir.
+ *   7. La palette sombre (`theme-sombre.css`) ne fait que redonner une valeur à des
+ *      rôles `--tk-*` qu'`index.css` déclare : elle n'en crée aucun, n'en écrit aucun
+ *      deux fois, et ne touche ni aux primitifs ni aux alias.
  */
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 
 const CSS_PATH = path.resolve('index.css');
+const DARK_PATH = path.resolve('theme-sombre.css');
 const CONFIG_PATH = path.resolve('tailwind.config.js');
 const SRC_DIR = path.resolve('src');
 /** En-tête du bloc d'alias — daté, pour ne pas confondre avec les mentions en prose. */
@@ -180,6 +184,26 @@ for (const file of await walk(SRC_DIR)) {
   }
 }
 
+// --- 7. La palette sombre ne redonne une valeur qu'à des rôles déclarés ----------
+const dark = (await fs.readFile(DARK_PATH, 'utf8')).replace(/\/\*[\s\S]*?\*\//g, '');
+const darkNames = new Set();
+for (const match of dark.matchAll(/^[ \t]*(--[a-zA-Z0-9-]+)\s*:\s*([^;]+);/gm)) {
+  const [, name, value] = match;
+  if (darkNames.has(name)) fail(`theme-sombre.css : ${name} écrit deux fois.`);
+  darkNames.add(name);
+  if (!declarations.has(name)) {
+    fail(`theme-sombre.css : ${name} n'est pas un rôle d'index.css — un thème ne crée pas de rôle.`);
+  } else if (!isSemantic(name)) {
+    fail(`theme-sombre.css : ${name} n'est pas un rôle --tk-* — un thème ne touche ni aux primitifs ni aux alias.`);
+  }
+  for (const ref of refsOf(value)) {
+    if (!declarations.has(ref)) fail(`theme-sombre.css : ${name} → var(${ref}) ne correspond à aucun token déclaré.`);
+  }
+}
+if (!/:root\[data-theme='dark'\]\s*\{/.test(dark)) {
+  fail("theme-sombre.css : le bloc `:root[data-theme='dark']` est introuvable.");
+}
+
 // --- Verdict --------------------------------------------------------------------
 const counts = {
   primitifs: [...declarations.keys()].filter(isPrimitive).length,
@@ -199,5 +223,5 @@ console.log(
   `✓ Garde des tokens Tracker DS : ${declarations.size} tokens ` +
     `(primitifs ${counts.primitifs}, sémantiques ${counts.sémantiques}, ` +
     `composant ${counts.composant}, alias @deprecated ${counts.alias}) — ` +
-    `0 orphelin, 0 cycle, dette composants ${debt}.`
+    `0 orphelin, 0 cycle, dette composants ${debt} ; palette sombre : ${darkNames.size} rôles.`
 );

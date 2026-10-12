@@ -350,7 +350,7 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
 
         if (isEditMode && equipmentId) {
             updateEquipment(equipmentId, payload);
-            showToast(`${readableId} — fiche mise à jour.`, 'success');
+            showToast(`${readableId} : fiche mise à jour.`, 'success');
         } else {
             const id = Date.now().toString();
             addEquipment({
@@ -710,7 +710,7 @@ const AddEquipmentPage: React.FC<AddEquipmentPageProps> = ({ equipmentId, onCanc
                                         title={attached?.name}
                                         aria-label={
                                             attached
-                                                ? `${kind} jointe : ${attached.name} — remplacer`
+                                                ? `Remplacer la ${kind.toLowerCase()} jointe (${attached.name})`
                                                 : `Joindre la ${kind.toLowerCase()}`
                                         }
                                         onClick={() => input.current?.click()}

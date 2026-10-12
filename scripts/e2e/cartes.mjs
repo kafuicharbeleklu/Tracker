@@ -97,7 +97,8 @@ export default async function cartes(navigateur, baseUrl, ok) {
         );
 
         // ── Les plans par type : six sur la carte, tous sur leur écran
-        await aller(page, '/settings');
+        /* L'amortissement est une règle de l'organisation : sa page, depuis le 10/10. */
+        await aller(page, '/settings/organisation');
         await page.locator('main').getByText('Amortissement par défaut').first().click();
         await attendre(page, /Ce que porte chaque type/);
         await page.waitForTimeout(600);

@@ -155,7 +155,7 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ onBack }) => {
                     id: '3' as ReportId,
                     title: 'Équipement vieillissant',
                     description:
-                        'Plus de trois ans de service — pour la planification de l’amortissement.',
+                        'Plus de trois ans de service, pour la planification de l’amortissement.',
                     rows: agingRows,
                     slug: 'equipement_vieillissant',
                     columns: [
@@ -227,7 +227,7 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ onBack }) => {
             const filename = `${report.slug}_${new Date().toISOString().split('T')[0]}.pdf`;
             const fullTitle =
                 reportId === '2' && selectedUser
-                    ? `${report.title} — ${selectedUser.name}`
+                    ? `${report.title} · ${selectedUser.name}`
                     : report.title;
 
             // En-tête
@@ -349,7 +349,7 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ onBack }) => {
                     className={cn(
                         /* L'en-tête **reste** quand les rapports défilent (17.8) ; au
                            bureau il reprend la marge du haut en padding, comme Finances. */
-                        'sticky top-0 z-20 mb-4 flex flex-col',
+                        'barre-repliable sticky top-0 z-20 mb-4 flex flex-col',
                         isCompact
                             ? 'border-outline-variant bg-surface -mx-page-sm -mt-page-sm border-b px-4 pt-2 pb-3'
                             : 'bg-background -mt-page pt-5',
@@ -358,7 +358,7 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ onBack }) => {
                     {/* Le titre suit la colonne centrée des rapports (23/09). */}
                     <div
                         className={cn(
-                            'large:mx-auto large:w-full large:max-w-[63rem] flex items-center gap-1',
+                            'barre-repliable-rangee large:mx-auto large:w-full large:max-w-[63rem] flex items-center gap-1',
                             isCompact ? 'min-h-12' : 'min-h-[52px]',
                         )}
                     >
@@ -372,7 +372,7 @@ const ReportsPage: React.FC<ReportsPageProps> = ({ onBack }) => {
                                 className={isCompact ? undefined : 'mr-1'}
                             />
                         )}
-                        <h1 className="font-brand text-on-surface text-ts-page leading-ts-page min-w-0 shrink font-semibold tracking-[-0.02em]">
+                        <h1 className="barre-repliable-titre font-brand text-on-surface text-ts-page leading-ts-page min-w-0 shrink font-semibold tracking-[-0.02em]">
                             {GLOSSARY.REPORTS}
                         </h1>
                         {/* Le compte à côté du titre, comme toutes les listes (24/09). */}

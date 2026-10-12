@@ -245,7 +245,10 @@ const SiteDetailsPage: React.FC<SiteDetailsPageProps> = ({
      * qui ne se prend pas depuis une page.
      */
     const hero = (
-        <section className="bg-inverse-surface text-inverse-on-surface rounded-xl px-5 pt-[22px] pb-5">
+        <section
+            data-fiche-entete
+            className="bg-inverse-surface text-inverse-on-surface rounded-xl px-5 pt-[22px] pb-5"
+        >
             {/* `.hero .ty` — 12 sur 16, capitales espacées de 0,07em, **sans graisse**,
                 comme le sur-titre de `DetailHero` ; il portait 500. */}
             <span className="text-on-nav-surface-variant block text-[0.75rem] leading-4 tracking-[0.07em] uppercase">

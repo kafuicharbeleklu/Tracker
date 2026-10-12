@@ -7,6 +7,7 @@
  */
 import React, { useId } from 'react';
 import Button from '../ui/Button';
+import LibelleMouvant from '../ui/LibelleMouvant';
 import { FullScreenLayout } from './FullScreenLayout';
 
 interface FullScreenFormLayoutProps {
@@ -56,24 +57,20 @@ export const FullScreenFormLayout: React.FC<FullScreenFormLayoutProps> = ({
         }
     };
 
-    const SaveButton = ({
-        className,
-        variant = 'filled',
-    }: {
-        className?: string;
-        variant?: 'filled' | 'text' | 'tonal';
-    }) => (
+    /* Une fonction, pas un composant déclaré dans le rendu : il était remonté à chaque
+       rendu, et son libellé ne pouvait pas glisser d'un texte à l'autre (11/10). */
+    const boutonDEnregistrement = (className?: string) => (
         <Button
             type="submit"
             form={formId}
-            variant={variant}
+            variant="filled"
             /* **Le verbe, sans pictogramme** : `.btn` ne porte pas d'icône dans les
                planches, et la table des icônes refuse la disquette sur un bouton
                d'enregistrement. Il en portait une en pied et une coche en barre. */
             disabled={isSaving}
             className={className}
         >
-            {saveLabel}
+            <LibelleMouvant>{saveLabel}</LibelleMouvant>
         </Button>
     );
 
@@ -90,12 +87,12 @@ export const FullScreenFormLayout: React.FC<FullScreenFormLayoutProps> = ({
                 <Button variant="outlined" onClick={onCancel} disabled={isSaving}>
                     Annuler
                 </Button>
-                <SaveButton />
+                {boutonDEnregistrement()}
             </>
         ) : submitButtonLocation === 'footer-full' ? (
             /* Pleine largeur dans la mesure de 560 ; en mesure double, le bouton
                reprend sa taille au bout du pied — une barre de 1 136 n'est pas un bouton. */
-            <SaveButton className="deux:w-auto deux:min-w-60 w-full" />
+            boutonDEnregistrement('deux:w-auto deux:min-w-60 w-full')
         ) : null;
 
     /*
@@ -113,7 +110,7 @@ export const FullScreenFormLayout: React.FC<FullScreenFormLayoutProps> = ({
                 disabled={isSaving}
                 className="text-on-surface text-ts-body h-12 px-3 font-medium"
             >
-                {saveLabel}
+                <LibelleMouvant>{saveLabel}</LibelleMouvant>
             </Button>
         ) : null;
 

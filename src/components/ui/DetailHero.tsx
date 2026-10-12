@@ -225,8 +225,26 @@ const DetailHero: React.FC<DetailHeroProps> = ({
     const panneauTenu = useMediaQuery(MEDIA.panneauTenu);
     const enPanneau = useFicheEnPanneau() !== null;
     const style = (panneauTenu || enPanneau) && metricsStyle !== 'inline' ? 'inline' : metricsStyle;
+    /*
+      **Le héros en bandeau** (10/10) — à la tablette debout, hors d'un panneau : le sujet à
+      gauche, ses mesures à droite, sur une ligne. Les mesures passaient dessous, sous un
+      filet : sur 640 px le héros prenait 190 px de haut pour un nom et trois chiffres, et la
+      moitié droite restait vide. Une jauge ou un geste à droite gardent l'ancienne forme :
+      ils occupent déjà cette place.
+    */
+    const tablette = useMediaQuery(MEDIA.tablette);
+    const enBandeau =
+        tablette &&
+        !enPanneau &&
+        style === 'inline' &&
+        Boolean(metrics?.length) &&
+        !meter &&
+        !actionsInline;
     return (
         <section
+            /* L'en-tête de la fiche : la rangée touchée dans la liste s'agrandit jusqu'à lui
+               (`lib/passageDeFiche`). */
+            data-fiche-entete
             className={cn(
                 /* `.hero` — intérieur `22 / 20 / 20`. Il valait `20 / 16 / 16` : la carte
                était plus étroite que les cartes qu'elle surmonte. */
@@ -235,6 +253,10 @@ const DetailHero: React.FC<DetailHeroProps> = ({
                monte en colonne 2 sur la première rangée, et les mesures traversent. */
                 actionsInline &&
                     'grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-5 [&>*]:col-start-1',
+                /* Le bandeau : l'identité et les mesures sur la première rangée, tout le
+                   reste sur toute la largeur. */
+                enBandeau &&
+                    'grid grid-cols-[minmax(0,1fr)_auto] items-end gap-x-8 [&>*]:col-span-full',
                 className,
             )}
         >
@@ -247,7 +269,7 @@ const DetailHero: React.FC<DetailHeroProps> = ({
                 /* La pastille se pose **au-dessus** du sujet, pas à côté : la passe sobre
                du 03/09 rend la ligne du nom pleine largeur (planche 05.2, `.idh`
                suivi de `.ty` puis `.nm`). À côté, un nom long se coupait en deux. */
-                <div className="min-w-0">
+                <div className={cn('min-w-0', enBandeau && 'col-span-1! col-start-1 row-start-1')}>
                     <span className="font-brand mb-4 flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[var(--tk-color-live-bleu)]/25 text-[1.25rem] font-semibold tracking-normal text-[var(--tk-color-avatar-text)]">
                         {avatar}
                     </span>
@@ -271,7 +293,8 @@ const DetailHero: React.FC<DetailHeroProps> = ({
                     )}
                 </div>
             ) : (
-                <>
+                /* Un seul bloc pour l'identité : le bandeau le pose à gauche des mesures. */
+                <div className={cn('min-w-0', enBandeau && 'col-span-1! col-start-1 row-start-1')}>
                     {status && (
                         <div className="flex flex-wrap items-center gap-2">
                             <span className="inline-flex h-7 items-center gap-2 rounded-md bg-white/10 px-2.5 text-[0.75rem] leading-4 font-medium">
@@ -323,7 +346,7 @@ const DetailHero: React.FC<DetailHeroProps> = ({
                             {subtitle}
                         </p>
                     )}
-                </>
+                </div>
             )}
 
             {avatar && status && (
@@ -414,7 +437,11 @@ const DetailHero: React.FC<DetailHeroProps> = ({
                de 330 px, trois valeurs de 22 px ne tiennent pas toujours de front. */
                 <div
                     className={cn(
-                        'mt-3.5 flex flex-wrap gap-x-[18px] gap-y-3 border-t border-white/[0.14] pt-3',
+                        'flex gap-y-3',
+                        enBandeau
+                            ? /* À droite du sujet : pas de filet, chaque mesure à sa largeur. */
+                              'col-span-1! col-start-2 row-start-1 max-w-[26rem] gap-x-6 [&>*]:flex-none'
+                            : 'mt-3.5 flex-wrap gap-x-[18px] border-t border-white/[0.14] pt-3',
                         meter && 'mt-3',
                     )}
                 >

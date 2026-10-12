@@ -231,9 +231,9 @@ interface ListTemplateProps {
      * (5 ou 4/12) »*. Le téléphone empile les niveaux, un par écran ; le bureau les pose
      * côte à côte, et cliquer une rangée **sélectionne** au lieu de naviguer.
      *
-     * Il n'apparaît qu'à partir de **1 000** (`MEDIA.twoColumn`, 1 280 avant le 25/09). En
-     * deçà, le second niveau reste ce qu'il est au téléphone. Absent : la page n'a qu'un
-     * niveau.
+     * Il apparaît dès **740** (10/10 ; 1 000 avant, 1 280 avant le 25/09) : en huitièmes
+     * (5 + 3) à la tablette debout, en douzièmes dès 1 000. En deçà, le second niveau reste ce qu'il
+     * est au téléphone. Absent : la page n'a qu'un niveau.
      */
     panel?: React.ReactNode;
     /** La part du second niveau — 5 douzièmes par défaut, 4 quand la liste porte un tableau (16.1). */
@@ -245,7 +245,8 @@ interface ListTemplateProps {
     zonesClassName?: string;
     /**
      * **La liste et la fiche** (P2a, 25/09) — le patron liste-détail de Material et d'Apple :
-     * dès **840**, la liste fixe de **360 px** à gauche, la fiche dans tout le reste. Il
+     * dès **740** (840 avant le 10/10), la liste fixe à gauche — **300 px** à la tablette
+     * debout, **360** dès 1 000 —, la fiche dans tout le reste. Il
      * remplace les douzièmes pour les listes d'objets (Actifs, Équipe, Historique, Tâches
      * sur tablette) : une liste se parcourt à largeur de rangée, c'est la fiche qui lit.
      */
@@ -400,8 +401,11 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
     /* 1 000 — le seuil des écrans à deux niveaux (25/09) : sur tablette la barre latérale est
        un rail (80), et 1 000 − 80 laissent 920 px, ce que Material demande à deux volets ;
        l'iPad de 1 024 en paysage y entre. */
-    const largeurDeuxNiveaux = useMediaQuery(MEDIA.twoColumn);
+    /* Les deux niveaux dès la tablette debout (10/10 ; 1 000 avant) : elle les pose en
+       huitièmes (5 + 3), le bureau en douzièmes. */
+    const largeurDeuxNiveaux = useMediaQuery(MEDIA.expandedUp);
     const largeurListeEtFiche = useMediaQuery(MEDIA.expandedUp);
+    const tablette = useMediaQuery(MEDIA.tablette);
 
     /* La coque doit savoir qu'on est en sélection : c'est elle qui porte la barre du
        bas, à qui le pied d'actes prend la place (17.2). */
@@ -652,7 +656,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                         <button
                             type="button"
                             onClick={sort.onClick}
-                            aria-label={`Trier — ${sort.label}`}
+                            aria-label={`Trier : ${sort.label}`}
                             title={sort.label}
                             className="bg-surface-container text-on-surface hover:bg-surface-container-high focus-visible:ring-primary flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-hidden"
                         >
@@ -725,7 +729,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                 premier défilement, et la liste devient un sous-ensemble sans étiquette »*.
                 04.1 le redit de la recherche, et 01.1 au bureau de l'en-tête. Il défilait
                 avec la page, au téléphone comme au bureau. */}
-            <div className="bg-background sticky top-0 z-20">
+            <div className="barre-repliable bg-background sticky top-0 z-20">
                 {selection?.active && isCompact ? (
                     <SelectionTopBar
                         count={selection.count}
@@ -776,7 +780,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                             mesure du bouton d'icône. Elle tenait 56 et le titre portait 12 px
                             de padding vertical, si bien que le bloc gagnait 8 px que la
                             planche ne déclare pas. */}
-                        <div className="flex min-h-12 items-center justify-between gap-1">
+                        <div className="barre-repliable-rangee flex min-h-12 items-center justify-between gap-1">
                             {onBack && (
                                 <button
                                     type="button"
@@ -787,7 +791,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                                     <Icon glyph={ArrowLeft} size={24} />
                                 </button>
                             )}
-                            <h1 className="font-brand text-on-surface text-ts-page leading-ts-page min-w-0 shrink font-semibold tracking-[-0.02em]">
+                            <h1 className="barre-repliable-titre font-brand text-on-surface text-ts-page leading-ts-page min-w-0 shrink font-semibold tracking-[-0.02em]">
                                 {title}
                             </h1>
                             {/* `.cnt2` du téléphone — le compte à droite du titre, aligné
@@ -1086,13 +1090,19 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                             deuxNiveaux
                                 ? listeEtFiche
                                     ? cn(
-                                          'w-[360px] shrink-0 grow-0',
+                                          /* 300 à la tablette debout (10/10) : sur 688 px
+                                             de page, une liste de 360 ne laissait que 312
+                                             à la fiche. 360 dès 1 000. */
+                                          'deux:w-[360px] w-[300px] shrink-0 grow-0',
                                           listeLarge && 'large:w-[400px]',
                                       )
-                                    : /* Les lignes de la grille de douze, pas un partage de
-                                         ce qui reste (10/10) : la liste tombe sous les tuiles
-                                         qui la surmontent. */
-                                      DOUZIEMES[panelRatio === 5 ? 7 : 8]
+                                    : tablette
+                                      ? /* La tablette debout : 5 huitièmes pour la liste. */
+                                        'shrink grow-[5] basis-0'
+                                      : /* Les lignes de la grille de douze, pas un partage de
+                                           ce qui reste (10/10) : la liste tombe sous les tuiles
+                                           qui la surmontent. */
+                                        DOUZIEMES[panelRatio === 5 ? 7 : 8]
                                 : 'flex-1',
                             CADRE_BUREAU,
                         )}
@@ -1160,7 +1170,7 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                                             {activeFilterNotice.shown} des{' '}
                                             {activeFilterNotice.total}
                                         </b>{' '}
-                                        — {activeFilterNotice.label.toLowerCase()}
+                                        · {activeFilterNotice.label.toLowerCase()}
                                     </span>
                                     <button
                                         type="button"
@@ -1341,7 +1351,11 @@ const ListTemplate: React.FC<ListTemplateProps> = ({
                         <aside
                             className={cn(
                                 'sticky top-4 min-w-0',
-                                listeEtFiche ? 'shrink grow basis-0' : DOUZIEMES[panelRatio],
+                                listeEtFiche
+                                    ? 'shrink grow basis-0'
+                                    : tablette
+                                      ? 'shrink grow-[3] basis-0'
+                                      : DOUZIEMES[panelRatio],
                                 'expanded:static expanded:min-h-0 expanded:self-stretch expanded:overflow-y-auto expanded:overscroll-contain',
                             )}
                         >

@@ -312,7 +312,7 @@ const ScanView: React.FC<ScanViewProps> = ({
                                     'touch-target text-label-large flex h-10 items-center rounded-sm px-3.5',
                                     'focus-visible:ring-primary outline-none focus-visible:ring-2',
                                     mode === value
-                                        ? 'bg-inverse-on-surface text-on-surface'
+                                        ? 'bg-inverse-on-surface text-[var(--tk-color-brand-text)]'
                                         : 'text-on-nav-surface-variant',
                                 )}
                             >

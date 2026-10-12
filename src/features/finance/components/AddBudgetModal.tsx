@@ -55,8 +55,8 @@ type AddBudgetMode = 'import' | 'manual';
  * choix. L'arbitrage était écrit dans le balisage et inerte à l'écran. Relevé le 20/08.
  */
 const CAPITALIZATION_OPTIONS = [
-    { value: 'CAPEX', label: 'CAPEX — investissement' },
-    { value: 'OPEX', label: 'OPEX — frais courant' },
+    { value: 'CAPEX', label: 'CAPEX (investissement)' },
+    { value: 'OPEX', label: 'OPEX (frais courant)' },
 ];
 
 export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ isOpen, onClose }) => {

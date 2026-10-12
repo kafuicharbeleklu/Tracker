@@ -191,7 +191,9 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
      * téléphone empile trois niveaux, un par écran ; le bureau en pose deux côte à
      * côte »*. Le troisième, le comptage (16.2), reste un écran.
      */
-    const enDeuxNiveaux = useMediaQuery(MEDIA.twoColumn);
+    /* Dès la tablette debout (10/10 ; 1 000 avant) : les tuiles en bande, les pays à gauche,
+       le pays choisi à droite. */
+    const enDeuxNiveaux = useMediaQuery(MEDIA.expandedUp);
 
     /** Combien de lieux ont dépassé la périodicité réglée dans Paramètres (14.1). */
     const retards = useMemo(
@@ -361,15 +363,18 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
                     <b className="text-on-surface font-medium">
                         {unscopedAssets} actif{unscopedAssets > 1 ? 's' : ''} n'
                         {unscopedAssets > 1 ? 'entrent' : 'entre'} dans aucune campagne
-                    </b>{' '}
-                    — aucun site ne les situe.
+                    </b>
+                    {' : '}aucun site ne les situe.
                 </span>
             </div>
         ) : undefined;
 
     /* Les cinq colonnes du tableau des sites — la même grille pour l'en-tête et les
        rangées, sinon elles cessent de s'aligner à la première troncature. */
-    const GRILLE_SITE = 'grid grid-cols-[40px_minmax(0,1fr)_96px_140px_84px] items-center gap-3';
+    /* À la tablette debout la liste tient 420 px : les colonnes se resserrent, sinon le nom
+       n'avait plus de place du tout (10/10). */
+    const GRILLE_SITE =
+        'grid grid-cols-[40px_minmax(0,1fr)_56px_112px_auto] deux:grid-cols-[40px_minmax(0,1fr)_96px_140px_84px] items-center gap-2 deux:gap-3';
 
     /**
      * **Une rangée de site au bureau** — cinq colonnes : le lieu, ce qu'on y attend,
@@ -746,7 +751,12 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
      * 28 pour le chiffre, 14 pour ce qu'il veut dire.
      */
     const tuile = (titre: string, valeur: React.ReactNode, sens: React.ReactNode, cle: string) => (
-        <section key={cle} className="bg-surface col-span-2 flex flex-col rounded-lg p-4">
+        <section
+            key={cle}
+            /* À la tablette debout, la couverture prend sa rangée et les trois chiffres la
+               suivante : à 2 douzièmes de 688 px, une tuile faisait 101 px. */
+            className="bg-surface deux:col-span-2 col-span-4 flex flex-col rounded-lg p-4"
+        >
             <h3 className="text-on-surface-variant text-[0.75rem] leading-4 font-medium">
                 {titre}
             </h3>
@@ -765,7 +775,7 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
                 chiffre en 28, ce qu'il veut dire en 14, puis le ruban de **8** à 16 de sa
                 phrase — celui des jauges de l'accueil et de Finances. Le diagramme tenait
                 un en-tête à deux bouts et un ruban de 12 : il ne ressemblait à rien d'autre. */}
-            <section className="bg-surface col-span-6 flex flex-col rounded-lg p-4">
+            <section className="bg-surface deux:col-span-6 col-span-12 flex flex-col rounded-lg p-4">
                 <h3 className="text-on-surface-variant text-[0.75rem] leading-4 font-medium">
                     Couverture de l'inventaire
                 </h3>
@@ -858,7 +868,7 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
                 icon={<Icon glyph={ArrowLeft} size={18} />}
                 className="text-on-surface-variant hover:text-on-surface text-ts-sub doigt:h-12 doigt:min-h-12 -ml-2 h-10 min-h-10 justify-start gap-1.5 self-start px-2 font-medium"
             >
-                Les sites — {choixMontre.pays}
+                Les sites · {choixMontre.pays}
             </Button>
         ) : null;
 
@@ -996,7 +1006,7 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
                         <Button
                             variant="text"
                             onClick={onBackToSites}
-                            aria-label={`Les sites — ${choix.pays}`}
+                            aria-label={`Les sites · ${choix.pays}`}
                             icon={<Icon glyph={ArrowLeft} size={18} />}
                             className="text-on-surface-variant hover:text-on-surface doigt:h-10 doigt:min-h-10 -ml-2 h-8 min-h-8 shrink-0 gap-1 px-2 text-[0.75rem] leading-4 font-medium"
                         >
@@ -1151,7 +1161,9 @@ export const AuditOverview: React.FC<AuditOverviewProps> = ({
                         >
                             <span />
                             <span>{niveau === 'pays' ? 'Pays' : 'Site'}</span>
-                            <span className="text-right">Attendus</span>
+                            {/* Un intitulé ne passe pas à la ligne : à la tablette debout sa
+                                colonne fait 56 px, il déborde vers le nom, qui a la place. */}
+                            <span className="justify-self-end whitespace-nowrap">Attendus</span>
                             <span>Statut</span>
                             <span />
                         </div>

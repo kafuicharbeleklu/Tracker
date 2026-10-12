@@ -92,6 +92,13 @@ export const useAccessControl = () => {
             'write',
         ),
 
+        /* Les règles de l'organisation (10/10) — la seconde page des Paramètres. */
+        canManageSettings: isPermissionGranted(
+            effectiveAccess,
+            RBAC_PERMISSIONS.actions.settingsManage,
+            'write',
+        ),
+
         // Locations
         canViewLocations: isPermissionGranted(
             effectiveAccess,

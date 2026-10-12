@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 
 import { useAuth } from '../context/AuthContext';
 import { useRouter } from './useRouter';
-import { APP_CONFIG } from '../config';
+import { APP_CONFIG, adresseDuSupport } from '../config';
 import type { MenuItem } from '../components/ui/Menu';
 
 /**
@@ -54,13 +54,13 @@ export const useAccountMenu = (): AccountMenu => {
             {
                 id: 'account',
                 label: 'Mon compte',
-                description: 'Mot de passe, code PIN, sessions',
+                description: 'Mot de passe, code PIN, signature',
                 onSelect: () => navigate('/settings/account'),
             },
             {
                 id: 'settings',
-                label: 'Paramètres',
-                description: 'Notifications, langue et site',
+                label: 'Mes préférences',
+                description: 'Notifications, thème',
                 onSelect: () => navigate('/settings'),
             },
             {
@@ -68,7 +68,7 @@ export const useAccountMenu = (): AccountMenu => {
                 label: 'Aide et support',
                 description: APP_CONFIG.supportEmail,
                 onSelect: () => {
-                    window.location.href = `mailto:${APP_CONFIG.supportEmail}`;
+                    window.location.href = adresseDuSupport();
                 },
             },
             {
