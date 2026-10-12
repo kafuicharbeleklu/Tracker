@@ -4,8 +4,12 @@ Application interne de **suivi du parc informatique de Neemba** : qui détient q
 demandes d'attribution et de retour, les réparations, les inventaires physiques et les coûts. Une
 seule application pour trois formats — téléphone, tablette et bureau —, en français.
 
-**Version en ligne :** <https://kafuicharbeleklu.github.io/Tracker/> — les comptes de
-démonstration y sont ouverts.
+**Version en ligne :** <https://kafuicharbeleklu.github.io/Tracker/> — une démonstration : les
+comptes de démonstration y sont ouverts, sur des données fictives gardées dans le navigateur de
+chaque visiteur. Elle ne lit ni n'écrit aucune base.
+
+**Droits :** © 2026 Kafui Charbel EKLU, tous droits réservés. Le dépôt est public pour être lu ;
+aucune licence n'est accordée. Voir [`LICENSE`](LICENSE).
 
 > Première visite sur le projet ? Lisez ensuite [`RECAP.md`](RECAP.md) : il explique l'application,
 > son histoire et quel document ouvrir pour quoi.
@@ -202,6 +206,11 @@ L'interface ne nomme jamais un pays : Neemba est présent dans plusieurs.
 | Deploy GitHub Pages | chaque push sur `main` | construit et **met en ligne** la version publique |
 
 Tout ce qui arrive sur `main` est donc publié dans les minutes qui suivent.
+
+**La version publique est une démonstration isolée** : elle est construite avec
+`VITE_FIREBASE_DISABLED=true`, sans aucune variable du projet Firebase. Un visiteur y travaille sur
+le jeu de démonstration, gardé dans son navigateur ; rien ne part vers Firestore. Une version
+branchée sur une base réelle se construit ailleurs, avec ses variables et une vraie connexion.
 
 ## Contribuer
 

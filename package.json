@@ -2,6 +2,8 @@
   "name": "neemba-tracker-login",
   "private": true,
   "version": "0.0.0",
+  "author": "Kafui Charbel EKLU",
+  "license": "UNLICENSED",
   "type": "module",
   "scripts": {
     "dev": "vite",
