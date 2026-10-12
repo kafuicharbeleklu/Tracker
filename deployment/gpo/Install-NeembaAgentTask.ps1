@@ -4,7 +4,11 @@ param(
     [string]$TaskName = "NeembaTracker-AgentCheckin",
     [string]$ApiUrl = "https://neemba.example.com/api/agent/checkin",
     [string]$ApiKey = "NEEMBA_AGENT_KEY",
-    [int]$IntervalMinutes = 240
+    [int]$IntervalMinutes = 240,
+    # Le lieu des postes visés par cette stratégie : l'agent ne peut pas le deviner.
+    [string]$Country = "",
+    [string]$Site = "",
+    [string]$Service = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -26,7 +30,11 @@ $argList = @(
     '-File', "`"$LocalScriptPath`"",
     '-ApiUrl', "`"$ApiUrl`"",
     '-ApiKey', "`"$ApiKey`""
-) -join ' '
+)
+if ($Country) { $argList += @('-Country', "`"$Country`"") }
+if ($Site) { $argList += @('-Site', "`"$Site`"") }
+if ($Service) { $argList += @('-Service', "`"$Service`"") }
+$argList = $argList -join ' '
 
 $action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument $argList
 $triggerAtStartup = New-ScheduledTaskTrigger -AtStartup

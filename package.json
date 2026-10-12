@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "backend:agent": "node backend/server.mjs",
+    "backend:test": "node --test \"backend/tests/*.test.mjs\"",
     "build": "vite build",
     "preview": "vite preview",
     "import:inventory": "node scripts/import-inventory.mjs",

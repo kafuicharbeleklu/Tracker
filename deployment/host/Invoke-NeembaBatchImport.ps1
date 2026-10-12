@@ -1,3 +1,8 @@
+# Dépose des fichiers de remontées au serveur de collecte, un lot par fichier.
+#
+# Chaque fichier (.json, .ndjson, .txt) part tel quel vers /api/agent/checkin/batch : c'est le
+# serveur qui le lit (tableau, objet « checkins », ou une remontée par ligne). Rien n'est relu
+# en objet ici, donc le script tourne aussi sous Windows PowerShell 5.1.
 param(
     [string]$InputPath = "C:\Neemba\incoming",
     [string]$ArchivePath = "C:\Neemba\archive",
@@ -15,109 +20,58 @@ function Ensure-Directory {
     }
 }
 
-function Normalize-Payload {
-    param([hashtable]$Payload)
-
-    if (-not $Payload.ContainsKey('schema')) {
-        $Payload.schema = 'neemba.agent.checkin.v1'
-    }
-    if (-not $Payload.ContainsKey('generatedAt')) {
-        $Payload.generatedAt = (Get-Date).ToUniversalTime().ToString('o')
-    }
-    if (-not $Payload.ContainsKey('source')) {
-        $Payload.source = 'agent'
-    }
-    if (-not $Payload.ContainsKey('auth')) {
-        $Payload.auth = @{ apiKey = $ApiKey }
-    } elseif ($Payload.auth -is [hashtable]) {
-        if (-not $Payload.auth.ContainsKey('apiKey')) {
-            $Payload.auth.apiKey = $ApiKey
-        }
-    }
-
-    return $Payload
-}
-
-function Send-CheckIn {
-    param([hashtable]$Payload)
-    $json = $Payload | ConvertTo-Json -Depth 10 -Compress
-    try {
-        Invoke-RestMethod -Method Post -Uri $ApiUrl -Body $json -ContentType "application/json" -TimeoutSec 30 | Out-Null
-        return $true
-    } catch {
-        return $false
-    }
-}
-
-function Read-PayloadsFromFile {
+# Rend la réponse du serveur, ou $null s'il n'a pas pu être joint ou a refusé le lot entier.
+function Send-Batch {
     param([string]$FilePath)
-
-    $extension = [System.IO.Path]::GetExtension($FilePath).ToLowerInvariant()
-    $raw = Get-Content -Path $FilePath -Raw
-    $payloads = New-Object System.Collections.Generic.List[hashtable]
-
-    if ($extension -eq ".ndjson") {
-        $lines = $raw -split "`r?`n" | Where-Object { $_.Trim().Length -gt 0 }
-        foreach ($line in $lines) {
-            try {
-                $obj = $line | ConvertFrom-Json -AsHashtable
-                if ($obj) { $payloads.Add($obj) }
-            } catch {}
-        }
-        return $payloads
-    }
-
+    $bytes = [System.IO.File]::ReadAllBytes($FilePath)
+    $batchUrl = $ApiUrl.TrimEnd('/') + '/batch'
     try {
-        $parsed = $raw | ConvertFrom-Json -AsHashtable
-        if ($parsed -is [hashtable] -and $parsed.ContainsKey('checkins') -and $parsed.checkins -is [array]) {
-            foreach ($entry in $parsed.checkins) {
-                if ($entry -is [hashtable]) { $payloads.Add($entry) }
-            }
-        } elseif ($parsed -is [array]) {
-            foreach ($entry in $parsed) {
-                if ($entry -is [hashtable]) { $payloads.Add($entry) }
-            }
-        } elseif ($parsed -is [hashtable]) {
-            $payloads.Add($parsed)
-        }
-    } catch {}
-
-    return $payloads
+        return Invoke-RestMethod -Method Post -Uri $batchUrl -Body $bytes `
+            -ContentType "application/x-ndjson; charset=utf-8" `
+            -Headers @{ "x-api-key" = $ApiKey } -TimeoutSec 120
+    } catch {
+        Write-Host ("  " + $_.Exception.Message)
+        return $null
+    }
 }
+
+try {
+    [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+} catch { }
 
 Ensure-Directory -Path $InputPath
 Ensure-Directory -Path $ArchivePath
 Ensure-Directory -Path $ErrorPath
 
-$files = Get-ChildItem -Path $InputPath -File | Where-Object { $_.Extension -in @('.json', '.ndjson', '.txt') }
-if (-not $files -or $files.Count -eq 0) {
+$files = @(Get-ChildItem -Path $InputPath -File | Where-Object { $_.Extension -in @('.json', '.ndjson', '.txt') })
+if ($files.Count -eq 0) {
     Write-Host "Aucun fichier à importer dans $InputPath"
     exit 0
 }
 
+$failed = 0
 foreach ($file in $files) {
-    $payloads = Read-PayloadsFromFile -FilePath $file.FullName
-    if (-not $payloads -or $payloads.Count -eq 0) {
-        Move-Item -Path $file.FullName -Destination (Join-Path $ErrorPath $file.Name) -Force
-        Write-Host "Fichier invalide déplacé vers error: $($file.Name)"
+    $result = Send-Batch -FilePath $file.FullName
+    if ($null -eq $result) {
+        # Serveur injoignable ou lot refusé : le fichier reste là, il repartira au prochain passage.
+        Write-Host "Non envoyé, laissé en place : $($file.Name)"
+        $failed++
         continue
     }
 
-    $allOk = $true
-    foreach ($payload in $payloads) {
-        $normalized = Normalize-Payload -Payload $payload
-        $ok = Send-CheckIn -Payload $normalized
-        if (-not $ok) {
-            $allOk = $false
-            break
-        }
-    }
-
-    if ($allOk) {
+    $summary = "{0} reçue(s), {1} enregistrée(s), {2} déjà connue(s), {3} refusée(s)" -f `
+        $result.received, $result.stored, $result.duplicates, $result.rejected
+    if ([int]$result.rejected -eq 0) {
         Move-Item -Path $file.FullName -Destination (Join-Path $ArchivePath $file.Name) -Force
-        Write-Host "Import réussi: $($file.Name)"
+        Write-Host "Importé : $($file.Name) ($summary)"
     } else {
         Move-Item -Path $file.FullName -Destination (Join-Path $ErrorPath $file.Name) -Force
-        Write-Host "Import en erreur: $($file.Name)"
+        Write-Host "Importé en partie, rangé dans error : $($file.Name) ($summary)"
+        foreach ($entry in @($result.results | Where-Object { -not $_.ok })) {
+            Write-Host ("  ligne {0} : {1}" -f ([int]$entry.index + 1), $entry.message)
+        }
+        $failed++
     }
 }
+
+if ($failed -gt 0) { exit 1 }

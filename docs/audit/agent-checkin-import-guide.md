@@ -1,58 +1,42 @@
-# Import Check-in Agent (Test)
+# Remontées de collecte : les trois chemins
 
-## Fichiers fournis
+Voir `backend/README.md` (le serveur) et `deployment/README.md` (les scripts).
 
-- `docs/audit/agent-checkin-schema-v1.example.json`
-- `docs/audit/agent-checkin-batch.sample.json`
-- `docs/audit/agent-checkin-batch.sample.ndjson`
-- `deployment/gpo/Neemba-Agent-Checkin.ps1`
-- `deployment/gpo/Install-NeembaAgentTask.ps1`
-- `deployment/gpo/Uninstall-NeembaAgentTask.ps1`
-- `deployment/host/Invoke-NeembaBatchImport.ps1`
+## 1. Les agents, par le serveur de collecte
 
-## Où importer
+Les postes envoient leur relevé au serveur (`POST /api/agent/checkin`, clé dans l'en-tête
+`x-api-key`). Le serveur l'écrit dans Firestore ; la machine paraît dans l'application sans
+autre geste.
 
-1. Ouvrir `Paramètres`
-2. Aller dans l'onglet `Collecte automatique`
-3. Dans `Import batch check-in`, glisser-déposer un ou plusieurs fichiers
+## 2. Un lot, par le serveur
 
-## Mode API direct (recommandé pour GPO/Intune)
+Un export d'annuaire, un fichier de scan réseau ou une reprise : `POST /api/agent/checkin/batch`
+(tableau JSON, objet `{ "checkins": [...] }`, ou une remontée par ligne), ou les scripts
+`deployment/host/`.
 
-Vous pouvez envoyer les check-ins directement vers l'API backend:
+## 3. Un fichier, à la main, dans l'application
 
-- Endpoint: `POST /api/agent/checkin`
-- Exemple local: `http://localhost:8787/api/agent/checkin`
-- Clé API: `auth.apiKey` (ou `apiKey` legacy)
+Paramètres, Règles de l'organisation, Sources de collecte, « Importer des fichiers de
+remontée ». Les mêmes formats. Sert sans serveur, pour un essai ou une reprise ponctuelle.
 
-Lancer le backend:
+Fichiers d'exemple : `agent-checkin-schema-v1.example.json`, `agent-checkin-batch.sample.json`,
+`agent-checkin-batch.sample.ndjson`.
 
-```bash
-npm run backend:agent
-```
+## Ce que devient une machine remontée
 
-## Comportement attendu
+| Elle ressemble à… | Statut | Dans Tâches |
+|---|---|---|
+| un actif du parc, sans doute possible (même UUID ou même numéro de série) | reconnue | non |
+| deux actifs à la fois | correspondance à confirmer | oui |
+| aucun actif, ou un seul vaguement | à valider | oui |
 
-- Si `Validation manuelle obligatoire` est activée:
-  - les machines remontées vont dans `Machines détectées` avec statut `À valider`
-- Si désactivée:
-  - le système fait un upsert direct dans l'inventaire
-  - le statut dans la file devient `Importé`
-- En cas de correspondance ambiguë:
-  - statut `Ambigu`
-  - revue IT obligatoire
+- **Importer au parc** crée l'actif, au lieu que la machine indique ou laisse déduire.
+- **Ignorer** est définitif : les remontées suivantes mettent ses faits à jour sans la
+  remettre dans Tâches.
+- « Validation manuelle obligatoire », éteinte, ne vaut que pour un fichier déposé à la main :
+  une machine venue du serveur attend toujours dans Tâches si le parc ne la connaît pas.
 
-## Schema versionné supporté
+## Le schéma
 
-- `schema: "neemba.agent.checkin.v1"`
-- clé agent attendue: `auth.apiKey` (ou `apiKey` en legacy)
-
-Les formats legacy restent acceptés pour faciliter les tests.
-
-## Script agent (référence)
-
-Le script `deployment/gpo/Neemba-Agent-Checkin.ps1` inclut:
-
-- collecte hardware / OS / user / apps
-- envoi HTTPS check-in
-- file locale offline JSONL
-- retry automatique des check-ins en attente
+`schema: "neemba.agent.checkin.v1"`. Sources : `agent`, `active_directory`, `network_scan`.
+L'ancienne écriture à plat reste lue, clé dans le corps comprise.
