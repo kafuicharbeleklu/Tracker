@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useMsal } from '@azure/msal-react';
 import { loginRequest } from '../lib/authConfig';
 import { User } from '../types';
@@ -173,9 +173,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
+    /* La personne vient de se déconnecter : un compte Microsoft que la liste tiendrait
+       encore ne rouvre pas sa session. Se reconnecter par Microsoft lève la réserve. */
+    const sortieDemandee = useRef(false);
+
     // Watch MSAL Accounts
     useEffect(() => {
-        if (accounts.length > 0 && !currentUser && !accessDenied) {
+        if (accounts.length === 0) sortieDemandee.current = false;
+        if (accounts.length > 0 && !currentUser && !accessDenied && !sortieDemandee.current) {
             verifyUserWithBackend(accounts[0].username);
             return;
         }
@@ -239,20 +244,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const loginWithMicrosoft = async () => {
         try {
             setAccessDenied(false); // Reset flags before new attempt
-            await instance.loginPopup(loginRequest);
+            sortieDemandee.current = false;
+            /* La déconnexion ne ferme plus la session Microsoft du navigateur : la fenêtre
+               demande donc toujours quel compte ouvrir, pour qu'on puisse en changer. */
+            await instance.loginPopup({ ...loginRequest, prompt: 'select_account' });
             // useEffect will pick up the new account
         } catch (e) {
             console.error(e);
         }
     };
 
+    /**
+     * **Se déconnecter du Tracker, sans fenêtre Microsoft** (12/10).
+     *
+     * `logoutPopup()` partait à chaque déconnexion, quelle que soit la session : avec un
+     * compte de démonstration, qui n'a rien à fermer chez Microsoft, une fenêtre Microsoft
+     * s'ouvrait quand même. Et pour une session Microsoft, elle fermait la session du
+     * navigateur entier (la messagerie, Teams), pas seulement celle du Tracker.
+     *
+     * La session se ferme donc ici. Pour un compte Microsoft, son jeton est retiré du cache
+     * de MSAL (sans lui, la surveillance des comptes rouvrirait la session aussitôt) ; rien
+     * n'est envoyé à Microsoft. Changer de compte se fait à la connexion suivante, qui demande
+     * lequel ouvrir.
+     */
     const logout = () => {
-        instance.logoutPopup(); // MSAL Logout
-        setCurrentUser(null);
-        setNeedsPasswordChange(false);
-        setAccessDenied(false);
-        setAuthSource(null);
-        sessionStorage.clear();
+        const fermer = () => {
+            setCurrentUser(null);
+            setNeedsPasswordChange(false);
+            setAccessDenied(false);
+            setAccessDeniedReason(null);
+            setAuthSource(null);
+            sessionStorage.clear();
+        };
+        if (authSource !== 'msal' && accounts.length === 0) {
+            fermer();
+            return;
+        }
+        sortieDemandee.current = true;
+        void instance
+            .clearCache()
+            .catch(() => undefined)
+            .then(() => {
+                /* MSAL ne prévient personne quand son cache se vide : ce changement de compte
+                   actif fait relire la liste des comptes à `useMsal`. */
+                instance.setActiveAccount(null);
+                fermer();
+            });
     };
 
     /** Voir `patchCurrentUser` dans le contrat : l'instantané suit le magasin. */
