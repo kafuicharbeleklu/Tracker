@@ -19,7 +19,25 @@ type FirebaseEnv = {
     measurementId?: string;
 };
 
+/**
+ * **Coupée à la construction, l'application ne porte rien du projet** (13/10). La version
+ * publique est une démonstration isolée (`VITE_FIREBASE_DISABLED=true`) : elle ne se branchait
+ * plus sur la base, mais son lot contenait encore l'identifiant du projet et sa clé web, en
+ * valeurs par défaut que rien n'employait. La condition est lue telle quelle par le
+ * constructeur : vraie, tout ce qui suit le `return` est retiré du lot.
+ */
+const SANS_PROJET: FirebaseEnv = {
+    apiKey: '',
+    authDomain: '',
+    projectId: '',
+    storageBucket: '',
+    messagingSenderId: '',
+    appId: '',
+};
+
 function readFirebaseEnv(): FirebaseEnv {
+    if (import.meta.env.VITE_FIREBASE_DISABLED === 'true') return SANS_PROJET;
+
     const {
         VITE_FIREBASE_API_KEY,
         VITE_FIREBASE_AUTH_DOMAIN,
