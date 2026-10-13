@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 
 import Button from './Button';
 import PinField from './PinField';
+import { CODE_DE_DEMONSTRATION, DEMONSTRATION_SIMULEE } from '../../lib/demonstration';
 import SignaturePad, { SIGNATURE_BOX } from './SignaturePad';
 import { cn } from '../../lib/utils';
 import { FieldLabel } from './FormParts';
@@ -245,17 +246,26 @@ const Attestation: React.FC<AttestationProps> = ({
                     </span>
                 </div>
             ) : method !== 'signature' ? (
-                <PinField
-                    value={pin}
-                    onChange={(next) => {
-                        setPin(next);
-                        if (next.length < PIN_LENGTH && done) settle('pin', false);
-                        if (failed && next.length < PIN_LENGTH) setFailed(false);
-                    }}
-                    onComplete={verify}
-                    state={failed ? 'error' : done ? 'ok' : 'idle'}
-                    autoFocus
-                />
+                <>
+                    <PinField
+                        value={pin}
+                        onChange={(next) => {
+                            setPin(next);
+                            if (next.length < PIN_LENGTH && done) settle('pin', false);
+                            if (failed && next.length < PIN_LENGTH) setFailed(false);
+                        }}
+                        onComplete={verify}
+                        state={failed ? 'error' : done ? 'ok' : 'idle'}
+                        autoFocus
+                    />
+                    {/* Dans la démonstration du site public, le visiteur ne peut pas deviner le
+                    code des comptes de la simulation. */}
+                    {DEMONSTRATION_SIMULEE && (
+                        <p className="text-on-surface-variant text-ts-sub leading-ts-sub mt-2">
+                            Démonstration : le code est {CODE_DE_DEMONSTRATION}.
+                        </p>
+                    )}
+                </>
             ) : (
                 <SignaturePad
                     signerName={signerName}

@@ -29,12 +29,29 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 
 // Initialize MSAL outside of component lifecycle
-msalInstance.initialize().then(() => {
-  root.render(
-    <React.StrictMode>
-      <MsalProvider instance={msalInstance}>
-        <App />
-      </MsalProvider>
-    </React.StrictMode>
-  );
-});
+const demarrer = () =>
+  msalInstance.initialize().then(() => {
+    root.render(
+      <React.StrictMode>
+        <MsalProvider instance={msalInstance}>
+          <App />
+        </MsalProvider>
+      </React.StrictMode>
+    );
+  });
+
+// La démonstration du site public (13/10) : au premier passage d'un navigateur, la simulation
+// est versée dans son stockage avant que l'application ne lise ses données. Les deux réglages
+// sont lus ici tels quels : sans eux, le constructeur retire ce chargement, et le générateur
+// n'entre dans aucun lot.
+if (
+  import.meta.env.VITE_FIREBASE_DISABLED === 'true' &&
+  import.meta.env.VITE_DEMO_SIMULATION === 'true'
+) {
+  void import('./src/lib/semerLaDemonstration')
+    .then((module) => module.semerLaDemonstration())
+    .catch(() => undefined)
+    .finally(demarrer);
+} else {
+  void demarrer();
+}

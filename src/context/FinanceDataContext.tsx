@@ -15,6 +15,7 @@ import { canManageFinanceByRole } from '../lib/businessRules';
 import { getBudgetCategoryByExpenseType } from '../lib/financial';
 import { deleteExpenseSourceFile } from '../lib/financeFileStorage';
 import { getPersistedValue } from '../lib/persistence';
+import { CLES_DES_FINANCES } from '../lib/clesDeStockage';
 import { firestore } from '../lib/firebase';
 import {
     documentsModifies,
@@ -44,10 +45,7 @@ interface FinanceDataContextType {
 const FinanceDataContext = createContext<FinanceDataContextType | undefined>(undefined);
 const FIREBASE_BACKEND_ENABLED = Boolean(firestore);
 
-const STORAGE_KEYS = {
-    financeExpenses: { current: 'tracker_finance_expenses', legacy: 'neemba_finance_expenses' },
-    financeBudgets: { current: 'tracker_finance_budgets', legacy: 'neemba_finance_budgets' },
-} as const;
+const STORAGE_KEYS = CLES_DES_FINANCES;
 
 const normalizeValueForFingerprint = (value: string | undefined): string => {
     return (value || '')

@@ -5,8 +5,8 @@ demandes d'attribution et de retour, les réparations, les inventaires physiques
 seule application pour trois formats — téléphone, tablette et bureau —, en français.
 
 **Version en ligne :** <https://kafuicharbeleklu.github.io/Tracker/> — une démonstration : les
-comptes de démonstration y sont ouverts, sur des données fictives gardées dans le navigateur de
-chaque visiteur. Elle ne lit ni n'écrit aucune base.
+comptes de démonstration y sont ouverts, sur une organisation fictive (279 actifs, 66 personnes)
+gardée dans le navigateur de chaque visiteur. Elle ne lit ni n'écrit aucune base.
 
 **Droits :** © 2026 Kafui Charbel EKLU, tous droits réservés. Le dépôt est public pour être lu ;
 aucune licence n'est accordée. Voir [`LICENSE`](LICENSE).
@@ -107,6 +107,7 @@ Dans `.env.local` (jamais commité). Toutes sont facultatives.
 | --- | --- |
 | `VITE_FIREBASE_API_KEY`, `…_AUTH_DOMAIN`, `…_PROJECT_ID`, `…_STORAGE_BUCKET`, `…_MESSAGING_SENDER_ID`, `…_APP_ID`, `…_MEASUREMENT_ID` | Le projet Firebase (Firestore). À défaut, celui de production |
 | `VITE_FIREBASE_DISABLED` | `true` coupe Firestore partout, version en ligne comprise : le jeu de démonstration, le même à chaque chargement |
+| `VITE_DEMO_SIMULATION` | `true`, avec la base coupée : la démonstration porte la simulation complète au lieu du petit jeu intégré (c'est le cas de la version en ligne) |
 | `VITE_FIREBASE_EN_DEV` | `true` : en développement, se brancher quand même sur le projet configuré (par défaut, coupé) |
 | `VITE_FIRESTORE_EMULATEUR` | En développement, `hôte:port` d'un émulateur Firestore local (`firebase emulators:start --only firestore`) |
 | `VITE_ENABLE_DEMO_LOGIN` | `true` ouvre les comptes de démonstration hors développement (c'est le cas de la version en ligne) |
@@ -214,8 +215,10 @@ L'interface ne nomme jamais un pays : Neemba est présent dans plusieurs.
 Tout ce qui arrive sur `main` est donc publié dans les minutes qui suivent.
 
 **La version publique est une démonstration isolée** : elle est construite avec
-`VITE_FIREBASE_DISABLED=true`, sans aucune variable du projet Firebase. Un visiteur y travaille sur
-le jeu de démonstration, gardé dans son navigateur ; rien ne part vers Firestore. Une version
+`VITE_FIREBASE_DISABLED=true`, sans aucune variable du projet Firebase, et avec
+`VITE_DEMO_SIMULATION=true`. À sa première visite, un navigateur reçoit la simulation complète
+(`scripts/simulation/jeu.ts`), datée du jour ; ce que le visiteur y fait reste chez lui, et rien
+ne part vers Firestore. L'attestation lui dit le code des comptes de la simulation. Une version
 branchée sur une base réelle se construit ailleurs, avec ses variables et une vraie connexion.
 
 ## Contribuer

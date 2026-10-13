@@ -1,4 +1,5 @@
 import { mockAllEquipment, mockAllUsersExtended } from '../data/mockData';
+import { DEMONSTRATION_SIMULEE } from './demonstration';
 import { firestore } from './firebase';
 
 /**
@@ -37,4 +38,6 @@ export const DEMO_RESEED_NOTICE =
  */
 export const DEMO_RESEED_DISABLED =
     Boolean(firestore) ||
+    /* La démonstration du site public porte la simulation : le petit jeu ne s'y mêle pas. */
+    DEMONSTRATION_SIMULEE ||
     (import.meta.env.DEV && import.meta.env.VITE_DISABLE_DEMO_RESEED === 'true');

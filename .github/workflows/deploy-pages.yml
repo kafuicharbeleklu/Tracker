@@ -37,10 +37,12 @@ jobs:
         # La version publique est une démonstration isolée : les comptes de démonstration
         # sont ouverts, la base est coupée. Chaque visiteur travaille sur des données
         # fictives gardées dans son navigateur ; rien ne lit ni n'écrit Firestore, et le
-        # lot publié ne porte aucune variable du projet Firebase.
+        # lot publié ne porte aucune variable du projet Firebase. Elle porte la simulation
+        # complète (279 actifs), versée dans le navigateur à la première visite.
         env:
           VITE_ENABLE_DEMO_LOGIN: 'true'
           VITE_FIREBASE_DISABLED: 'true'
+          VITE_DEMO_SIMULATION: 'true'
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
