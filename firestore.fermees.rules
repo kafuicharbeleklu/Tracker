@@ -1,0 +1,27 @@
+rules_version = '2';
+
+// **La base fermée** (13/10) — à coller dans la console Firebase (Firestore → Règles →
+// Publier) tant qu'aucune application ne s'y branche.
+//
+// Depuis le 12/10, la version publique est une démonstration isolée : elle ne lit ni n'écrit
+// plus Firestore. Les règles de `firestore.rules`, elles, laissent encore lire et écrire qui
+// connaît l'identifiant du projet, et cet identifiant est dans l'historique du dépôt. Tant que
+// l'application n'identifie personne auprès de Firestore, il n'y a qu'une façon de protéger la
+// base : la fermer à tout navigateur.
+//
+// Ce que ces règles ne touchent pas : les scripts d'administration (`scripts/*.mjs`) et le
+// serveur de collecte (`backend/`), qui passent par le SDK d'administration.
+//
+// Ce qu'elles coupent : toute application branchée sur la base, `VITE_FIREBASE_EN_DEV=true`
+// compris. Pour rouvrir : recoller `firestore.rules`.
+//
+// `firestore.rules` reste le fichier des émulateurs (`firebase.json`) : le développement
+// local n'est pas concerné.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -87,6 +87,12 @@ pas la lecture : elles limitent l'écriture aux quatorze collections de l'applic
 toute suppression et toute réécriture du journal. L'émulateur les applique
 (`firebase emulators:start --only firestore`, configuration dans `firebase.json`).
 
+**Fermer la base** : tant qu'aucune application ne s'y branche (la version publique est une
+démonstration isolée), `firestore.fermees.rules` refuse toute lecture et toute écriture venue d'un
+navigateur. À coller dans la console Firebase à la place des règles ci-dessus ; les scripts
+d'administration et le serveur de collecte ne sont pas concernés. Pour rouvrir, recoller
+`firestore.rules`.
+
 **Tout script qui écrit dans Firestore** doit finir par `annoncerNouvelleGeneration(db, motif)`
 (`scripts/lib/generation.mjs`) : il écrit sans `_maj`, et sans cette annonce les navigateurs ne
 verraient jamais ses documents. Une retouche faite à la main dans la console Firebase n'est vue qu'à
